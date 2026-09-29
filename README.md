@@ -38,3 +38,7 @@ See [ARCHITECTURE.md](ARCHITECTURE.md), [TODO.md](TODO.md) and [CHANGELOG.md](CH
 ## Embedding (Google Sites)
 
 `npm run build:embed` produces a single ~540 KB HTML file with all JS/CSS inlined. In Google Sites: **Insert → Embed → Embed code**, paste the whole file, then drag the embed box as large as you like. The ⛶ button (bottom-right) goes full screen; if the site's frame doesn't allow full screen it opens the game in its own tab instead. Saves live in that browser's storage, so use **Export** in the hub to keep a backup file.
+
+### Short embed code (no big file)
+
+`npm run build:cdn`, commit + push, then `node scripts/buildCdn.mjs --snippet <commitSha>` prints a 5-line snippet (saved to `embed/EMBED_CODE.html`) that loads `embed/saturday26.js`/`.css` from this public repo via jsDelivr. Paste that snippet into Google Sites → Insert → Embed → Embed code. Rebuild and use the new commit id after game updates.
