@@ -1,0 +1,38 @@
+{
+  "order": ["QB", "RB", "WR", "TE", "OL", "DL", "LB", "CB", "S", "K", "P"],
+  "positions": {
+    "QB": { "name": "Quarterback", "side": "offense", "rosterCount": 4, "height": [72, 78], "weight": [195, 235], "jerseys": [[1, 19]],
+      "weights": { "throwPower": 0.12, "shortAccuracy": 0.16, "mediumAccuracy": 0.15, "deepAccuracy": 0.1, "decisionMaking": 0.17, "pocketAwareness": 0.12, "speed": 0.05, "agility": 0.04, "pressureHandling": 0.09 } },
+    "RB": { "name": "Running Back", "side": "offense", "rosterCount": 5, "height": [68, 73], "weight": [190, 230], "jerseys": [[1, 49]],
+      "weights": { "speed": 0.18, "acceleration": 0.16, "vision": 0.16, "elusiveness": 0.14, "power": 0.1, "receiving": 0.08, "passProtection": 0.06, "ballSecurity": 0.12 } },
+    "WR": { "name": "Wide Receiver", "side": "offense", "rosterCount": 10, "height": [69, 77], "weight": [170, 225], "jerseys": [[0, 19], [80, 89]],
+      "weights": { "speed": 0.2, "acceleration": 0.12, "routeRunning": 0.2, "hands": 0.18, "release": 0.1, "contestedCatch": 0.1, "yac": 0.1 } },
+    "TE": { "name": "Tight End", "side": "offense", "rosterCount": 5, "height": [75, 79], "weight": [235, 265], "jerseys": [[80, 89], [40, 49]],
+      "weights": { "speed": 0.12, "routeRunning": 0.14, "hands": 0.16, "runBlock": 0.18, "passBlock": 0.14, "strength": 0.12, "contestedCatch": 0.14 } },
+    "OL": { "name": "Offensive Line", "side": "offense", "rosterCount": 15, "height": [75, 80], "weight": [290, 335], "jerseys": [[50, 79]],
+      "weights": { "passBlock": 0.3, "runBlock": 0.3, "strength": 0.15, "awareness": 0.12, "footwork": 0.13 } },
+    "DL": { "name": "Defensive Line", "side": "defense", "rosterCount": 14, "height": [74, 79], "weight": [250, 320], "jerseys": [[50, 59], [90, 99]],
+      "weights": { "strength": 0.2, "blockShed": 0.25, "passRush": 0.3, "runDefense": 0.25 } },
+    "LB": { "name": "Linebacker", "side": "defense", "rosterCount": 9, "height": [72, 76], "weight": [220, 250], "jerseys": [[0, 59]],
+      "weights": { "tackling": 0.25, "coverage": 0.18, "awareness": 0.2, "speed": 0.17, "blockShed": 0.2 } },
+    "CB": { "name": "Cornerback", "side": "defense", "rosterCount": 9, "height": [69, 74], "weight": [175, 200], "jerseys": [[0, 49]],
+      "weights": { "manCoverage": 0.24, "zoneCoverage": 0.2, "speed": 0.22, "acceleration": 0.12, "ballSkills": 0.12, "tackling": 0.1 } },
+    "S": { "name": "Safety", "side": "defense", "rosterCount": 7, "height": [70, 75], "weight": [190, 215], "jerseys": [[0, 49]],
+      "weights": { "manCoverage": 0.14, "zoneCoverage": 0.26, "speed": 0.18, "acceleration": 0.1, "ballSkills": 0.14, "tackling": 0.18 } },
+    "K": { "name": "Kicker", "side": "special", "rosterCount": 2, "height": [69, 75], "weight": [170, 205], "jerseys": [[1, 49], [90, 99]],
+      "weights": { "power": 0.45, "accuracy": 0.55 } },
+    "P": { "name": "Punter", "side": "special", "rosterCount": 2, "height": [71, 77], "weight": [180, 215], "jerseys": [[1, 49], [90, 99]],
+      "weights": { "power": 0.55, "accuracy": 0.45 } }
+  },
+  "attributeLabels": {
+    "throwPower": "Throw Power", "shortAccuracy": "Short Acc", "mediumAccuracy": "Medium Acc", "deepAccuracy": "Deep Acc",
+    "decisionMaking": "Decision Making", "pocketAwareness": "Pocket Awareness", "speed": "Speed", "agility": "Agility",
+    "pressureHandling": "Pressure Handling", "acceleration": "Acceleration", "vision": "Vision", "elusiveness": "Elusiveness",
+    "power": "Power", "receiving": "Receiving", "passProtection": "Pass Protection", "ballSecurity": "Ball Security",
+    "routeRunning": "Route Running", "hands": "Hands", "release": "Release", "contestedCatch": "Contested Catch", "yac": "YAC",
+    "runBlock": "Run Block", "passBlock": "Pass Block", "strength": "Strength", "awareness": "Awareness", "footwork": "Footwork",
+    "blockShed": "Block Shed", "passRush": "Pass Rush", "runDefense": "Run Defense", "tackling": "Tackling", "coverage": "Coverage",
+    "manCoverage": "Man Coverage", "zoneCoverage": "Zone Coverage", "ballSkills": "Ball Skills", "accuracy": "Accuracy"
+  },
+  "hiddenTraits": ["consistency", "developmentRate", "workEthic", "injuryRisk", "loyalty", "playingTimeExpectation", "nilInterest", "championshipInterest", "proPotential", "transferRisk"]
+}

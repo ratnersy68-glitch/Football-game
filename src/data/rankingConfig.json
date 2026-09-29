@@ -1,0 +1,20 @@
+{
+  "pollSize": 25,
+  "elo": {
+    "base": 1500,
+    "rosterScale": 13,
+    "prestigeScale": 2.0,
+    "k": 34,
+    "homeAdvantage": 55,
+    "movCap": 28
+  },
+  "poll": {
+    "winBonus": 28,
+    "lossPenalty": 95,
+    "sosWeight": 0.18,
+    "qualityWinBonus": 14,
+    "badLossPenalty": 30,
+    "inertia": 0.45,
+    "rankedCutoff": 25
+  }
+}

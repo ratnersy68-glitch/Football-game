@@ -1,0 +1,56 @@
+{
+  "QB": [
+    { "id": "pocket_passer", "name": "Pocket Passer", "mods": { "throwPower": 5, "deepAccuracy": 4, "pocketAwareness": 5, "speed": -14, "agility": -10 } },
+    { "id": "dual_threat", "name": "Dual Threat", "mods": { "speed": 14, "agility": 10, "pocketAwareness": -4, "mediumAccuracy": -3, "deepAccuracy": -3 } },
+    { "id": "field_general", "name": "Field General", "mods": { "decisionMaking": 8, "shortAccuracy": 5, "pressureHandling": 5, "throwPower": -5, "speed": -8 } }
+  ],
+  "RB": [
+    { "id": "power_back", "name": "Power Back", "mods": { "power": 12, "ballSecurity": 4, "passProtection": 4, "elusiveness": -8, "speed": -5 } },
+    { "id": "elusive_back", "name": "Elusive Back", "mods": { "elusiveness": 10, "acceleration": 6, "speed": 4, "power": -10 } },
+    { "id": "receiving_back", "name": "Receiving Back", "mods": { "receiving": 14, "passProtection": 4, "power": -8, "vision": -2 } }
+  ],
+  "WR": [
+    { "id": "deep_threat", "name": "Deep Threat", "mods": { "speed": 10, "acceleration": 5, "routeRunning": -4, "contestedCatch": -4 } },
+    { "id": "possession", "name": "Possession", "mods": { "hands": 8, "routeRunning": 6, "speed": -6, "yac": -2 } },
+    { "id": "slot", "name": "Slot", "mods": { "acceleration": 8, "yac": 8, "routeRunning": 4, "contestedCatch": -8, "release": -2 } },
+    { "id": "physical", "name": "Physical", "mods": { "contestedCatch": 12, "release": 6, "speed": -6, "acceleration": -4 } }
+  ],
+  "TE": [
+    { "id": "vertical_threat", "name": "Vertical Threat", "mods": { "speed": 10, "routeRunning": 8, "runBlock": -10, "passBlock": -6 } },
+    { "id": "blocking", "name": "Blocking", "mods": { "runBlock": 12, "passBlock": 8, "strength": 8, "speed": -8, "routeRunning": -8 } },
+    { "id": "possession", "name": "Possession", "mods": { "hands": 8, "contestedCatch": 6, "speed": -4 } }
+  ],
+  "OL": [
+    { "id": "pass_protector", "name": "Pass Protector", "mods": { "passBlock": 8, "footwork": 6, "runBlock": -5, "strength": -2 } },
+    { "id": "power_blocker", "name": "Power Blocker", "mods": { "runBlock": 8, "strength": 8, "footwork": -6, "passBlock": -4 } },
+    { "id": "agile", "name": "Agile", "mods": { "footwork": 10, "awareness": 3, "strength": -6 } }
+  ],
+  "DL": [
+    { "id": "speed_rusher", "name": "Speed Rusher", "mods": { "passRush": 10, "runDefense": -8, "strength": -6 } },
+    { "id": "power_rusher", "name": "Power Rusher", "mods": { "strength": 8, "passRush": 4, "blockShed": 4, "runDefense": -2 } },
+    { "id": "run_stopper", "name": "Run Stopper", "mods": { "runDefense": 10, "strength": 6, "passRush": -10 } }
+  ],
+  "LB": [
+    { "id": "run_stopper", "name": "Run Stopper", "mods": { "tackling": 8, "blockShed": 8, "coverage": -10 } },
+    { "id": "coverage", "name": "Coverage", "mods": { "coverage": 10, "speed": 6, "blockShed": -8 } },
+    { "id": "field_general", "name": "Field General", "mods": { "awareness": 10, "tackling": 2, "speed": -4 } }
+  ],
+  "CB": [
+    { "id": "man_lockdown", "name": "Man Lockdown", "mods": { "manCoverage": 8, "speed": 4, "zoneCoverage": -6, "tackling": -4 } },
+    { "id": "zone", "name": "Zone", "mods": { "zoneCoverage": 8, "ballSkills": 5, "manCoverage": -5, "speed": -3 } },
+    { "id": "slot", "name": "Slot", "mods": { "acceleration": 8, "tackling": 4, "speed": -3 } }
+  ],
+  "S": [
+    { "id": "zone", "name": "Zone", "mods": { "zoneCoverage": 8, "ballSkills": 6, "tackling": -6 } },
+    { "id": "hybrid", "name": "Hybrid", "mods": { "manCoverage": 6, "speed": 4, "zoneCoverage": -3 } },
+    { "id": "run_support", "name": "Run Support", "mods": { "tackling": 10, "manCoverage": -6, "speed": -2 } }
+  ],
+  "K": [
+    { "id": "power", "name": "Power", "mods": { "power": 8, "accuracy": -6 } },
+    { "id": "accurate", "name": "Accurate", "mods": { "accuracy": 8, "power": -6 } }
+  ],
+  "P": [
+    { "id": "power", "name": "Power", "mods": { "power": 8, "accuracy": -6 } },
+    { "id": "accurate", "name": "Accurate", "mods": { "accuracy": 8, "power": -6 } }
+  ]
+}

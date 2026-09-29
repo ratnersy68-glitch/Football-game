@@ -1,0 +1,10 @@
+{
+  "regularSeasonWeeks": 14,
+  "gamesPerTeam": 12,
+  "rivalryWeek": 14,
+  "earlyNonConferenceWeeks": [1, 2, 3],
+  "crossPowerGameRate": 0.22,
+  "pocketGameHomeRate": 0.9,
+  "tierWeights": { "acc": 3, "independent": 1, "pac_12": 1, "group_of_five": 6, "fcs": 4 },
+  "startYear": 2026
+}

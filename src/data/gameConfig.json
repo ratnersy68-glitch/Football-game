@@ -1,0 +1,48 @@
+{
+  "quarterLengthSec": 900,
+  "timeoutsPerHalf": 3,
+  "kickoffFrom": 35,
+  "touchbackKickoff": 25,
+  "fairCatchKickoff": 25,
+  "touchbackPunt": 20,
+  "safetyFreeKickFrom": 20,
+  "extraPointBallOn": 85,
+  "twoPointBallOn": 97,
+  "clockStopsOnFirstDownInsideSec": 120,
+  "homeFieldBase": 1.5,
+  "homeFieldCrowdMax": 2.5,
+  "overtime": {
+    "startBallOn": 75,
+    "mustGoForTwoFromPeriod": 2,
+    "twoPointShootoutFromPeriod": 3,
+    "timeoutsPerPeriod": 1,
+    "maxPeriods": 12
+  },
+  "tempo": {
+    "hurry": [
+      11,
+      17
+    ],
+    "fast": [
+      22,
+      30
+    ],
+    "normal": [
+      29,
+      36
+    ],
+    "slow": [
+      34,
+      39
+    ]
+  },
+  "penalties": {
+    "falseStart": 0.02,
+    "offside": 0.014,
+    "holding": 0.035,
+    "passInterference": 0.014,
+    "defensiveHolding": 0.008,
+    "roughingPasser": 0.003
+  },
+  "ratingSpread": 0.55
+}

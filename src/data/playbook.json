@@ -1,0 +1,40 @@
+{
+  "formations": {
+    "shotgun_doubles": { "name": "Shotgun Doubles", "personnel": { "RB": 1, "TE": 1, "WR": 3 }, "shotgun": true },
+    "shotgun_trips": { "name": "Shotgun Trips", "personnel": { "RB": 1, "TE": 1, "WR": 3 }, "shotgun": true },
+    "shotgun_spread": { "name": "Shotgun Spread", "personnel": { "RB": 1, "TE": 0, "WR": 4 }, "shotgun": true },
+    "pistol": { "name": "Pistol", "personnel": { "RB": 1, "TE": 1, "WR": 3 }, "shotgun": true, "pistol": true },
+    "singleback": { "name": "Singleback", "personnel": { "RB": 1, "TE": 1, "WR": 3 }, "shotgun": false },
+    "singleback_ace": { "name": "Singleback Ace", "personnel": { "RB": 1, "TE": 2, "WR": 2 }, "shotgun": false },
+    "i_form": { "name": "I-Form", "personnel": { "RB": 2, "TE": 1, "WR": 2 }, "shotgun": false },
+    "goal_line": { "name": "Goal Line", "personnel": { "RB": 2, "TE": 2, "WR": 1 }, "shotgun": false }
+  },
+  "run": {
+    "inside_zone": { "name": "Inside Zone", "carrier": "RB", "gap": "inside", "mean": 0.3, "variance": 1.0, "tfl": 1.0, "breakaway": 1.0 },
+    "outside_zone": { "name": "Outside Zone", "carrier": "RB", "gap": "outside", "mean": 0.1, "variance": 1.25, "tfl": 1.2, "breakaway": 1.25 },
+    "power": { "name": "Power", "carrier": "RB", "gap": "inside", "mean": 0.5, "variance": 0.85, "tfl": 0.9, "breakaway": 0.8 },
+    "counter": { "name": "Counter", "carrier": "RB", "gap": "inside", "mean": 0.2, "variance": 1.2, "tfl": 1.15, "breakaway": 1.2 },
+    "dive": { "name": "Dive", "carrier": "RB", "gap": "inside", "mean": 0.4, "variance": 0.7, "tfl": 0.8, "breakaway": 0.6 },
+    "toss": { "name": "Toss", "carrier": "RB", "gap": "outside", "mean": -0.2, "variance": 1.4, "tfl": 1.3, "breakaway": 1.35 },
+    "qb_draw": { "name": "QB Draw", "carrier": "QB", "gap": "inside", "mean": 0.2, "variance": 1.1, "tfl": 1.0, "breakaway": 1.0 },
+    "read_option": { "name": "Zone Read", "carrier": "option", "gap": "outside", "mean": 0.4, "variance": 1.2, "tfl": 1.0, "breakaway": 1.15 },
+    "triple_option": { "name": "Triple Option", "carrier": "option", "gap": "outside", "mean": 0.5, "variance": 1.3, "tfl": 1.1, "breakaway": 1.2 }
+  },
+  "pass": {
+    "quick_slants": { "name": "Quick Slants", "depth": { "short": 85, "medium": 15, "deep": 0 }, "quick": true },
+    "curl_flat": { "name": "Curl-Flat", "depth": { "short": 70, "medium": 30, "deep": 0 }, "quick": true },
+    "mesh": { "name": "Mesh", "depth": { "short": 75, "medium": 22, "deep": 3 } },
+    "smash": { "name": "Smash", "depth": { "short": 40, "medium": 50, "deep": 10 } },
+    "dagger": { "name": "Dagger", "depth": { "short": 20, "medium": 65, "deep": 15 } },
+    "four_verts": { "name": "Four Verticals", "depth": { "short": 10, "medium": 35, "deep": 55 } },
+    "flood": { "name": "Flood", "depth": { "short": 35, "medium": 55, "deep": 10 } },
+    "y_cross": { "name": "Y-Cross", "depth": { "short": 25, "medium": 60, "deep": 15 } },
+    "pa_boot": { "name": "PA Boot", "depth": { "short": 50, "medium": 45, "deep": 5 }, "playAction": true },
+    "pa_deep": { "name": "PA Shot", "depth": { "short": 5, "medium": 35, "deep": 60 }, "playAction": true },
+    "wr_screen": { "name": "WR Screen", "depth": { "screen": 100 }, "screen": "WR", "quick": true },
+    "rb_screen": { "name": "RB Screen", "depth": { "screen": 100 }, "screen": "RB" },
+    "rpo_glance": { "name": "RPO Glance", "depth": { "short": 30, "medium": 70, "deep": 0 }, "quick": true, "rpo": true },
+    "rpo_bubble": { "name": "RPO Bubble", "depth": { "screen": 100 }, "screen": "WR", "quick": true, "rpo": true },
+    "hail_mary": { "name": "Hail Mary", "depth": { "deep": 100 } }
+  }
+}

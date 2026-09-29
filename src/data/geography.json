@@ -1,0 +1,478 @@
+{
+ "cities": {
+  "AL": [
+   "Birmingham",
+   "Montgomery",
+   "Mobile",
+   "Huntsville",
+   "Tuscaloosa",
+   "Hoover",
+   "Dothan",
+   "Auburn"
+  ],
+  "AK": [
+   "Anchorage",
+   "Fairbanks"
+  ],
+  "AZ": [
+   "Phoenix",
+   "Tucson",
+   "Mesa",
+   "Chandler",
+   "Scottsdale",
+   "Gilbert",
+   "Glendale"
+  ],
+  "AR": [
+   "Little Rock",
+   "Fayetteville",
+   "Fort Smith",
+   "Jonesboro",
+   "Bentonville",
+   "Pine Bluff"
+  ],
+  "CA": [
+   "Los Angeles",
+   "San Diego",
+   "Sacramento",
+   "Fresno",
+   "Oakland",
+   "Long Beach",
+   "Bakersfield",
+   "Santa Ana",
+   "Corona",
+   "Mission Viejo",
+   "Concord",
+   "Bellflower",
+   "Orange",
+   "Anaheim",
+   "Riverside"
+  ],
+  "CO": [
+   "Denver",
+   "Colorado Springs",
+   "Aurora",
+   "Pueblo",
+   "Fort Collins"
+  ],
+  "CT": [
+   "Hartford",
+   "New Haven",
+   "Bridgeport"
+  ],
+  "DC": [
+   "Washington"
+  ],
+  "DE": [
+   "Wilmington",
+   "Dover"
+  ],
+  "FL": [
+   "Miami",
+   "Tampa",
+   "Jacksonville",
+   "Orlando",
+   "Fort Lauderdale",
+   "Tallahassee",
+   "St. Petersburg",
+   "Bradenton",
+   "Pahokee",
+   "Belle Glade",
+   "Gainesville",
+   "Lakeland",
+   "Pensacola",
+   "Sarasota",
+   "Homestead",
+   "Plantation"
+  ],
+  "GA": [
+   "Atlanta",
+   "Savannah",
+   "Macon",
+   "Columbus",
+   "Athens",
+   "Valdosta",
+   "Buford",
+   "Marietta",
+   "Norcross",
+   "Lawrenceville",
+   "Augusta",
+   "Rome"
+  ],
+  "HI": [
+   "Honolulu",
+   "Kapolei",
+   "Hilo",
+   "Kahuku"
+  ],
+  "ID": [
+   "Boise",
+   "Idaho Falls",
+   "Nampa"
+  ],
+  "IL": [
+   "Chicago",
+   "Naperville",
+   "Joliet",
+   "Rockford",
+   "Peoria",
+   "Springfield",
+   "Aurora",
+   "Champaign",
+   "Wheaton"
+  ],
+  "IN": [
+   "Indianapolis",
+   "Fort Wayne",
+   "Evansville",
+   "South Bend",
+   "Carmel",
+   "Fishers",
+   "Bloomington",
+   "Gary"
+  ],
+  "IA": [
+   "Des Moines",
+   "Cedar Rapids",
+   "Davenport",
+   "Iowa City",
+   "Sioux City",
+   "Ames",
+   "Dubuque"
+  ],
+  "KS": [
+   "Wichita",
+   "Overland Park",
+   "Kansas City",
+   "Olathe",
+   "Topeka",
+   "Lawrence",
+   "Manhattan"
+  ],
+  "KY": [
+   "Louisville",
+   "Lexington",
+   "Bowling Green",
+   "Owensboro",
+   "Covington"
+  ],
+  "LA": [
+   "New Orleans",
+   "Baton Rouge",
+   "Shreveport",
+   "Lafayette",
+   "Lake Charles",
+   "Monroe",
+   "Metairie",
+   "Destrehan"
+  ],
+  "ME": [
+   "Portland",
+   "Bangor"
+  ],
+  "MD": [
+   "Baltimore",
+   "Silver Spring",
+   "Hyattsville",
+   "Annapolis",
+   "Upper Marlboro",
+   "Olney",
+   "Frederick"
+  ],
+  "MA": [
+   "Boston",
+   "Worcester",
+   "Springfield"
+  ],
+  "MI": [
+   "Detroit",
+   "Grand Rapids",
+   "Lansing",
+   "Ann Arbor",
+   "Flint",
+   "Saginaw",
+   "Southfield",
+   "Belleville",
+   "Kalamazoo"
+  ],
+  "MN": [
+   "Minneapolis",
+   "St. Paul",
+   "Rochester",
+   "Duluth",
+   "Eden Prairie",
+   "Bloomington"
+  ],
+  "MS": [
+   "Jackson",
+   "Gulfport",
+   "Hattiesburg",
+   "Tupelo",
+   "Meridian",
+   "Starkville",
+   "Oxford",
+   "Biloxi"
+  ],
+  "MO": [
+   "Kansas City",
+   "St. Louis",
+   "Springfield",
+   "Columbia",
+   "Independence",
+   "Lee's Summit"
+  ],
+  "MT": [
+   "Billings",
+   "Missoula",
+   "Bozeman"
+  ],
+  "NE": [
+   "Omaha",
+   "Lincoln",
+   "Grand Island",
+   "Kearney"
+  ],
+  "NV": [
+   "Las Vegas",
+   "Henderson",
+   "Reno"
+  ],
+  "NH": [
+   "Manchester",
+   "Nashua"
+  ],
+  "NJ": [
+   "Newark",
+   "Jersey City",
+   "Paterson",
+   "Trenton",
+   "Camden",
+   "Bergen",
+   "Montclair",
+   "Toms River"
+  ],
+  "NM": [
+   "Albuquerque",
+   "Las Cruces",
+   "Santa Fe"
+  ],
+  "NY": [
+   "New York",
+   "Buffalo",
+   "Rochester",
+   "Syracuse",
+   "Albany",
+   "Yonkers",
+   "Long Island"
+  ],
+  "NC": [
+   "Charlotte",
+   "Raleigh",
+   "Greensboro",
+   "Durham",
+   "Winston-Salem",
+   "Fayetteville",
+   "Wilmington"
+  ],
+  "ND": [
+   "Fargo",
+   "Bismarck"
+  ],
+  "OH": [
+   "Columbus",
+   "Cleveland",
+   "Cincinnati",
+   "Toledo",
+   "Akron",
+   "Dayton",
+   "Youngstown",
+   "Canton",
+   "Massillon",
+   "Lakewood",
+   "Springfield",
+   "Pickerington"
+  ],
+  "OK": [
+   "Oklahoma City",
+   "Tulsa",
+   "Norman",
+   "Lawton",
+   "Broken Arrow",
+   "Stillwater",
+   "Edmond"
+  ],
+  "OR": [
+   "Portland",
+   "Eugene",
+   "Salem",
+   "Bend",
+   "Beaverton",
+   "Medford"
+  ],
+  "PA": [
+   "Philadelphia",
+   "Pittsburgh",
+   "Allentown",
+   "Erie",
+   "Harrisburg",
+   "Scranton",
+   "State College",
+   "Lancaster",
+   "Aliquippa"
+  ],
+  "RI": [
+   "Providence"
+  ],
+  "SC": [
+   "Columbia",
+   "Charleston",
+   "Greenville",
+   "Spartanburg",
+   "Rock Hill",
+   "Myrtle Beach",
+   "Gaffney"
+  ],
+  "SD": [
+   "Sioux Falls",
+   "Rapid City"
+  ],
+  "TN": [
+   "Nashville",
+   "Memphis",
+   "Knoxville",
+   "Chattanooga",
+   "Clarksville",
+   "Murfreesboro",
+   "Maryville"
+  ],
+  "TX": [
+   "Houston",
+   "Dallas",
+   "San Antonio",
+   "Austin",
+   "Fort Worth",
+   "El Paso",
+   "Arlington",
+   "Plano",
+   "Lubbock",
+   "Katy",
+   "Allen",
+   "Southlake",
+   "Duncanville",
+   "DeSoto",
+   "Waco",
+   "Tyler",
+   "Beaumont",
+   "Corpus Christi",
+   "Amarillo",
+   "Odessa",
+   "Midland",
+   "Cedar Hill",
+   "Galena Park",
+   "Frisco"
+  ],
+  "UT": [
+   "Salt Lake City",
+   "Provo",
+   "Ogden",
+   "St. George",
+   "Orem",
+   "Draper"
+  ],
+  "VT": [
+   "Burlington"
+  ],
+  "VA": [
+   "Virginia Beach",
+   "Norfolk",
+   "Richmond",
+   "Chesapeake",
+   "Alexandria",
+   "Hampton",
+   "Roanoke",
+   "Newport News"
+  ],
+  "WA": [
+   "Seattle",
+   "Tacoma",
+   "Spokane",
+   "Bellevue",
+   "Everett",
+   "Kent",
+   "Vancouver"
+  ],
+  "WV": [
+   "Charleston",
+   "Huntington",
+   "Morgantown",
+   "Parkersburg",
+   "Wheeling"
+  ],
+  "WI": [
+   "Milwaukee",
+   "Madison",
+   "Green Bay",
+   "Kenosha",
+   "Racine",
+   "Appleton"
+  ],
+  "WY": [
+   "Cheyenne",
+   "Casper",
+   "Laramie"
+  ]
+ },
+ "talentWeight": {
+  "TX": 14,
+  "FL": 13,
+  "GA": 10,
+  "CA": 9,
+  "AL": 5,
+  "OH": 5,
+  "LA": 5,
+  "NC": 4,
+  "PA": 4,
+  "TN": 4,
+  "MS": 4,
+  "SC": 3,
+  "VA": 3,
+  "MD": 3,
+  "NJ": 3,
+  "MI": 3,
+  "IL": 3,
+  "AZ": 2,
+  "OK": 2,
+  "MO": 2,
+  "IN": 2,
+  "KY": 1.5,
+  "AR": 1.5,
+  "WA": 1.5,
+  "UT": 1.5,
+  "NY": 1.5,
+  "KS": 1,
+  "IA": 1,
+  "MN": 1,
+  "WI": 1,
+  "CO": 1,
+  "NE": 0.8,
+  "OR": 0.8,
+  "NV": 0.8,
+  "HI": 0.6,
+  "DC": 0.5,
+  "WV": 0.5,
+  "CT": 0.4,
+  "MA": 0.4,
+  "NM": 0.3,
+  "ID": 0.3,
+  "DE": 0.2,
+  "SD": 0.2,
+  "ND": 0.2,
+  "MT": 0.2,
+  "WY": 0.1,
+  "AK": 0.1,
+  "ME": 0.1,
+  "NH": 0.1,
+  "VT": 0.05,
+  "RI": 0.1
+ }
+}
