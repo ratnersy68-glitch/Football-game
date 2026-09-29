@@ -1,4 +1,5 @@
 import { useStore } from './store';
+import { FullscreenButton } from './FullscreenButton';
 import { MainMenu } from '../ui/screens/MainMenu';
 import { TeamSelect } from '../ui/screens/TeamSelect';
 import { ProgramOverview } from '../ui/screens/ProgramOverview';
@@ -44,6 +45,7 @@ export function App() {
     <>
       {view}
       {toast && <div className="toast">{toast}</div>}
+      <FullscreenButton />
     </>
   );
 }

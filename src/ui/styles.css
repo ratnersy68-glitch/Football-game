@@ -261,3 +261,6 @@ table.data td.num, table.data th.num { text-align: right; font-variant-numeric: 
   background-size: 90px 110px, 130px 90px, 70px 140px, 110px 120px; background-position: 0 0, 40px 60px, 20px 30px, 70px 10px; animation: confetti-fall 6s linear infinite; opacity: .8; }
 .celebrate.confetti::after { animation-duration: 9s; background-size: 120px 80px, 80px 130px, 100px 100px, 60px 90px; opacity: .6; }
 @keyframes confetti-fall { from { transform: translateY(-20%); } to { transform: translateY(40%); } }
+
+.fs-btn { position: fixed; right: 10px; bottom: 10px; z-index: 200; width: 36px; height: 36px; border-radius: 8px; border: 1px solid var(--line); background: rgba(19,25,39,.85); color: #fff; font-size: 18px; line-height: 1; display: grid; place-items: center; opacity: .75; }
+.fs-btn:hover { opacity: 1; border-color: var(--accent); }

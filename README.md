@@ -20,6 +20,7 @@ npm run dev          # http://localhost:5173
 | `npm run sim:game -- ohio_state michigan 48291` | Print a full play-by-play for one seeded game |
 | `npm run sim:season` | Simulate a full dynasty season headlessly |
 | `npm run sim:dynasty -- 10` | Simulate N complete seasons (postseason + offseason) and print champions, Heismans and rating trends |
+| `npm run build:embed` | Build ONE self-contained HTML file (`dist-embed/saturday26-embed.html`) to paste into Google Sites → Insert → Embed → Embed code |
 | `npm run e2e` | Browser smoke tests (needs `npm run dev` running; set `CHROMIUM_PATH` if Playwright can't find Chromium) |
 
 ## What works (Milestone 1)
@@ -33,3 +34,7 @@ Conference championship games at their real neutral sites → 12-team College Fo
 **Team logos:** official logos load at runtime from ESPN's public CDN using team IDs in `src/data/logos.json` (nothing is bundled in the repo). Any logo that can't load falls back to a team-color roundel; Settings has a toggle. To use your own image for a team, put its URL in `overrides` in `logos.json`.
 
 See [ARCHITECTURE.md](ARCHITECTURE.md), [TODO.md](TODO.md) and [CHANGELOG.md](CHANGELOG.md).
+
+## Embedding (Google Sites)
+
+`npm run build:embed` produces a single ~540 KB HTML file with all JS/CSS inlined. In Google Sites: **Insert → Embed → Embed code**, paste the whole file, then drag the embed box as large as you like. The ⛶ button (bottom-right) goes full screen; if the site's frame doesn't allow full screen it opens the game in its own tab instead. Saves live in that browser's storage, so use **Export** in the hub to keep a backup file.

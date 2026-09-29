@@ -15,7 +15,8 @@
     "sim:game": "tsx scripts/oneGame.ts",
     "sim:season": "tsx scripts/simulateSeason.ts",
     "e2e": "node scripts/e2e/smoke.mjs && node scripts/e2e/decision.mjs && node scripts/e2e/season.mjs",
-    "sim:dynasty": "tsx scripts/simulateDynasty.ts"
+    "sim:dynasty": "tsx scripts/simulateDynasty.ts",
+    "build:embed": "node scripts/buildEmbed.mjs"
   },
   "dependencies": {
     "react": "^19.1.0",
