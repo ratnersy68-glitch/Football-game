@@ -1,0 +1,13 @@
+{
+  "heisman": { "name": "Heisman Trophy", "short": "Heisman" },
+  "positional": [
+    { "id": "qb", "name": "Davey O'Brien Award", "label": "Best QB", "positions": ["QB"] },
+    { "id": "rb", "name": "Doak Walker Award", "label": "Best RB", "positions": ["RB"] },
+    { "id": "wr", "name": "Biletnikoff Award", "label": "Best WR", "positions": ["WR", "TE"] },
+    { "id": "ol", "name": "Outland Trophy", "label": "Best OL", "positions": ["OL"] },
+    { "id": "dl", "name": "Ted Hendricks Award", "label": "Best DL", "positions": ["DL"] },
+    { "id": "lb", "name": "Butkus Award", "label": "Best LB", "positions": ["LB"] },
+    { "id": "db", "name": "Jim Thorpe Award", "label": "Best DB", "positions": ["CB", "S"] }
+  ],
+  "coach": { "id": "coy", "name": "Coach of the Year" }
+}

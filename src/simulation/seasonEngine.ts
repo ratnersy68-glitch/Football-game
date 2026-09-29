@@ -2,9 +2,23 @@
  * Season flow: create a dynasty, play games, apply results, advance weeks.
  * The UI calls these; they mutate the Dynasty object in place (it is plain JSON and gets saved as-is).
  */
-import { SCHEDULE_RULES, TEAMS, TEAM_BY_ID, isUniverseTeam } from '../data';
+import { BOWLS, CONFERENCE_BY_ID, PLAYOFF_CONFIG, SCHEDULE_RULES, TEAMS, TEAM_BY_ID, isUniverseTeam } from '../data';
 import { seedFrom } from '../core/rng';
-import type { Coach, CoachingSettings, DefScheme, Dynasty, Game, GameResult, OffScheme, Side } from '../models/types';
+import type { Coach, CoachingSettings, DefScheme, Dynasty, Game, GameResult, OffScheme, SeasonHistory, Side } from '../models/types';
+import { computeAwards } from './awardsEngine';
+import {
+  createBowls,
+  createConferenceChampionships,
+  createPlayoffRound,
+  firstRound,
+  loserOf,
+  nextRoundAfter,
+  postseasonGames,
+  postseasonSummary,
+  recordConferenceChampions,
+  selectPlayoffField,
+  winnerOf,
+} from './postseasonEngine';
 import { autoDepthChart, reconcileDepthChart } from './depthChart';
 import { GameSimulation } from './game/gameEngine';
 import type { GameSetup } from './game/types';
@@ -14,7 +28,7 @@ import { computePoll, currentRank, initialElo, updateElo } from './rankingEngine
 import { generateSchedule } from './scheduleGenerator';
 import { buildWorld, DEFAULT_COACHING, gameSetupFor } from './world';
 
-export const DYNASTY_VERSION = 1;
+export const DYNASTY_VERSION = 2;
 
 export interface NewDynastyOptions {
   teamId: string;
@@ -79,6 +93,9 @@ export function createDynasty(opts: NewDynastyOptions): Dynasty {
     news: [],
     coachingSettings: { ...DEFAULT_COACHING },
     nextId: holder.nextId,
+    postseason: null,
+    history: [],
+    offseason: null,
   };
   for (const t of Object.values(d.teams)) {
     t.elo = initialElo(t, d.players);
@@ -220,8 +237,9 @@ export function simulateGameFully(d: Dynasty, g: Game): GameResult {
 }
 
 /** Simulate every unplayed game in the current week, then advance to the next week. */
+/** Simulate every unplayed game in the current week, then advance the season (regular → CCG → bowls/CFP → champion). */
 export function completeWeek(d: Dynasty): void {
-  if (d.phase !== 'regular') return;
+  if (d.phase === 'seasonComplete' || d.phase === 'offseason') return;
   const week = d.week;
   for (const g of gamesForWeek(d, week)) if (!g.played) simulateGameFully(d, g);
 
@@ -237,45 +255,151 @@ export function completeWeek(d: Dynasty): void {
     t.depthChart = t.id === d.userTeamId ? reconcileDepthChart(t.depthChart, roster) : autoDepthChart(roster);
   }
 
-  const prev = d.rankings[d.rankings.length - 1];
-  const poll = computePoll(d, week);
-  d.rankings.push(poll);
-  d.news.push(...rankingNews(d, poll, prev, () => nextIdFn(d)('n')));
+  const id = () => nextIdFn(d)('n');
+  if (d.phase === 'regular' || d.phase === 'ccg') {
+    const prev = d.rankings[d.rankings.length - 1];
+    const poll = computePoll(d, week);
+    d.rankings.push(poll);
+    d.news.push(...rankingNews(d, poll, prev, id));
+  }
 
-  d.week = week + 1;
-  if (d.week > SCHEDULE_RULES.regularSeasonWeeks) {
-    d.phase = 'regularComplete';
-    const champs = seasonSummaryNews(d);
-    d.news.push(...champs);
+  if (d.phase === 'regular') {
+    d.week = week + 1;
+    if (week >= SCHEDULE_RULES.regularSeasonWeeks) {
+      d.news.push(...seasonSummaryNews(d));
+      const ccgWeek = createConferenceChampionships(d);
+      if (ccgWeek !== null) {
+        d.phase = 'ccg';
+        d.week = ccgWeek;
+        for (const g of gamesForWeek(d, ccgWeek))
+          d.news.push({ id: id(), season: d.season, week, type: 'program', headline: `${g.postseason!.name} set: ${school(g.homeId)} vs ${school(g.awayId)}`, teamIds: [g.homeId, g.awayId], importance: 75 });
+      } else setupPostseason(d);
+    }
+  } else if (d.phase === 'ccg') {
+    setupPostseason(d);
+  } else if (d.phase === 'postseason') {
+    const next = nextRoundAfter(week);
+    const cfpDone = !next;
+    if (next) {
+      const games = createPlayoffRound(d, next);
+      d.week = next.week;
+      if (!games.length) crownChampion(d);
+    }
+    if (cfpDone) crownChampion(d);
   }
   d.updatedAt = Date.now();
 }
 
-function seasonSummaryNews(d: Dynasty): Dynasty['news'] {
-  const out: Dynasty['news'] = [];
-  const top = d.rankings[d.rankings.length - 1]?.poll[0];
-  if (top) {
-    out.push({
-      id: nextIdFn(d)('n'),
-      season: d.season,
-      week: d.week - 1,
-      type: 'milestone',
-      headline: `Regular season complete: ${TEAM_BY_ID[top.teamId].school} (${top.w}-${top.l}) finishes #1`,
-      teamIds: [top.teamId],
-      importance: 90,
-    });
+function school(id: string): string {
+  return TEAM_BY_ID[id]?.school ?? id;
+}
+
+/** After championship week: awards, playoff selection, first round and bowls. */
+function setupPostseason(d: Dynasty): void {
+  const id = () => nextIdFn(d)('n');
+  const champions = recordConferenceChampions(d);
+  const awards = computeAwards(d, champions);
+  const seeds = selectPlayoffField(d, champions);
+  const top25 = d.rankings[d.rankings.length - 1]?.poll.map((e) => e.teamId) ?? [];
+  d.postseason = { season: d.season, conferenceChampions: champions, cfpSeeds: seeds, selectionRanking: top25, awards };
+  for (const [conf, teamId] of Object.entries(champions)) {
+    const coach = d.coaches[d.teams[teamId].coachIds.HC];
+    if (coach) coach.confTitles = (coach.confTitles ?? 0) + 1;
+    d.news.push({ id: id(), season: d.season, week: d.week, type: 'milestone', headline: `${school(teamId)} are ${CONFERENCE_BY_ID[conf].name} champions`, teamIds: [teamId], importance: 80 });
   }
-  const u = d.teams[d.userTeamId].record;
-  out.push({
-    id: nextIdFn(d)('n'),
+  for (const s of seeds) {
+    const coach = d.coaches[d.teams[s.teamId].coachIds.HC];
+    if (coach) coach.playoffApps = (coach.playoffApps ?? 0) + 1;
+  }
+  const byes = seeds.slice(0, PLAYOFF_CONFIG.byes).map((s) => school(s.teamId));
+  d.news.push({
+    id: id(),
     season: d.season,
-    week: d.week - 1,
+    week: d.week,
     type: 'milestone',
-    headline: `${TEAM_BY_ID[d.userTeamId].school} finishes the regular season ${u.w}-${u.l} (${u.confW}-${u.confL} conference)`,
-    teamIds: [d.userTeamId],
-    importance: 85,
+    headline: `Playoff field set: ${school(seeds[0]?.teamId ?? '')} is the #1 seed${byes.length > 1 ? `; byes for ${byes.slice(1).join(', ')}` : ''}`,
+    teamIds: seeds.map((s) => s.teamId),
+    importance: 95,
   });
-  return out;
+  if (seeds.some((s) => s.teamId === d.userTeamId)) {
+    const s = seeds.find((x) => x.teamId === d.userTeamId)!;
+    d.news.push({ id: id(), season: d.season, week: d.week, type: 'program', headline: `${school(d.userTeamId)} makes the College Football Playoff as the #${s.seed} seed`, teamIds: [d.userTeamId], importance: 99 });
+  }
+  const heisman = awards.find((a) => a.id === 'heisman');
+  if (heisman) {
+    d.news.push({ id: id(), season: d.season, week: d.week, type: 'milestone', headline: `${heisman.winnerName} (${school(heisman.teamId)}) wins the ${heisman.name}`, teamIds: [heisman.teamId], importance: 92 });
+    const coach = d.coaches[d.teams[heisman.teamId].coachIds.HC];
+    if (coach) coach.heismans = (coach.heismans ?? 0) + 1;
+  }
+  const coy = awards.find((a) => a.id === 'coy');
+  if (coy?.coachId && d.coaches[coy.coachId]) d.coaches[coy.coachId].coyAwards = (d.coaches[coy.coachId].coyAwards ?? 0) + 1;
+
+  const r1 = firstRound();
+  createPlayoffRound(d, r1);
+  createBowls(d, new Set(seeds.map((s) => s.teamId)));
+  d.phase = 'postseason';
+  d.week = Math.min(r1.week, BOWLS.week);
+}
+
+function crownChampion(d: Dynasty): void {
+  const ps = d.postseason;
+  const final = postseasonGames(d).filter((g) => g.postseason?.kind === 'cfp' && g.played).sort((a, b) => b.week - a.week)[0];
+  const champ = final ? winnerOf(final) : undefined;
+  if (ps && final && champ) {
+    ps.champion = champ;
+    ps.runnerUp = loserOf(final);
+    const r = final.result!;
+    ps.titleScore = `${Math.max(r.homeScore, r.awayScore)}-${Math.min(r.homeScore, r.awayScore)}`;
+    const coach = d.coaches[d.teams[champ].coachIds.HC];
+    if (coach) coach.natTitles = (coach.natTitles ?? 0) + 1;
+    d.news.push({ id: nextIdFn(d)('n'), season: d.season, week: final.week, type: 'milestone', headline: `${school(champ)} win the national championship, beating ${school(ps.runnerUp!)} ${ps.titleScore}`, teamIds: [champ], importance: 100 });
+  }
+  // Bowl records for head coaches.
+  for (const g of postseasonGames(d).filter((x) => x.played && x.postseason?.kind !== 'ccg')) {
+    const w = winnerOf(g)!;
+    const l = loserOf(g)!;
+    const cw = d.coaches[d.teams[w]?.coachIds.HC];
+    const cl = d.coaches[d.teams[l]?.coachIds.HC];
+    if (cw) cw.bowlWins = (cw.bowlWins ?? 0) + 1;
+    if (cl) cl.bowlLosses = (cl.bowlLosses ?? 0) + 1;
+  }
+  const poll = computePoll(d, d.week);
+  d.rankings.push(poll);
+  d.phase = 'seasonComplete';
+  recordSeasonHistory(d);
+}
+
+/** Store the season permanently (viewable for decades). */
+function recordSeasonHistory(d: Dynasty): void {
+  const ps = d.postseason;
+  const user = d.teams[d.userTeamId];
+  const coach = d.coaches[d.userCoachId];
+  const finalPoll = d.rankings[d.rankings.length - 1]?.poll ?? [];
+  const finalRank = finalPoll.find((e) => e.teamId === d.userTeamId)?.rank ?? 0;
+  const entry: SeasonHistory = {
+    season: d.season,
+    champion: ps?.champion,
+    runnerUp: ps?.runnerUp,
+    titleScore: ps?.titleScore,
+    cfpField: ps?.cfpSeeds.map((s) => s.teamId) ?? [],
+    conferenceChampions: ps?.conferenceChampions ?? {},
+    awards: ps?.awards ?? [],
+    finalTop25: finalPoll.map((e) => ({ teamId: e.teamId, w: e.w, l: e.l })),
+    user: {
+      teamId: d.userTeamId,
+      coachName: `${coach.firstName} ${coach.lastName}`,
+      w: user.record.w,
+      l: user.record.l,
+      confW: user.record.confW,
+      confL: user.record.confL,
+      finalRank,
+      postseason: postseasonSummary(d, d.userTeamId),
+    },
+    draft: [],
+  };
+  d.history = d.history.filter((h) => h.season !== d.season);
+  d.history.push(entry);
+  coach.seasons = [...(coach.seasons ?? []).filter((x) => x.season !== d.season), { season: d.season, teamId: d.userTeamId, w: user.record.w, l: user.record.l, finalRank, result: entry.user.postseason }];
 }
 
 /** Deterministic seed helper for exhibition games. */
@@ -291,3 +415,31 @@ export function universeTeamIds(d: Dynasty): string[] {
   return Object.keys(d.teams).filter(isUniverseTeam);
 }
 
+
+function seasonSummaryNews(d: Dynasty): Dynasty['news'] {
+  const out: Dynasty['news'] = [];
+  const top = d.rankings[d.rankings.length - 1]?.poll[0];
+  const week = SCHEDULE_RULES.regularSeasonWeeks;
+  if (top) {
+    out.push({
+      id: nextIdFn(d)('n'),
+      season: d.season,
+      week,
+      type: 'milestone',
+      headline: `Regular season complete: ${TEAM_BY_ID[top.teamId].school} (${top.w}-${top.l}) finishes #1`,
+      teamIds: [top.teamId],
+      importance: 90,
+    });
+  }
+  const u = d.teams[d.userTeamId].record;
+  out.push({
+    id: nextIdFn(d)('n'),
+    season: d.season,
+    week,
+    type: 'milestone',
+    headline: `${TEAM_BY_ID[d.userTeamId].school} finishes the regular season ${u.w}-${u.l} (${u.confW}-${u.confL} conference)`,
+    teamIds: [d.userTeamId],
+    importance: 85,
+  });
+  return out;
+}

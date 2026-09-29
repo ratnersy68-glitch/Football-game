@@ -43,6 +43,16 @@ export function SettingsScreen() {
           ]}
           onChange={(v) => updateSettings({ fourthDownPrompts: v === 'ask' })}
         />
+        <label>Official team logos</label>
+        <Seg
+          value={settings.logos ? 'on' : 'off'}
+          options={[
+            ['on', 'Show logos'],
+            ['off', 'Color roundels'],
+          ]}
+          onChange={(v) => updateSettings({ logos: v === 'on' })}
+        />
+        <div className="muted" style={{ fontSize: 12 }}>Logos load from the internet at runtime; any that can't load fall back to a team-color roundel.</div>
         <label>Autosave after every week</label>
         <Seg
           value={settings.autosave ? 'on' : 'off'}

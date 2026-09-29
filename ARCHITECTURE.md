@@ -25,6 +25,10 @@ src/
     playbook.json         formations, run concepts, pass concepts (depth profiles)
     gameConfig.json       clock, kickoff/touchback spots, OT rules, tempo, penalty rates, home field, rating spread
     rankingConfig.json    Elo + poll weights
+    playoffConfig.json    CFP team count, auto-bids, seeding, byes, rounds/bracket slots, bowl sites
+    bowls.json            non-playoff bowls, eligibility
+    awards.json           award names and position groups
+    logos.json            ESPN team ids / URL templates for runtime logos
     scheduleRules.json    season length, games per team, rivalry week, non-con mix
     names.json, geography.json
     index.ts              typed accessors (TEAM_BY_ID, rivalryBetween, ...)
@@ -41,7 +45,10 @@ src/
     rankingEngine.ts      Elo updates + AP-style poll
     standings.ts          conference standings & tiebreakers
     newsEngine.ts         headlines from real sim events
-    seasonEngine.ts       createDynasty, applyGameResult, completeWeek
+    seasonEngine.ts       createDynasty, applyGameResult, completeWeek (phase state machine)
+    postseasonEngine.ts   conference title games, CFP selection/seeding/bracket rounds, bowls
+    awardsEngine.ts       Heisman, position awards, Coach of the Year from season stats
+    offseasonEngine.ts    archive stats, draft, graduation, development, signing classes, prestige, next season
     game/
       gameEngine.ts       GameSimulation: stepwise play-by-play state machine
       personnel.ts        who's on the field, fatigue, rotations, effective ratings
@@ -70,13 +77,20 @@ Effective ratings = attribute compressed by `ratingSpread` around a pivot, minus
 
 College rules implemented: 15-min quarters, 3 timeouts/half, clock stops on first downs only inside 2:00 of each half, clock restarts after out-of-bounds outside 2:00, touchback to the 25, fair catch inside the 25, 15-yard max DPI with automatic first down, missed FG returns to the previous spot (min 20), safety free kick from the 20, OT from the 25 with mandatory 2-pt tries from 2OT and alternating 2-pt shootout from 3OT.
 
+## Season flow
+
+`Dynasty.phase`: `regular` (weeks 1–14) → `ccg` (week 15, top two per conference at a neutral site) → `postseason` (week 16 bowls + CFP first round, then one CFP round per week) → `seasonComplete` (champion crowned, history recorded) → `offseason` (`startOffseason`) → `startNextSeason` → `regular`.
+Every transition happens in `completeWeek`, so the UI only calls "play/sim this week". The playoff bracket is data: each round lists its games as pairs of seeds or earlier slots (`"R1-4"` = winner of first-round game 4), so a 4-team, 12-team or 16-team format is a config change.
+
+Offseason player development depends on potential, year, work ethic, development rate, staff development ratings, facilities, playing time, injuries and random variance, including ~5% breakouts and ~4% busts. Until the recruiting system exists, every program's staff auto-signs a class whose quality comes from recruiting power, current prestige, HC recruiting rating and recent success. Stars are assigned by national rank with scouting noise, which yields about 2,400 recruits per year. Old seasons are compacted (box-score detail dropped) and departed players removed, so saves stay around 11 MB across many seasons.
+
 ## Reproducibility
 
 Every game has a stored seed (`Game.seed`, derived from dynasty seed + season + game id). Same rosters + same seed + same decisions = identical game, play for play (`tests/gameEngine.test.ts`). Quick Sim exposes the seed.
 
 ## Persistence
 
-The `Dynasty` object is plain JSON (≈7–10 MB for ~10k players). `SaveManager` stores it in IndexedDB (localStorage is too small) under manual slots or one autosave slot per dynasty; export/import uses the same JSON.
+The `Dynasty` object is plain JSON (≈7–11 MB for ~10k players; stable across seasons). Saves carry a `version`; `migrateDynasty` upgrades older saves (v1 → v2 resumes a finished Milestone 1 regular season at championship week). `SaveManager` stores it in IndexedDB (localStorage is too small) under manual slots or one autosave slot per dynasty; export/import uses the same JSON.
 
 ## Extending
 

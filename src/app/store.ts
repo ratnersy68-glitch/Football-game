@@ -5,6 +5,7 @@
 import { useSyncExternalStore } from 'react';
 import type { Dynasty } from '../models/types';
 import { IndexedDbBackend, MemoryBackend, SaveManager } from '../save/saveManager';
+import { setLogosEnabled } from '../visualization/logoCache';
 
 export type Screen =
   | { name: 'menu' }
@@ -17,17 +18,18 @@ export type Screen =
   | { name: 'hub'; tab?: HubTab }
   | { name: 'game'; gameId: string };
 
-export type HubTab = 'home' | 'roster' | 'depth' | 'schedule' | 'gameplan' | 'top25' | 'conference' | 'news' | 'coach';
+export type HubTab = 'home' | 'roster' | 'depth' | 'schedule' | 'gameplan' | 'top25' | 'conference' | 'postseason' | 'news' | 'history' | 'coach';
 
 export interface AppSettings {
   speed: number;
   camera: 'broadcast' | 'overhead';
   fourthDownPrompts: boolean;
   autosave: boolean;
+  logos: boolean;
 }
 
 const SETTINGS_KEY = 'saturday26.settings';
-const DEFAULT_SETTINGS: AppSettings = { speed: 1, camera: 'broadcast', fourthDownPrompts: true, autosave: true };
+const DEFAULT_SETTINGS: AppSettings = { speed: 1, camera: 'broadcast', fourthDownPrompts: true, autosave: true, logos: true };
 
 function loadSettings(): AppSettings {
   try {
@@ -49,12 +51,15 @@ interface State {
   toast: string | null;
 }
 
+const initialSettings = loadSettings();
+setLogosEnabled(initialSettings.logos);
+
 let state: State = {
   screen: { name: 'menu' },
   dynasty: null,
   slotId: null,
   slotName: null,
-  settings: loadSettings(),
+  settings: initialSettings,
   version: 0,
   toast: null,
 };
@@ -83,6 +88,7 @@ export function navigate(screen: Screen): void {
 
 export function updateSettings(patch: Partial<AppSettings>): void {
   const settings = { ...state.settings, ...patch };
+  setLogosEnabled(settings.logos);
   try {
     localStorage.setItem(SETTINGS_KEY, JSON.stringify(settings));
   } catch {

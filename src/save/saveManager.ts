@@ -2,7 +2,8 @@
  * Dynasty persistence. Saves are full JSON snapshots of the Dynasty object, stored in IndexedDB in the
  * browser (localStorage is too small for ~10MB worlds). A memory backend is used in tests.
  */
-import { TEAM_BY_ID } from '../data';
+import { SCHEDULE_RULES, TEAM_BY_ID } from '../data';
+import { createConferenceChampionships } from '../simulation/postseasonEngine';
 import type { Dynasty } from '../models/types';
 import { DYNASTY_VERSION } from '../simulation/seasonEngine';
 
@@ -131,6 +132,27 @@ export function parseDynasty(json: string): Dynasty {
   const d = JSON.parse(json) as Dynasty;
   if (!d || typeof d !== 'object' || !d.teams || !d.players || !d.schedule) throw new Error('Not a SATURDAY 26 dynasty file');
   if (d.version > DYNASTY_VERSION) throw new Error(`Save is from a newer version (${d.version})`);
+  return migrateDynasty(d);
+}
+
+/** Upgrade older saves in place. v1 (Milestone 1) had no postseason, history or offseason. */
+export function migrateDynasty(d: Dynasty): Dynasty {
+  if (d.version < 2) {
+    d.postseason = d.postseason ?? null;
+    d.history = d.history ?? [];
+    d.offseason = d.offseason ?? null;
+    if ((d.phase as string) === 'regularComplete' || (d.phase as string) === 'preseason') {
+      // v1 stopped after week 14: resume at championship week.
+      d.phase = 'regular';
+      d.week = SCHEDULE_RULES.regularSeasonWeeks;
+      const ccgWeek = createConferenceChampionships(d);
+      if (ccgWeek !== null) {
+        d.phase = 'ccg';
+        d.week = ccgWeek;
+      }
+    }
+    d.version = 2;
+  }
   return d;
 }
 

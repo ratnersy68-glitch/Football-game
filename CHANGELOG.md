@@ -1,5 +1,24 @@
 # Changelog
 
+## 0.2.0 — Milestone 2: postseason, multi-season & logos
+
+### Added
+- Official team logos for all 125 programs, loaded at runtime from ESPN's CDN via `data/logos.json` (badges, scorebug, midfield), with team-color fallback and a Settings toggle.
+- Conference championship games (week 15) at Lucas Oil Stadium, Mercedes-Benz Stadium and AT&T Stadium.
+- Data-driven College Football Playoff (`playoffConfig.json`): 12 teams, 5 highest-ranked champions auto-bid, straight seeding, top-4 byes, campus first round, Rose/Sugar/Orange/Cotton quarterfinals, Fiesta/Peach semifinals, title game at Hard Rock Stadium.
+- 22 named bowls for bowl-eligible teams (`bowls.json`).
+- Awards engine: Heisman, Davey O'Brien, Doak Walker, Biletnikoff, Outland, Ted Hendricks, Butkus, Jim Thorpe, Coach of the Year, with finalists.
+- Season history, coach career achievements and season log.
+- Offseason: stat archiving, graduation, early NFL declarations, 7-round/224-pick draft, player development (work ethic, dev rate, coaching, facilities, playing time, injuries, breakouts, busts), auto-signed classes with national star rankings, class rankings, prestige evolution, next-season rollover.
+- UI: postseason home cards, CFP & Bowls tab with bracket, History tab, national-champion celebration, offseason summary, postseason rows on the schedule, coach career stats, scorebug ranks and logos.
+- Save migration v1 → v2.
+- Tests: postseason structure, playoff selection/seeding/byes, bowls, awards/history, offseason, development distribution, 4-season stability, save migration, logo coverage (48 tests). `npm run sim:dynasty` multi-season audit; `scripts/e2e/season.mjs` plays a full season through the UI.
+
+### Fixed
+- Box-score popup after "Sim Game" disappeared when the following week was a bye.
+- Initial Elo now uses current (evolving) program prestige.
+
+
 ## 0.1.0 — Milestone 1: playable vertical slice
 
 ### Added

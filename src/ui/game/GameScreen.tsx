@@ -79,6 +79,7 @@ function Scorebug({ board, info, ranks, final, clock, playClock }: { board: Boar
     const t = info[side];
     return (
       <div className="sb-team" style={{ background: t.primaryColor, color: textOn(t.primaryColor) }}>
+        <TeamBadge teamId={t.id} size={30} />
         {ranks[side] ? <span className="rk">{ranks[side]}</span> : null}
         <span className="ab">{t.abbreviation}</span>
         <span className="sc">{board.score[side]}</span>
@@ -121,12 +122,13 @@ export interface GameViewProps {
   finalActions: ReactNode;
   headerNote?: string;
   allowPickSide?: boolean;
+  ranks?: { home: number; away: number };
 }
 
-export function GameView({ engine, players, userSide: initialUserSide, onSettingsChange, onGameOver, onExit, exitLabel, finalActions, headerNote, allowPickSide }: GameViewProps) {
+export function GameView({ engine, players, userSide: initialUserSide, onSettingsChange, onGameOver, onExit, exitLabel, finalActions, headerNote, allowPickSide, ranks: ranksProp }: GameViewProps) {
   const { settings } = useStore();
   const info: Record<Side, TeamInfo> = { home: engine.setup.home.info, away: engine.setup.away.info };
-  const ranks = { home: 0, away: 0 };
+  const ranks = ranksProp ?? { home: 0, away: 0 };
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const wrapRef = useRef<HTMLDivElement>(null);
   const [userSide, setUserSide] = useState<Side | undefined>(initialUserSide);
@@ -728,7 +730,8 @@ export function DynastyGame({ gameId }: { gameId: string }) {
       onGameOver={record}
       onExit={exit}
       exitLabel="Sim & Exit"
-      headerNote={`Week ${game.week}${game.homeRank || game.awayRank ? '' : ''}`}
+      headerNote={game.postseason ? `${game.postseason.name}${game.neutralSite ? ` · ${game.neutralSite}` : ''}` : `Week ${game.week}`}
+      ranks={{ home: game.homeRank ?? 0, away: game.awayRank ?? 0 }}
       finalActions={
         <button className="btn primary" disabled={!recorded && !game.played} onClick={() => navigate({ name: 'hub', tab: 'home' })}>
           Return to Dynasty →

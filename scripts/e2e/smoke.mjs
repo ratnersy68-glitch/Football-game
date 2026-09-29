@@ -16,7 +16,7 @@ await page.click('.tab:has-text("SEC")');
 await page.click('.school-card:has-text("Alabama")');
 await page.waitForSelector('text=Become Head Coach');
 await page.screenshot({ path: `${SP}/03-overview.png`, fullPage: true });
-await page.fill('input[placeholder="Coach"]', 'Sam');
+await page.fill('input[placeholder="Chris"]', 'Sam');
 await page.fill('input[placeholder="Taylor"]', 'Rivers');
 await page.click('text=Become Head Coach');
 await page.waitForSelector('.hub-nav', { timeout: 20000 });

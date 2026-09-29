@@ -1,0 +1,28 @@
+{
+  "_comment": "College Football Playoff format. Change teamCount/bracket/byes to model other formats (e.g. 4-team: teamCount 4, byes 0, rounds SF+F).",
+  "name": "College Football Playoff",
+  "teamCount": 12,
+  "selection": {
+    "autoBidConferenceChampions": 5,
+    "championMustBeRankedWithin": 999
+  },
+  "seeding": {
+    "mode": "ranking",
+    "championsGetTopSeeds": 0
+  },
+  "byes": 4,
+  "rounds": [
+    { "id": "R1", "name": "CFP First Round", "week": 16, "site": "higherSeedHome", "games": [[5, 12], [6, 11], [7, 10], [8, 9]] },
+    { "id": "QF", "name": "CFP Quarterfinal", "week": 17, "site": "bowl", "bowls": ["Rose Bowl", "Sugar Bowl", "Orange Bowl", "Cotton Bowl"], "games": [[1, "R1-4"], [2, "R1-3"], [3, "R1-2"], [4, "R1-1"]] },
+    { "id": "SF", "name": "CFP Semifinal", "week": 18, "site": "bowl", "bowls": ["Fiesta Bowl", "Peach Bowl"], "games": [["QF-1", "QF-4"], ["QF-2", "QF-3"]] },
+    { "id": "F", "name": "CFP National Championship", "week": 19, "site": "neutral", "neutralSite": "Hard Rock Stadium, Miami Gardens", "games": [["SF-1", "SF-2"]] }
+  ],
+  "bowlSites": {
+    "Rose Bowl": "Rose Bowl, Pasadena",
+    "Sugar Bowl": "Caesars Superdome, New Orleans",
+    "Orange Bowl": "Hard Rock Stadium, Miami Gardens",
+    "Cotton Bowl": "AT&T Stadium, Arlington",
+    "Fiesta Bowl": "State Farm Stadium, Glendale",
+    "Peach Bowl": "Mercedes-Benz Stadium, Atlanta"
+  }
+}

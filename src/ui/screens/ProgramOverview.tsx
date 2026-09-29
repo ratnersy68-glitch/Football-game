@@ -29,7 +29,7 @@ export function ProgramOverview({ teamId, seed }: { teamId: string; seed: number
     // Let the button state paint before the (fast but synchronous) world build.
     await new Promise((res) => setTimeout(res, 20));
     try {
-      const d = createDynasty({ teamId, coachFirstName: first || 'Coach', coachLastName: last || 'Taylor', offScheme: off, defScheme: def, seed });
+      const d = createDynasty({ teamId, coachFirstName: first || 'Chris', coachLastName: last || 'Taylor', offScheme: off, defScheme: def, seed });
       setState({ dynasty: d, slotId: null, slotName: null });
       await autosave();
       navigate({ name: 'hub', tab: 'home' });
@@ -149,7 +149,7 @@ export function ProgramOverview({ teamId, seed }: { teamId: string; seed: number
             <span className="muted" style={{ fontSize: 11 }}>
               FIRST NAME
             </span>
-            <input className="field-input" value={first} placeholder="Coach" onChange={(e) => setFirst(e.target.value)} maxLength={20} />
+            <input className="field-input" value={first} placeholder="Chris" onChange={(e) => setFirst(e.target.value)} maxLength={20} />
           </div>
           <div className="col" style={{ gap: 4 }}>
             <span className="muted" style={{ fontSize: 11 }}>

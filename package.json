@@ -1,7 +1,7 @@
 {
   "name": "saturday-26",
   "private": true,
-  "version": "0.1.0",
+  "version": "0.2.0",
   "description": "SATURDAY 26 \u2014 college football head-coach dynasty simulation",
   "type": "module",
   "scripts": {
@@ -14,7 +14,8 @@
     "simtest": "tsx scripts/simulateMany.ts",
     "sim:game": "tsx scripts/oneGame.ts",
     "sim:season": "tsx scripts/simulateSeason.ts",
-    "e2e": "node scripts/e2e/smoke.mjs && node scripts/e2e/decision.mjs"
+    "e2e": "node scripts/e2e/smoke.mjs && node scripts/e2e/decision.mjs && node scripts/e2e/season.mjs",
+    "sim:dynasty": "tsx scripts/simulateDynasty.ts"
   },
   "dependencies": {
     "react": "^19.1.0",

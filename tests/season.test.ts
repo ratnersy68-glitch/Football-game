@@ -27,7 +27,8 @@ describe('dynasty season', () => {
     if (g1) simulateGameFully(d, g1);
     while (d.phase === 'regular') completeWeek(d);
     expect(d.week).toBe(SCHEDULE_RULES.regularSeasonWeeks + 1);
-    expect(d.schedule.every((g) => g.played)).toBe(true);
+    expect(d.schedule.filter((g) => !g.postseason).every((g) => g.played)).toBe(true);
+    expect(d.phase).toBe("ccg");
     for (const t of UNIVERSE_TEAMS) {
       const r = d.teams[t.id].record;
       expect(r.w + r.l).toBe(SCHEDULE_RULES.gamesPerTeam);

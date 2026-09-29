@@ -161,3 +161,45 @@ export const GAME_CONFIG = gameConfigJson;
 export type GameConfig = typeof gameConfigJson;
 export const RANKING_CONFIG = rankingConfigJson;
 export const SCHEDULE_RULES = scheduleRulesJson;
+
+import logosJson from './logos.json';
+const LOGOS = logosJson as { urlTemplate: string; darkUrlTemplate: string; espnIds: Record<string, number>; overrides: Record<string, string> };
+
+/** Official logo URL for a program (loaded at runtime by the browser), or undefined if unknown. */
+export function logoUrl(teamId: string, dark = false): string | undefined {
+  if (LOGOS.overrides[teamId]) return LOGOS.overrides[teamId];
+  const id = LOGOS.espnIds[teamId];
+  if (!id) return undefined;
+  return (dark ? LOGOS.darkUrlTemplate : LOGOS.urlTemplate).replace('{id}', String(id));
+}
+
+import playoffJson from './playoffConfig.json';
+import bowlsJson from './bowls.json';
+import awardsJson from './awards.json';
+
+export type BracketRef = number | string;
+export interface PlayoffRound {
+  id: string;
+  name: string;
+  week: number;
+  site: 'higherSeedHome' | 'bowl' | 'neutral';
+  bowls?: string[];
+  neutralSite?: string;
+  games: [BracketRef, BracketRef][];
+}
+export interface PlayoffConfig {
+  name: string;
+  teamCount: number;
+  selection: { autoBidConferenceChampions: number; championMustBeRankedWithin: number };
+  seeding: { mode: 'ranking'; championsGetTopSeeds: number };
+  byes: number;
+  rounds: PlayoffRound[];
+  bowlSites: Record<string, string>;
+}
+export const PLAYOFF_CONFIG = playoffJson as unknown as PlayoffConfig;
+export const BOWLS: { minWins: number; week: number; bowls: { name: string; site: string }[] } = bowlsJson;
+export const AWARDS = awardsJson as {
+  heisman: { name: string; short: string };
+  positional: { id: string; name: string; label: string; positions: Position[] }[];
+  coach: { id: string; name: string };
+};

@@ -1,10 +1,138 @@
 [
-  { "id": "big_ten", "name": "Big Ten", "shortName": "B1G", "color": "#0088CE", "playable": true, "ranked": true, "conferenceGames": 9, "championshipGame": { "enabled": true, "participants": 2, "week": 15 }, "prestige": 95 },
-  { "id": "sec", "name": "SEC", "shortName": "SEC", "color": "#FFD046", "playable": true, "ranked": true, "conferenceGames": 9, "championshipGame": { "enabled": true, "participants": 2, "week": 15 }, "prestige": 97 },
-  { "id": "big_12", "name": "Big 12", "shortName": "BIG 12", "color": "#C8102E", "playable": true, "ranked": true, "conferenceGames": 9, "championshipGame": { "enabled": true, "participants": 2, "week": 15 }, "prestige": 85 },
-  { "id": "acc", "name": "ACC", "shortName": "ACC", "color": "#013CA6", "playable": false, "ranked": false, "conferenceGames": 0, "championshipGame": { "enabled": false, "participants": 0, "week": 15 }, "prestige": 80 },
-  { "id": "independent", "name": "Independent", "shortName": "IND", "color": "#888888", "playable": false, "ranked": false, "conferenceGames": 0, "championshipGame": { "enabled": false, "participants": 0, "week": 15 }, "prestige": 80 },
-  { "id": "pac_12", "name": "Pac-12", "shortName": "PAC", "color": "#004B91", "playable": false, "ranked": false, "conferenceGames": 0, "championshipGame": { "enabled": false, "participants": 0, "week": 15 }, "prestige": 55 },
-  { "id": "group_of_five", "name": "Group of Five", "shortName": "G5", "color": "#5A6A7A", "playable": false, "ranked": false, "conferenceGames": 0, "championshipGame": { "enabled": false, "participants": 0, "week": 15 }, "prestige": 45 },
-  { "id": "fcs", "name": "FCS", "shortName": "FCS", "color": "#6B5B4B", "playable": false, "ranked": false, "conferenceGames": 0, "championshipGame": { "enabled": false, "participants": 0, "week": 15 }, "prestige": 25 }
+ {
+  "id": "big_ten",
+  "name": "Big Ten",
+  "shortName": "B1G",
+  "color": "#0088CE",
+  "playable": true,
+  "ranked": true,
+  "conferenceGames": 9,
+  "championshipGame": {
+   "enabled": true,
+   "participants": 2,
+   "week": 15,
+   "site": "Lucas Oil Stadium, Indianapolis",
+   "name": "Big Ten Championship"
+  },
+  "prestige": 95
+ },
+ {
+  "id": "sec",
+  "name": "SEC",
+  "shortName": "SEC",
+  "color": "#FFD046",
+  "playable": true,
+  "ranked": true,
+  "conferenceGames": 9,
+  "championshipGame": {
+   "enabled": true,
+   "participants": 2,
+   "week": 15,
+   "site": "Mercedes-Benz Stadium, Atlanta",
+   "name": "SEC Championship"
+  },
+  "prestige": 97
+ },
+ {
+  "id": "big_12",
+  "name": "Big 12",
+  "shortName": "BIG 12",
+  "color": "#C8102E",
+  "playable": true,
+  "ranked": true,
+  "conferenceGames": 9,
+  "championshipGame": {
+   "enabled": true,
+   "participants": 2,
+   "week": 15,
+   "site": "AT&T Stadium, Arlington",
+   "name": "Big 12 Championship"
+  },
+  "prestige": 85
+ },
+ {
+  "id": "acc",
+  "name": "ACC",
+  "shortName": "ACC",
+  "color": "#013CA6",
+  "playable": false,
+  "ranked": false,
+  "conferenceGames": 0,
+  "championshipGame": {
+   "enabled": false,
+   "participants": 0,
+   "week": 15,
+   "site": "",
+   "name": "ACC Championship"
+  },
+  "prestige": 80
+ },
+ {
+  "id": "independent",
+  "name": "Independent",
+  "shortName": "IND",
+  "color": "#888888",
+  "playable": false,
+  "ranked": false,
+  "conferenceGames": 0,
+  "championshipGame": {
+   "enabled": false,
+   "participants": 0,
+   "week": 15,
+   "site": "",
+   "name": "Independent Championship"
+  },
+  "prestige": 80
+ },
+ {
+  "id": "pac_12",
+  "name": "Pac-12",
+  "shortName": "PAC",
+  "color": "#004B91",
+  "playable": false,
+  "ranked": false,
+  "conferenceGames": 0,
+  "championshipGame": {
+   "enabled": false,
+   "participants": 0,
+   "week": 15,
+   "site": "",
+   "name": "Pac-12 Championship"
+  },
+  "prestige": 55
+ },
+ {
+  "id": "group_of_five",
+  "name": "Group of Five",
+  "shortName": "G5",
+  "color": "#5A6A7A",
+  "playable": false,
+  "ranked": false,
+  "conferenceGames": 0,
+  "championshipGame": {
+   "enabled": false,
+   "participants": 0,
+   "week": 15,
+   "site": "",
+   "name": "Group of Five Championship"
+  },
+  "prestige": 45
+ },
+ {
+  "id": "fcs",
+  "name": "FCS",
+  "shortName": "FCS",
+  "color": "#6B5B4B",
+  "playable": false,
+  "ranked": false,
+  "conferenceGames": 0,
+  "championshipGame": {
+   "enabled": false,
+   "participants": 0,
+   "week": 15,
+   "site": "",
+   "name": "FCS Championship"
+  },
+  "prestige": 25
+ }
 ]

@@ -1,0 +1,29 @@
+{
+  "_comment": "Non-playoff bowls, best first. Eligibility and week come from here too.",
+  "minWins": 6,
+  "week": 16,
+  "bowls": [
+    { "name": "Citrus Bowl", "site": "Camping World Stadium, Orlando" },
+    { "name": "ReliaQuest Bowl", "site": "Raymond James Stadium, Tampa" },
+    { "name": "Alamo Bowl", "site": "Alamodome, San Antonio" },
+    { "name": "Gator Bowl", "site": "EverBank Stadium, Jacksonville" },
+    { "name": "Las Vegas Bowl", "site": "Allegiant Stadium, Las Vegas" },
+    { "name": "Holiday Bowl", "site": "Snapdragon Stadium, San Diego" },
+    { "name": "Music City Bowl", "site": "Nissan Stadium, Nashville" },
+    { "name": "Texas Bowl", "site": "NRG Stadium, Houston" },
+    { "name": "Pop-Tarts Bowl", "site": "Camping World Stadium, Orlando" },
+    { "name": "Liberty Bowl", "site": "Simmons Bank Liberty Stadium, Memphis" },
+    { "name": "Sun Bowl", "site": "Sun Bowl, El Paso" },
+    { "name": "Duke's Mayo Bowl", "site": "Bank of America Stadium, Charlotte" },
+    { "name": "Pinstripe Bowl", "site": "Yankee Stadium, Bronx" },
+    { "name": "Armed Forces Bowl", "site": "Amon G. Carter Stadium, Fort Worth" },
+    { "name": "Birmingham Bowl", "site": "Protective Stadium, Birmingham" },
+    { "name": "Rate Bowl", "site": "Chase Field, Phoenix" },
+    { "name": "Independence Bowl", "site": "Independence Stadium, Shreveport" },
+    { "name": "First Responder Bowl", "site": "Gerald J. Ford Stadium, Dallas" },
+    { "name": "Gasparilla Bowl", "site": "Raymond James Stadium, Tampa" },
+    { "name": "Arizona Bowl", "site": "Arizona Stadium, Tucson" },
+    { "name": "Hawai'i Bowl", "site": "Clarence T.C. Ching Stadium, Honolulu" },
+    { "name": "Military Bowl", "site": "Navy-Marine Corps Memorial Stadium, Annapolis" }
+  ]
+}

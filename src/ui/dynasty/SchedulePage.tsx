@@ -43,7 +43,8 @@ export function SchedulePage() {
   const [box, setBox] = useState<Game | null>(null);
   if (!d) return null;
   const mine = d.schedule.filter((g) => g.season === d.season && (g.homeId === d.userTeamId || g.awayId === d.userTeamId));
-  const weeks = Array.from({ length: SCHEDULE_RULES.regularSeasonWeeks }, (_, i) => i + 1);
+  const post = mine.filter((g) => g.postseason).map((g) => g.week);
+  const weeks = [...Array.from({ length: SCHEDULE_RULES.regularSeasonWeeks }, (_, i) => i + 1), ...post];
   return (
     <div className="panel" style={{ padding: 0 }}>
       {weeks.map((w) => {
@@ -80,7 +81,7 @@ export function SchedulePage() {
         }
         return (
           <div key={w} className={`sched-row ${current ? 'current' : ''}`}>
-            <div className="wk">WEEK {w}</div>
+            <div className="wk">{g.postseason ? (g.postseason.kind === 'ccg' ? 'CONF' : g.postseason.kind === 'bowl' ? 'BOWL' : `CFP ${g.postseason.round}`) : `WEEK ${w}`}</div>
             <TeamBadge teamId={opp} size={36} />
             <div>
               <div className="opp">
@@ -93,6 +94,7 @@ export function SchedulePage() {
               <div className="muted" style={{ fontSize: 12 }}>
                 {g.neutralSite ? `Neutral · ${g.neutralSite}` : home ? TEAM_BY_ID[d.userTeamId].stadium : TEAM_BY_ID[opp].stadium}
                 {g.conferenceGame ? ' · Conference' : ''}
+                {g.postseason ? ` · ${g.postseason.name}` : ''}
                 {rivalry ? ` · ${rivalry.name}` : ''}
               </div>
             </div>

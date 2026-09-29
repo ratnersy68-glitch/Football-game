@@ -46,7 +46,7 @@ export interface ConferenceInfo {
   playable: boolean;
   ranked: boolean;
   conferenceGames: number;
-  championshipGame: { enabled: boolean; participants: number; week: number };
+  championshipGame: { enabled: boolean; participants: number; week: number; site?: string; name?: string };
   prestige: number;
 }
 
@@ -151,6 +151,16 @@ export interface Player {
   injury: Injury | null;
   seasonStats: StatLine;
   careerStats: StatLine;
+  /** Archived season lines (added at each rollover). */
+  history?: PlayerSeason[];
+}
+
+export interface PlayerSeason {
+  season: number;
+  teamId: string;
+  year: ClassYear;
+  overall: number;
+  stats: StatLine;
 }
 
 export type CoachRole = 'HC' | 'OC' | 'DC';
@@ -182,6 +192,25 @@ export interface Coach {
   isUser: boolean;
   careerWins: number;
   careerLosses: number;
+  confTitles?: number;
+  natTitles?: number;
+  playoffApps?: number;
+  bowlWins?: number;
+  bowlLosses?: number;
+  draftPicks?: number;
+  heismans?: number;
+  coyAwards?: number;
+  top5Classes?: number;
+  seasons?: CoachSeason[];
+}
+
+export interface CoachSeason {
+  season: number;
+  teamId: string;
+  w: number;
+  l: number;
+  finalRank: number;
+  result: string;
 }
 
 export type DepthChart = Record<Position, string[]>;
@@ -231,6 +260,8 @@ export interface TeamState {
   elo: number;
   /** Most recent poll score (used for ranking inertia). */
   pollScore: number;
+  /** Latest recruiting class ranking (1 = best) from the most recent signing period. */
+  classRank?: number;
 }
 
 export interface GamePlayerLine extends StatLine {
@@ -282,7 +313,19 @@ export interface Weather {
   wind: number;
 }
 
+export interface PostseasonInfo {
+  kind: 'ccg' | 'bowl' | 'cfp';
+  name: string;
+  /** CFP round id (R1/QF/SF/F) and bracket slot (e.g. "QF-2"). */
+  round?: string;
+  slot?: string;
+  homeSeed?: number;
+  awaySeed?: number;
+  conference?: string;
+}
+
 export interface Game {
+  postseason?: PostseasonInfo;
   id: string;
   season: number;
   week: number;
@@ -339,7 +382,68 @@ export interface CoachingSettings {
   coverage: 'man' | 'balanced' | 'zone';
 }
 
-export type SeasonPhase = 'preseason' | 'regular' | 'regularComplete';
+export type SeasonPhase = 'regular' | 'ccg' | 'postseason' | 'seasonComplete' | 'offseason';
+
+export interface AwardResult {
+  id: string;
+  name: string;
+  label: string;
+  winnerName: string;
+  playerId?: string;
+  coachId?: string;
+  teamId: string;
+  position?: string;
+  statLine: string;
+  finalists?: { name: string; teamId: string; statLine: string }[];
+}
+
+export interface DraftPick {
+  round: number;
+  pick: number;
+  overall: number;
+  playerId: string;
+  playerName: string;
+  position: Position;
+  teamId: string;
+  early: boolean;
+}
+
+export interface PostseasonState {
+  season: number;
+  conferenceChampions: Record<string, string>;
+  cfpSeeds: { seed: number; teamId: string; autoBid: boolean }[];
+  selectionRanking: string[];
+  awards: AwardResult[];
+  champion?: string;
+  runnerUp?: string;
+  titleScore?: string;
+}
+
+export interface SeasonHistory {
+  season: number;
+  champion?: string;
+  runnerUp?: string;
+  titleScore?: string;
+  cfpField: string[];
+  conferenceChampions: Record<string, string>;
+  awards: AwardResult[];
+  finalTop25: { teamId: string; w: number; l: number }[];
+  user: { teamId: string; coachName: string; w: number; l: number; confW: number; confL: number; finalRank: number; postseason: string };
+  topClass?: string;
+  draft: DraftPick[];
+}
+
+export interface OffseasonSummary {
+  completedSeason: number;
+  nextSeason: number;
+  userGraduates: { name: string; position: Position; overall: number }[];
+  draft: DraftPick[];
+  risers: { playerId: string; name: string; position: Position; teamId: string; from: number; to: number }[];
+  fallers: { playerId: string; name: string; position: Position; teamId: string; from: number; to: number }[];
+  classRankings: { teamId: string; points: number; count: number; avgStars: number; five: number; four: number }[];
+  userClass: string[];
+  prestige: { teamId: string; from: number; to: number }[];
+}
 
 export interface Dynasty {
   version: number;
@@ -363,4 +467,7 @@ export interface Dynasty {
   coachingSettings: CoachingSettings;
   /** Monotonic counter for deterministic id generation. */
   nextId: number;
+  postseason: PostseasonState | null;
+  history: SeasonHistory[];
+  offseason: OffseasonSummary | null;
 }

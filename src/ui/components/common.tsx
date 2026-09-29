@@ -1,5 +1,6 @@
-import type { CSSProperties, ReactNode } from 'react';
-import { TEAM_BY_ID } from '../../data';
+import { useState, type CSSProperties, type ReactNode } from 'react';
+import { TEAM_BY_ID, logoUrl } from '../../data';
+import { logoFailed, logosEnabled, markLogoFailed } from '../../visualization/logoCache';
 import type { Player } from '../../models/types';
 
 function lum(hex: string): number {
@@ -12,10 +13,29 @@ export function textOn(hex: string): string {
   return lum(hex) > 0.6 ? '#111' : '#fff';
 }
 
-/** Logo placeholder: a roundel in team colors with the abbreviation. */
+/** Team logo: the official logo (loaded at runtime) with a team-color roundel fallback. */
 export function TeamBadge({ teamId, size = 44 }: { teamId: string; size?: number }) {
   const t = TEAM_BY_ID[teamId];
+  const url = logoUrl(teamId);
+  const [broken, setBroken] = useState(false);
   if (!t) return null;
+  if (url && logosEnabled() && !broken && !logoFailed(url)) {
+    return (
+      <img
+        src={url}
+        alt={t.school}
+        title={`${t.school} ${t.nickname}`}
+        width={size}
+        height={size}
+        referrerPolicy="no-referrer"
+        style={{ width: size, height: size, objectFit: 'contain', flexShrink: 0, filter: 'drop-shadow(0 2px 4px rgba(0,0,0,.45))' }}
+        onError={() => {
+          markLogoFailed(url);
+          setBroken(true);
+        }}
+      />
+    );
+  }
   const fs = Math.max(9, size * (t.abbreviation.length > 3 ? 0.28 : 0.34));
   return (
     <span

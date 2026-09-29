@@ -6,6 +6,7 @@
 import { Rng } from '../core/rng';
 import type { TeamInfo } from '../models/types';
 import { sample, type PlayAnimation } from './animation';
+import { logoImage } from './logoCache';
 
 export type CameraMode = 'broadcast' | 'overhead';
 const W = 53.33;
@@ -242,11 +243,17 @@ export class FieldRenderer {
     ctx.lineWidth = 0.5 * mc.k;
     ctx.strokeStyle = this.home.secondaryColor;
     ctx.stroke();
-    ctx.fillStyle = luminance(this.home.primaryColor) > 0.6 ? '#111' : '#fff';
-    ctx.font = `700 ${3.3 * mc.k}px Oswald, Impact, sans-serif`;
-    ctx.textAlign = 'center';
-    ctx.textBaseline = 'middle';
-    ctx.fillText(this.home.abbreviation, 0, 0.2 * mc.k);
+    const logo = logoImage(this.home.id);
+    if (logo) {
+      const r = 4.6 * mc.k;
+      ctx.drawImage(logo, -r, -r, r * 2, r * 2);
+    } else {
+      ctx.fillStyle = luminance(this.home.primaryColor) > 0.6 ? '#111' : '#fff';
+      ctx.font = `700 ${3.3 * mc.k}px Oswald, Impact, sans-serif`;
+      ctx.textAlign = 'center';
+      ctx.textBaseline = 'middle';
+      ctx.fillText(this.home.abbreviation, 0, 0.2 * mc.k);
+    }
     ctx.restore();
     // Goal posts.
     for (const gx of [-10, 110]) {

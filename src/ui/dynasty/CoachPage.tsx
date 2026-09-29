@@ -41,11 +41,51 @@ export function CoachPage() {
           <div>{OFF_SCHEMES[team.offScheme].name}</div>
           <div className="k">Defense</div>
           <div>{DEF_SCHEMES[team.defScheme].name}</div>
-          <div className="k">Conf titles</div>
-          <div>0</div>
           <div className="k">National titles</div>
-          <div>0</div>
+          <div>{c.natTitles ?? 0}</div>
+          <div className="k">Conf titles</div>
+          <div>{c.confTitles ?? 0}</div>
+          <div className="k">Playoff trips</div>
+          <div>{c.playoffApps ?? 0}</div>
+          <div className="k">Bowl/playoff record</div>
+          <div>
+            {c.bowlWins ?? 0}-{c.bowlLosses ?? 0}
+          </div>
+          <div className="k">NFL draft picks</div>
+          <div>{c.draftPicks ?? 0}</div>
+          <div className="k">Heisman winners</div>
+          <div>{c.heismans ?? 0}</div>
+          <div className="k">Top-5 classes</div>
+          <div>{c.top5Classes ?? 0}</div>
+          <div className="k">Coach of the Year</div>
+          <div>{c.coyAwards ?? 0}</div>
         </div>
+        {(c.seasons ?? []).length > 0 && (
+          <table className="data" style={{ marginTop: 14 }}>
+            <thead>
+              <tr>
+                <th>Season</th>
+                <th>Team</th>
+                <th className="num">W-L</th>
+                <th className="num">Rank</th>
+                <th>Result</th>
+              </tr>
+            </thead>
+            <tbody>
+              {[...(c.seasons ?? [])].reverse().map((s) => (
+                <tr key={s.season}>
+                  <td>{s.season}</td>
+                  <td>{TEAM_BY_ID[s.teamId].school}</td>
+                  <td className="num">
+                    {s.w}-{s.l}
+                  </td>
+                  <td className="num">{s.finalRank ? `#${s.finalRank}` : 'NR'}</td>
+                  <td>{s.result}</td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        )}
       </div>
       <div className="panel">
         <h3>Coach Ratings</h3>

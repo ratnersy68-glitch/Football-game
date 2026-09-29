@@ -12,7 +12,7 @@ const cfg = RANKING_CONFIG;
 
 export function initialElo(team: TeamState, players: Record<string, Player>): number {
   const r = teamRatings(team, players).overall;
-  const prestige = TEAM_BY_ID[team.id]?.prestige ?? 50;
+  const prestige = team.currentPrestige ?? TEAM_BY_ID[team.id]?.prestige ?? 50;
   return cfg.elo.base + (r - 78) * cfg.elo.rosterScale + (prestige - 70) * cfg.elo.prestigeScale;
 }
 

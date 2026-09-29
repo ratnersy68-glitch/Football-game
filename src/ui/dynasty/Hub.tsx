@@ -13,6 +13,9 @@ import { Top25Page } from './Top25Page';
 import { ConferencePage } from './ConferencePage';
 import { NewsPage } from './NewsPage';
 import { CoachPage } from './CoachPage';
+import { PostseasonPage } from './PostseasonPage';
+import { HistoryPage } from './HistoryPage';
+import { weekLabel } from './SeasonCards';
 
 const TABS: [HubTab, string][] = [
   ['home', 'Home'],
@@ -22,7 +25,9 @@ const TABS: [HubTab, string][] = [
   ['gameplan', 'Game Plan'],
   ['top25', 'Top 25'],
   ['conference', 'Conference'],
+  ['postseason', 'CFP & Bowls'],
   ['news', 'News'],
+  ['history', 'History'],
   ['coach', 'Coach Profile'],
 ];
 
@@ -103,6 +108,12 @@ export function Hub({ tab }: { tab: HubTab }) {
     case 'coach':
       page = <CoachPage />;
       break;
+    case 'postseason':
+      page = <PostseasonPage />;
+      break;
+    case 'history':
+      page = <HistoryPage />;
+      break;
   }
 
   return (
@@ -116,7 +127,7 @@ export function Hub({ tab }: { tab: HubTab }) {
               {t.school} {t.nickname}
             </div>
             <div className="meta">
-              {d.season} Season · {d.phase === 'regular' ? `Week ${d.week}` : 'Regular season complete'} · Coach {coach.firstName} {coach.lastName} · {CONFERENCE_BY_ID[t.conference].name}
+              {d.season} Season · {weekLabel(d)} · Coach {coach.firstName} {coach.lastName} · {CONFERENCE_BY_ID[t.conference].name}
             </div>
           </div>
           <div className="spacer" />

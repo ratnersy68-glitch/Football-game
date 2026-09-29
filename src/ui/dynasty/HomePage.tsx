@@ -8,6 +8,7 @@ import { teamRatings } from '../../simulation/teamRatings';
 import { TeamBadge, textOn } from '../components/common';
 import type { Dynasty, Game } from '../../models/types';
 import { BoxScoreModal } from './SchedulePage';
+import { NoGameCard, OffseasonCard, SeasonCompleteCard } from './SeasonCards';
 
 function projection(rank: number): string {
   if (!rank) return 'Outside the playoff picture';
@@ -17,7 +18,7 @@ function projection(rank: number): string {
   return 'Needs a strong finish';
 }
 
-function NextGameCard({ d, g }: { d: Dynasty; g: Game }) {
+function NextGameCard({ d, g, onResult }: { d: Dynasty; g: Game; onResult: (g: Game) => void }) {
   const isHome = g.homeId === d.userTeamId;
   const oppId = isHome ? g.awayId : g.homeId;
   const opp = TEAM_BY_ID[oppId];
@@ -31,7 +32,6 @@ function NextGameCard({ d, g }: { d: Dynasty; g: Game }) {
   const myR = teamRatings(d.teams[d.userTeamId], d.players);
   const oppR = teamRatings(d.teams[oppId], d.players);
   const [busy, setBusy] = useState(false);
-  const [box, setBox] = useState<Game | null>(null);
 
   const sim = async () => {
     setBusy(true);
@@ -41,7 +41,7 @@ function NextGameCard({ d, g }: { d: Dynasty; g: Game }) {
     bump();
     await autosave();
     setBusy(false);
-    setBox(g);
+    onResult(g);
   };
 
   const side = (id: string, rank: number, right: boolean) => {
@@ -67,7 +67,16 @@ function NextGameCard({ d, g }: { d: Dynasty; g: Game }) {
   return (
     <div className="next-game">
       <div style={{ padding: '10px 22px', background: `linear-gradient(90deg, ${me.primaryColor}, ${opp.primaryColor})`, color: textOn(me.primaryColor), fontFamily: 'var(--display)', letterSpacing: '.08em' }}>
-        NEXT GAME · WEEK {g.week} {rivalry ? `· ${rivalry.name.toUpperCase()}` : ''} {g.conferenceGame ? '· CONFERENCE' : '· NON-CONFERENCE'}
+        {g.postseason ? (
+          <>
+            {g.postseason.name.toUpperCase()}
+            {g.postseason.homeSeed && g.postseason.kind === 'cfp' ? ` · #${g.postseason.awaySeed} VS #${g.postseason.homeSeed} SEED` : ''}
+          </>
+        ) : (
+          <>
+            NEXT GAME · WEEK {g.week} {rivalry ? `· ${rivalry.name.toUpperCase()}` : ''} {g.conferenceGame ? '· CONFERENCE' : '· NON-CONFERENCE'}
+          </>
+        )}
       </div>
       <div className="band">
         {side(g.awayId, g.awayId === d.userTeamId ? myRank : oppRank, false)}
@@ -92,19 +101,19 @@ function NextGameCard({ d, g }: { d: Dynasty; g: Game }) {
           {busy ? 'Simulating…' : 'Sim Game'}
         </button>
         <button className="btn primary" onClick={() => navigate({ name: 'game', gameId: g.id })} disabled={busy}>
-          ▶ Play Week {g.week}
+          ▶ {g.postseason ? 'Play Game' : `Play Week ${g.week}`}
         </button>
       </div>
-      {box && <BoxScoreModal game={box} onClose={() => setBox(null)} />}
     </div>
   );
 }
 
 export function HomePage() {
   const { dynasty: d } = useStore();
-  const [busy, setBusy] = useState(false);
+  const [box, setBox] = useState<Game | null>(null);
   if (!d) return null;
-  const g = d.phase === 'regular' ? userGame(d) : undefined;
+  const inSeason = d.phase === 'regular' || d.phase === 'ccg' || d.phase === 'postseason';
+  const g = inSeason ? userGame(d) : undefined;
   const rank = currentRank(d, d.userTeamId);
   const rec = d.teams[d.userTeamId].record;
   const conf = TEAM_BY_ID[d.userTeamId].conference;
@@ -119,45 +128,13 @@ export function HomePage() {
     .slice(-4)
     .reverse();
 
-  const simBye = async () => {
-    setBusy(true);
-    await new Promise((r) => setTimeout(r, 10));
-    completeWeek(d);
-    bump();
-    await autosave();
-    setBusy(false);
-  };
-
   return (
     <div className="col" style={{ gap: 18 }}>
-      {d.phase === 'regular' && g && <NextGameCard d={d} g={g} />}
-      {d.phase === 'regular' && !g && (
-        <div className="next-game">
-          <div className="band" style={{ gridTemplateColumns: '1fr auto' }}>
-            <div>
-              <div className="tname">Week {d.week}: Bye Week</div>
-              <div className="muted">Rest up. The rest of college football plays on — news and rankings update after the week.</div>
-            </div>
-            <button className="btn primary" onClick={simBye} disabled={busy}>
-              {busy ? 'Simulating…' : `Sim Week ${d.week}`}
-            </button>
-          </div>
-        </div>
-      )}
-      {d.phase === 'regularComplete' && (
-        <div className="celebrate panel" style={{ background: `linear-gradient(120deg, ${TEAM_BY_ID[d.userTeamId].primaryColor}55, var(--panel))` }}>
-          <h2 style={{ fontSize: 36 }}>Regular Season Complete</h2>
-          <div style={{ fontFamily: 'var(--display)', fontSize: 64 }}>
-            {rec.w}-{rec.l}
-          </div>
-          <div className="muted">
-            {rec.confW}-{rec.confL} in {CONFERENCE_BY_ID[conf].name} play · Final regular-season rank: {rank ? `#${rank}` : 'Unranked'}
-          </div>
-          <div className="muted" style={{ marginTop: 12, fontSize: 13 }}>
-            Conference championships, bowls and the College Football Playoff arrive in the next milestone. Your season, stats and history are saved.
-          </div>
-        </div>
-      )}
+      {inSeason && g && <NextGameCard key={g.id} d={d} g={g} onResult={setBox} />}
+      {box && <BoxScoreModal game={box} onClose={() => setBox(null)} />}
+      {inSeason && !g && <NoGameCard d={d} />}
+      {d.phase === 'seasonComplete' && <SeasonCompleteCard d={d} />}
+      {d.phase === 'offseason' && <OffseasonCard d={d} />}
 
       <div className="grid" style={{ gridTemplateColumns: 'repeat(auto-fit, minmax(320px, 1fr))' }}>
         <div className="panel">
