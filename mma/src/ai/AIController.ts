@@ -18,6 +18,9 @@ interface Snapshot {
 }
 
 interface Perceived {
+  /** When the opponent's action actually began. */
+  start: number;
+  /** When this AI notices it (start + reaction delay). */
   at: number;
   kind: Action['kind'];
   id: string;
@@ -68,7 +71,17 @@ export class AIController {
     this.plan = this.strategy.evaluate();
     this.repertoire = this.buildRepertoire();
     this.circleDir = rng.chance(0.5) ? 1 : -1;
+    e.bus.on((ev) => {
+      // Seeing the opponent whiff (or get stuffed) is a counter opportunity — noticed after a reaction delay.
+      if (ev.type === 'strikeMissed' && ev.side !== this.side && e.mode === 'stand') {
+        const at = e.time + this.reactionDelay();
+        if (this.rng.chance(this.diff.counterRate * (0.6 + this.plan.counterBias * 0.6))) this.whiffCounterAt = at;
+      }
+    });
   }
+
+  private whiffCounterAt = -1;
+  private lastDecisionInterval = 0.3;
 
   private get me() {
     return this.e.f[this.side];
@@ -174,6 +187,7 @@ export class AIController {
     if (act && act !== this.lastOppAction) {
       const tele = act.kind === 'strike' ? STRIKES[act.id].telegraph : act.kind === 'shot' ? 1.1 : 1;
       this.perceived.push({
+        start: e.time,
         at: e.time + this.reactionDelay(tele), kind: act.kind, id: act.kind === 'strike' ? act.id : act.kind === 'shot' ? act.variant : '',
         feint: act.kind === 'strike' && act.feint, handled: false,
       });
@@ -221,8 +235,13 @@ export class AIController {
     }
   }
 
+  /** Seconds between an opponent action starting and this AI responding to it (for fairness tests). */
+  readonly reactionLog: number[] = [];
+
   private onPerceived(cmd: Command, p: Perceived) {
     const e = this.e;
+    this.reactionLog.push(e.time - p.start);
+    if (this.reactionLog.length > 500) this.reactionLog.shift();
     const d = this.diff;
     const ctx = e.context(this.side);
     const A = this.me.data.attributes;
@@ -277,15 +296,19 @@ export class AIController {
     const cb = this.plan.counterBias;
     let resp: DefenseMove | Guard | null;
     if (!right) resp = this.rng.pick<DefenseMove | Guard>(['slip', 'duck', 'high', 'low', 'none']);
-    else if (s.target === 'leg') resp = this.rng.chance(0.3 + A.defense / 250) ? 'low' : this.rng.chance(0.4) ? 'pull' : 'none';
+    else if (s.target === 'leg') {
+      // checking improves as the AI learns the opponent loves leg kicks, and once its own leg is hurt
+      const learnt = d.learning * Math.min(1, this.model.legKickRate * 2.5) + Math.min(0.4, this.me[leadLegKey(this.me)] / 150) * d.adaptation;
+      resp = this.rng.chance(0.3 + A.defense / 250 + learnt) ? 'low' : this.rng.chance(0.4) ? 'pull' : 'none';
+    }
     else if (s.target === 'body') resp = this.rng.chance(0.75) ? 'low' : 'pull';
     else {
       switch (s.arc) {
         case 'straight': resp = this.rng.chance(0.25 + cb * 0.45) ? 'slip' : this.rng.chance(0.3) ? 'pull' : 'high'; break;
         case 'hook': resp = this.rng.chance(0.2 + cb * 0.4) ? 'duck' : 'high'; break;
         case 'upper': resp = this.rng.chance(0.5) ? 'pull' : 'high'; break;
-        case 'overhand': resp = this.rng.chance(0.5) ? 'high' : 'pull'; break;
-        case 'headKick': resp = this.rng.chance(0.55) ? 'high' : this.rng.chance(0.5) ? 'duck' : 'pull'; break;
+        case 'overhand': resp = this.rng.chance(0.4) ? 'high' : this.rng.chance(0.5) ? 'duck' : 'pull'; break;
+        case 'headKick': resp = this.rng.chance(0.3) ? 'high' : this.rng.chance(0.55) ? 'duck' : 'pull'; break;
         case 'spin': resp = 'pull'; break;
         default: resp = this.rng.chance(0.6) ? 'high' : 'pull';
       }
@@ -328,6 +351,14 @@ export class AIController {
     const toOp = vnorm(vsub(op.pos, me.pos));
     const lat = { x: -toOp.z, z: toOp.x };
 
+    // ---- punish a whiff
+    if (this.whiffCounterAt > 0 && e.time >= this.whiffCounterAt) {
+      this.whiffCounterAt = -1;
+      if (e.time - e.lastMiss[op.side] < 0.7 && dist < punchReach(me) + 0.3) {
+        this.queue = [...this.rng.pick([['cross'], ['leadHook'], ['cross', 'leadHook'], ['rearLegKick']])];
+        this.queueExpire = e.time + 0.5;
+      }
+    }
     // ---- execute queued strikes (combos / counters)
     if (this.queue.length && e.time > this.queueExpire) this.queue = [];
     let wantRange = plan.range;
@@ -335,7 +366,8 @@ export class AIController {
       const s = STRIKES[this.queue[0]];
       const reach = (s.kind === 'punch' || s.kind === 'elbow' ? punchReach(me) : kickReach(me)) * s.reach;
       wantRange = reach * 0.85;
-      if (dist <= reach + 0.05 && e.strikes.canStrike(me).ok) {
+      const sloppy = dist <= reach + 0.9 && this.rng.chance(d.mistakeRate * 0.08);
+      if ((dist <= reach + 0.05 || sloppy) && e.strikes.canStrike(me).ok) {
         cmd.actions.push({ type: 'strike', id: this.queue.shift()! });
         this.queueExpire = e.time + 0.7;
         // mid-combo discipline: stop if the opponent is shelled up and we're tiring
@@ -345,6 +377,7 @@ export class AIController {
 
     // ---- offense decision
     if (this.decideT <= 0 && !this.queue.length && !me.action) {
+      this.lastDecisionInterval = d.decisionInterval - this.decideT;
       this.decideT = d.decisionInterval * this.rng.range(0.7, 1.3);
       this.decideOffense(cmd, dist);
     }
@@ -355,7 +388,10 @@ export class AIController {
 
     // ---- default guard
     const threat = Math.max(punchReach(op), kickReach(op)) + 0.2;
-    if (this.guardT <= 0 && !this.queue.length && dist < threat && this.rng.chance(plan.guardBias * d.defenseSkill * 0.08)) this.holdGuard('high', 0.4 + this.rng.next() * 0.4);
+    // Against a habitual leg kicker, smart fighters keep the lead leg ready to check at kicking range.
+    if (this.guardT <= 0 && !this.queue.length && !me.action && dist < kickReach(op) + 0.2 && dist > punchReach(op) && this.model.legKickRate > 0.25 && this.rng.chance(d.learning * 0.05)) this.holdGuard('low', 0.35);
+    // Guard discipline: good fighters keep their hands up whenever they're in range and not punching.
+    if (this.guardT <= 0 && !this.queue.length && dist < threat && !me.action && this.rng.chance((plan.guardBias + 0.3) * d.defenseSkill * d.defenseSkill * 0.35)) this.holdGuard('high', 0.45 + this.rng.next() * 0.5);
 
     // ---- footwork
     let fwd = clamp((dist - wantRange) * 1.6, -1, 1);
@@ -383,9 +419,11 @@ export class AIController {
       side = side * 0.3 + clamp(opLat * 0.7, -1, 1) * d.cageIQ;
     }
     if (me.rockedT > 0) {
-      fwd = Math.min(fwd, -0.6);
-      side = this.circleDir;
-      if (this.guardT <= 0) this.holdGuard('high', 0.5);
+      // survival instincts scale with fight IQ: veterans cover up and move, novices stand and swing
+      const iq = d.defenseSkill;
+      fwd = fwd * (1 - iq) + Math.min(fwd, -0.6) * iq;
+      side = side * (1 - iq) + this.circleDir * iq;
+      if (this.guardT <= 0 && this.rng.chance(iq * 0.25)) this.holdGuard('high', 0.5);
     }
     // sloppy footwork on low difficulties
     this.moveNoiseT -= dt;
@@ -416,12 +454,21 @@ export class AIController {
     const plan = this.plan;
     const gassed = me.stamina < 10 + d.staminaMgmt * 12;
     if (gassed && this.rng.chance(d.staminaMgmt)) return;
-    let pInit = plan.aggression * (1 - plan.counterBias * 0.3) * 0.8;
-    if (op.rockedT > 0) pInit = 0.95;
-    if (this.rng.chance(d.mistakeRate)) pInit += 0.2; // overcommit
-    if (!this.rng.chance(pInit)) return;
+    // Output is a rate (attacks per second) set by the fighter's volume, not by how fast the AI thinks.
+    let rate = (0.08 + 0.4 * plan.aggression) * (1 - plan.counterBias * 0.3);
     const seen = this.seen();
-    const oppBusy = seen && (seen.kind === 'strike' || seen.kind === 'recover' || seen.kind === 'stun');
+    const oppBusy = !!seen && (seen.kind === 'strike' || seen.kind === 'recover' || seen.kind === 'stun');
+    // Smart fighters pick their moments: attack into recoveries, be patient against a set, guarded opponent.
+    const timing = d.planIQ;
+    if (seen && (seen.kind === 'recover' || seen.kind === 'stun')) rate += 1.5 * timing * staminaFrac(me);
+    else if (seen && seen.kind === 'strike') rate *= 1 - 0.7 * timing; // don't walk into a combo
+    else if (seen && seen.guard === 'high' && seen.kind === 'none') rate *= 1 - 0.3 * timing;
+    if (op.rockedT > 0 || op.down) rate = 1.2 + 1.3 * d.planIQ;
+    rate *= 1 + d.mistakeRate; // sloppy fighters overcommit
+    // gas-tank discipline: smart fighters throttle their output when the tank runs low
+    if (me.stamina < plan.staminaReserve) rate *= 1 - d.staminaMgmt * (1 - me.stamina / plan.staminaReserve) * 0.7;
+    const interval = this.lastDecisionInterval;
+    if (!this.rng.chance(1 - Math.exp(-rate * interval))) return;
     const oppNearCage = cageDistance(op.pos) < 1.0;
     const options: Array<[string, number]> = [['strike', 1]];
     if (dist < 2.1 && plan.tdDesire > 0.02) {
@@ -542,7 +589,7 @@ export class AIController {
     const plan = this.plan;
     const c = e.clinch!;
     if (this.decideT > 0 || me.action) return;
-    this.decideT = d.decisionInterval * this.rng.range(0.8, 1.4);
+    this.decideT = Math.max(0.55, d.decisionInterval * 2.5) * this.rng.range(0.8, 1.5);
     const ctrl = c.control * (this.side === 0 ? 1 : -1);
     const want = plan.clinchDesire + plan.tdDesire * 0.5;
     const T = me.data.tendencies;

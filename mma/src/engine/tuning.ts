@@ -32,7 +32,7 @@ export const TUNING = {
   refChin: 0.12,
 
   // Stamina
-  regenBase: 4.4,
+  regenBase: 6.6,
   tankDrain: 0.06,
 
   // Grappling

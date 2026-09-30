@@ -49,7 +49,9 @@ button { font-family: var(--cond); }
 .menu .note { color: var(--muted); font-size: 13px; margin-top: 26px; max-width: 420px; line-height: 1.5; }
 
 /* Fighter select */
-.select-body { flex: 1; display: grid; grid-template-columns: 330px 1fr 330px; min-height: 0; }
+.select-body { flex: 1; display: grid; grid-template-columns: 330px 1fr 330px; grid-template-rows: minmax(0, 1fr); min-height: 0; }
+.select-body > * { min-height: 0; }
+@media (max-width: 1100px) { .select-body { grid-template-columns: 260px 1fr 260px; } .fcard .name { font-size: 24px; } }
 .fcard { padding: 18px; background: var(--panel); border-right: 1px solid var(--line); overflow-y: auto; cursor: pointer; }
 .fcard.right { border-right: none; border-left: 1px solid var(--line); }
 .fcard.active { box-shadow: inset 0 3px 0 var(--red); }
@@ -134,17 +136,17 @@ select.btn { padding: 7px 10px; }
 .ticker { position: absolute; left: 50%; bottom: 26px; transform: translateX(-50%); width: min(820px, 80vw); text-align: center; }
 .ticker .ln { background: rgba(8,8,10,.8); display: inline-block; padding: 6px 14px; margin-top: 4px; font-size: 19px; letter-spacing: .5px; transition: opacity .6s; }
 .ticker .ln.color { color: #c9c9d3; font-style: italic; font-size: 16px; }
-.bigtext { position: absolute; left: 0; right: 0; top: 34%; text-align: center; font-family: var(--heavy); font-size: clamp(40px, 7vw, 96px); letter-spacing: 3px; color: #fff; text-shadow: 0 0 30px rgba(210,10,17,.9), 0 4px 0 #000; opacity: 0; transform: scale(.9); transition: opacity .2s, transform .2s; }
+.bigtext { position: absolute; left: 0; right: 0; top: 16%; text-align: center; font-family: var(--heavy); font-size: clamp(40px, 7vw, 96px); letter-spacing: 3px; color: #fff; text-shadow: 0 0 30px rgba(210,10,17,.9), 0 4px 0 #000; opacity: 0; transform: scale(.9); transition: opacity .2s, transform .2s; }
 .bigtext.on { opacity: 1; transform: scale(1); }
 .hints { position: absolute; left: 22px; bottom: 22px; font-size: 13px; color: #b9b9c4; background: rgba(8,8,10,.7); padding: 8px 10px; max-width: 420px; line-height: 1.7; }
-.prompt { position: absolute; left: 50%; top: 62%; transform: translateX(-50%); font-size: 22px; letter-spacing: 2px; background: rgba(210,10,17,.85); padding: 8px 18px; display: none; }
-.subbox { position: absolute; left: 50%; top: 20%; transform: translateX(-50%); width: min(560px, 80vw); background: rgba(8,8,10,.9); border: 1px solid #333; padding: 14px 18px; display: none; text-align: center; }
-.subbox .sn { font-family: var(--heavy); font-size: 26px; text-transform: uppercase; letter-spacing: 1px; }
+.prompt { position: absolute; left: 50%; bottom: 112px; transform: translateX(-50%); font-size: 22px; letter-spacing: 2px; background: rgba(210,10,17,.85); padding: 8px 18px; display: none; }
+.subbox { position: absolute; right: 22px; top: 50%; transform: translateY(-50%); width: min(340px, 34vw); background: rgba(8,8,10,.9); border: 1px solid #333; padding: 14px 18px; display: none; text-align: center; }
+.subbox .sn { font-family: var(--heavy); font-size: 21px; text-transform: uppercase; letter-spacing: 1px; }
 .subbox .role { color: var(--muted); letter-spacing: 3px; font-size: 13px; text-transform: uppercase; }
 .subbox .meter { height: 18px; background: linear-gradient(90deg, #1d4ed8 0%, #26262c 30%, #26262c 70%, #d20a11 100%); margin: 12px 0; position: relative; }
 .subbox .needle { position: absolute; top: -5px; bottom: -5px; width: 5px; background: #fff; box-shadow: 0 0 10px #fff; }
 .subbox .ends { display: flex; justify-content: space-between; font-size: 12px; color: var(--muted); letter-spacing: 2px; }
-.subbox .key { font-family: var(--heavy); font-size: 64px; line-height: 1; margin-top: 6px; }
+.subbox .key { font-family: var(--heavy); font-size: 56px; line-height: 1; margin-top: 6px; }
 .subbox .key.lock { color: #555; }
 .overlay { position: absolute; inset: 0; background: rgba(0,0,0,.72); display: flex; align-items: center; justify-content: center; pointer-events: auto; }
 .card { background: var(--panel); border: 1px solid var(--line); border-top: 3px solid var(--red); padding: 22px 26px; min-width: 360px; max-width: 92vw; max-height: 90vh; overflow-y: auto; }

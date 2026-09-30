@@ -46,10 +46,10 @@ export class DamageSystem {
       const chinF = 1.36 - dm.chin * 0.0062;
       const powerDaze = Math.pow(powerMult(a) / 1.05, 1.1);
       let daze = 0.62 * dmg * s.daze * chinF * powerDaze * (1 + d.head / 220);
-      if (h.counter === 'timed') daze *= 1.45;
+      if (h.counter === 'timed') daze *= 1.4;
       else if (h.counter === 'whiff') daze *= 1.25;
-      if (h.flush) daze *= 1.35;
-      if (h.blocked) daze *= s.arc === 'headKick' ? 0.4 : 0.25;
+      if (h.flush) daze *= 1.25;
+      if (h.blocked) daze *= s.arc === 'headKick' ? 0.32 : 0.25;
       daze *= h.punish;
       if (e.mode === 'ground') daze *= 0.45;
       d.daze += daze;
@@ -65,7 +65,7 @@ export class DamageSystem {
       }
     } else if (s.target === 'body') {
       d.body += dmg;
-      e.stamina.spend(d, dmg * (h.blocked ? 0.25 : 0.7));
+      e.stamina.spend(d, dmg * (h.blocked ? 0.15 : 0.5));
       d.tank = Math.max(35, d.tank - dmg * (h.blocked ? 0.03 : 0.14));
       if (!h.blocked && dmg > 5.5 && d.body > 38 && e.mode !== 'ground') {
         const liver = this.isLiverShot(a, d, s);
@@ -75,13 +75,13 @@ export class DamageSystem {
       if (Math.floor((d.body - dmg) / 30) < Math.floor(d.body / 30)) e.emit({ type: 'bodyHurt', side: d.side, level: d.body });
     } else {
       const key = leadLegKey(d);
-      d[key] += dmg;
+      d[key] += dmg * 0.72;
       const leg = d[key];
       if (Math.floor((leg - dmg) / 25) < Math.floor(leg / 25) && leg >= 25) e.emit({ type: 'legHurt', side: d.side, level: leg });
-      if (!h.blocked && leg > 72 && dmg > 4.5 && e.mode === 'stand' && !isDown(d)) {
-        if (e.rng.chance(clamp((leg - 68) / 120, 0, 0.4))) this.knockdown(a, d, s, false, 'leg');
+      if (!h.blocked && leg > 80 && dmg > 4.5 && e.mode === 'stand' && !isDown(d)) {
+        if (e.rng.chance(clamp((leg - 76) / 160, 0, 0.3))) this.knockdown(a, d, s, false, 'leg');
       }
-      if (leg >= 108 + dm.chin * 0.05 && !e.result) e.finish(a.side, 'TKO', 'Leg Kicks');
+      if (leg >= 118 + dm.chin * 0.12 && !e.result) e.finish(a.side, 'TKO', 'Leg Kicks');
     }
     if (!e.result) this.refCheck(a, d, s);
   }

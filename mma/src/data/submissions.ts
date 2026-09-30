@@ -22,7 +22,7 @@ export interface SubmissionDef {
 }
 
 export const SUBMISSIONS: Record<string, SubmissionDef> = {
-  rnc: { id: 'rnc', name: 'Rear Naked Choke', kind: 'choke', baseStart: 38, power: 1.25, stamina: 7 },
+  rnc: { id: 'rnc', name: 'Rear Naked Choke', kind: 'choke', baseStart: 34, power: 1.12, stamina: 7 },
   guillotine: { id: 'guillotine', name: 'Guillotine Choke', kind: 'choke', baseStart: 28, power: 1.05, stamina: 8 },
   armbar: { id: 'armbar', name: 'Armbar', kind: 'joint', baseStart: 30, power: 1.1, stamina: 8 },
   triangle: { id: 'triangle', name: 'Triangle Choke', kind: 'choke', baseStart: 28, power: 1.05, stamina: 8 },

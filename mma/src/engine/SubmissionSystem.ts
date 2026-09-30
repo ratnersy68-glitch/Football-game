@@ -91,7 +91,7 @@ export class SubmissionSystem {
       const isAtt = side === s.attacker;
       const f = e.f[side];
       if (k === s.prompts[side]) {
-        const push = isAtt ? (1.5 + A.submissions * 0.07) * def.power * fatigueFactor(f) : (3 + D.submissionDefense * 0.065) * fatigueFactor(f);
+        const push = isAtt ? (1.5 + A.submissions * 0.07) * def.power * fatigueFactor(f) : (3.5 + D.submissionDefense * 0.065) * fatigueFactor(f);
         s.progress += isAtt ? push : -push;
         s.prompts[side] = e.rng.pick(KEYS.filter((x) => x !== s.prompts[side]));
         s.promptT[side] = 0;
@@ -100,8 +100,8 @@ export class SubmissionSystem {
         s.progress += isAtt ? -1 : 1;
       }
     }
-    e.stamina.spend(att, 2.6 * dt);
-    e.stamina.spend(dfn, 3.4 * dt);
+    e.stamina.spend(att, 2.0 * dt);
+    e.stamina.spend(dfn, 2.6 * dt);
     if (before < 75 && s.progress >= 75) e.emit({ type: 'subTight', side: s.attacker, subId: s.subId });
     if (s.progress >= 100) {
       const choke = def.kind === 'choke';

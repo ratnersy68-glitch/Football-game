@@ -46,7 +46,7 @@ export class RoundManager {
         return;
       }
       const legWorst = Math.max(f.legL, f.legR);
-      if ((legWorst > 90 && e.rng.chance((legWorst - 85) / 60)) || (f.head > 300 && e.rng.chance((f.head - 290) / 150))) {
+      if ((legWorst > 100 && e.rng.chance((legWorst - 95) / 80)) || (f.head > 300 && e.rng.chance((f.head - 290) / 150))) {
         e.finish(other, 'TKO', 'Corner Stoppage', undefined, true);
         return;
       }

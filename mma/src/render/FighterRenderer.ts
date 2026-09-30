@@ -440,7 +440,29 @@ export class FighterRenderer {
 
     // torso
     const bodyCol = me.body > 30 ? mix(st.skin, '#b8574a', Math.min(0.4, (me.body - 30) / 150)) : st.skin;
-    line(J.neck, J.hip, 0.22, bodyCol);
+    {
+      // tapered torso: broad at the shoulders, narrower at the waist
+      const sx = J.hip.x - J.neck.x;
+      const sy = J.hip.y - J.neck.y;
+      const sl = Math.hypot(sx, sy) || 1;
+      const px = -sy / sl;
+      const py = sx / sl;
+      const w1 = 0.15 * sc;
+      const w2 = 0.105 * sc;
+      const top = { x: J.neck.x + (sx / sl) * 0.02 * sc, y: J.neck.y + (sy / sl) * 0.02 * sc };
+      ctx.fillStyle = bodyCol;
+      ctx.beginPath();
+      ctx.moveTo(top.x + px * w1, top.y + py * w1);
+      ctx.quadraticCurveTo(top.x + (sx / sl) * 0.18 * sc + px * w1 * 1.08, top.y + (sy / sl) * 0.18 * sc + py * w1 * 1.08, J.hip.x + px * w2, J.hip.y + py * w2);
+      ctx.lineTo(J.hip.x - px * w2, J.hip.y - py * w2);
+      ctx.quadraticCurveTo(top.x + (sx / sl) * 0.18 * sc - px * w1 * 1.08, top.y + (sy / sl) * 0.18 * sc - py * w1 * 1.08, top.x - px * w1, top.y - py * w1);
+      ctx.closePath();
+      ctx.fill();
+      // shoulder caps
+      ctx.beginPath();
+      ctx.arc(top.x, top.y, w1 * 0.95, 0, Math.PI * 2);
+      ctx.fill();
+    }
     // trunks
     const hipDir = { x: J.hip.x - J.neck.x, y: J.hip.y - J.neck.y };
     const hl = Math.hypot(hipDir.x, hipDir.y) || 1;

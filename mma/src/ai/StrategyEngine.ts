@@ -179,11 +179,12 @@ export class StrategyEngine {
       notes.push('Opponent hurt: go for the finish');
     }
     if (me.rockedT > 0) {
-      plan.aggression *= 0.2;
-      plan.pressure = 0;
-      plan.range = kR * 1.3;
-      plan.guardBias = 0.95;
-      if (A.clinch > 70 || A.wrestling > 75) plan.clinchDesire = clamp01(plan.clinchDesire + 0.5);
+      const s = d.defenseSkill; // fight IQ when hurt
+      plan.aggression *= 1 - 0.8 * s;
+      plan.pressure *= 1 - s;
+      plan.range = plan.range + (kR * 1.3 - plan.range) * s;
+      plan.guardBias = plan.guardBias + (0.95 - plan.guardBias) * s;
+      if (A.clinch > 70 || A.wrestling > 75) plan.clinchDesire = clamp01(plan.clinchDesire + 0.5 * s);
       notes.push('Hurt: survive, tie up, clear the head');
     }
     const stam = me.stamina;

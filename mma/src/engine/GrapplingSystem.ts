@@ -119,7 +119,7 @@ export class GrapplingSystem {
     const o = this.opp(f);
     const A = f.data.attributes;
     const D = o.data.attributes;
-    e.stamina.spend(f, 3.2);
+    e.stamina.spend(f, 2.2);
     f.action = { kind: 'recover', t: 0, dur: 0.45, label: 'clinch-work' };
     const p = 0.45 + ((A.clinch * 0.6 + A.wrestling * 0.4) - (D.clinch * 0.6 + D.wrestling * 0.4)) * 0.01 + (staminaFrac(f) - staminaFrac(o)) * 0.3 - (o.guard === 'low' ? 0.12 : 0);
     const sign = f.side === 0 ? 1 : -1;
@@ -162,7 +162,7 @@ export class GrapplingSystem {
       if (!this.idle(f)) return false;
       const v: TakedownVariant = e.clinch?.pinned === o.side ? 'cage' : 'trip';
       f.action = { kind: 'shot', variant: v, t: 0, w: 0.3 * durationMult(f), timed: false, caughtKick: false };
-      e.stamina.spend(f, 5);
+      e.stamina.spend(f, 4);
       e.emit({ type: 'takedownAttempt', side: f.side, variant: v });
       return true;
     }
@@ -175,7 +175,7 @@ export class GrapplingSystem {
     const timed = oa?.kind === 'strike' && !oa.feint;
     const v: TakedownVariant = caughtKick ? 'single' : cageDistance(o.pos) < 0.95 ? 'cage' : variant === 'trip' ? 'double' : variant;
     f.action = { kind: 'shot', variant: v, t: 0, w: (caughtKick ? 0.12 : v === 'single' ? 0.3 : 0.34) * durationMult(f), timed, caughtKick };
-    e.stamina.spend(f, 5);
+    e.stamina.spend(f, 4);
     if (caughtKick) e.emit({ type: 'kickCaught', side: f.side });
     e.emit({ type: 'takedownAttempt', side: f.side, variant: v });
     return true;
@@ -221,12 +221,12 @@ export class GrapplingSystem {
       else if (act.variant === 'trip') pos = e.rng.chance(0.3 + edge) ? 'sideControl' : 'halfGuard';
       else pos = e.rng.chance(0.35 + edge) ? 'halfGuard' : 'fullGuard';
       if (e.mode === 'clinch') e.clinch = null;
-      e.stamina.spend(o, 7);
+      e.stamina.spend(o, 4);
       this.startGround(f.side, pos, o.pos);
       e.emit({ type: 'takedown', side: f.side, variant: act.variant, pos });
     } else {
-      e.stamina.spend(f, 7);
-      e.stamina.spend(o, 3);
+      e.stamina.spend(f, 5);
+      e.stamina.spend(o, 2);
       o.anim = sprawled ? 'sprawl' : 'stuff';
       o.animT = 0;
       e.emit({ type: 'takedownDefended', side: o.side, how: sprawled ? 'sprawl' : 'stuffed' });
@@ -313,7 +313,7 @@ export class GrapplingSystem {
     const top = g.top === f.side;
     if (top && !topNext(g.pos, alt)) return false;
     f.action = { kind: 'transition', alt, t: 0, w: (top ? 0.75 : 0.7) * durationMult(f), defended: false };
-    e.stamina.spend(f, top ? 3.5 : 4.5);
+    e.stamina.spend(f, top ? 2.6 : 3.2);
     g.lastAction = e.roundTime;
     return true;
   }
@@ -396,7 +396,7 @@ export class GrapplingSystem {
       return true;
     }
     f.action = { kind: 'getup', t: 0, w: 0.85 * durationMult(f) };
-    e.stamina.spend(f, 5);
+    e.stamina.spend(f, 3.5);
     g.lastAction = e.roundTime;
     return true;
   }

@@ -53,7 +53,7 @@ export class StrikeSystem {
       counterWindow: f.counterT > 0,
     };
     f.counterT = 0;
-    e.stamina.spend(f, feint ? 0.5 : s.stamina);
+    e.stamina.spend(f, feint ? 0.4 : s.stamina * 0.8);
     f.lastStrikeTime = e.time;
     if (!feint) e.emit({ type: 'strikeThrown', side: f.side, id });
     return true;
@@ -91,14 +91,14 @@ export class StrikeSystem {
     if (f.action && !(f.action.kind === 'defense' && f.action.t > f.action.dur * 0.6) && !(f.action.kind === 'strike' && f.action.resolved && f.action.t > f.action.w + f.action.a + f.action.r * 0.5)) return false;
     const mult = 0.85 + (1 - staminaFrac(f)) * 0.3 + (isRocked(f) ? 0.25 : 0);
     f.action = { kind: 'defense', move, t: 0, dur: DEFENSE_DUR[move] * mult, dir: dir || 1 };
-    e.stamina.spend(f, move === 'pull' || move === 'sidestep' ? 1.0 : 1.3);
+    e.stamina.spend(f, move === 'pull' || move === 'sidestep' ? 0.7 : 0.8);
     return true;
   }
 
   private defenseFactor(d: FighterState, s: StrikeDef): { factor: number; move: DefenseMove | null } {
     const act = d.action;
     if (!act || act.kind !== 'defense') return { factor: 1, move: null };
-    const live = act.t >= 0.02 && act.t <= act.dur * 0.82;
+    const live = act.t <= act.dur * 0.82;
     if (!live) return { factor: 1, move: null };
     if (act.move === 'sidestep') return { factor: s.target === 'leg' ? 0.5 : EVADE.sidestep[s.arc] ?? 0.4, move: 'sidestep' };
     if (s.target !== 'head') {
@@ -163,8 +163,11 @@ export class StrikeSystem {
 
     // Counters: landing while the opponent is mid-strike or recovering from a whiff
     const dAct = d.action;
+    const myAct = a.action;
     if (dAct?.kind === 'strike' && !dAct.feint) {
-      if (dAct.t < dAct.w + dAct.a) counter = 'timed';
+      // A true counter: we started *after* they did and still landed first.
+      const startedAfter = myAct?.kind === 'strike' && myAct.t < dAct.t;
+      if (dAct.t < dAct.w + dAct.a && startedAfter) counter = 'timed';
       else if (e.lastMiss[d.side] > e.time - 0.6) counter = 'whiff';
     } else if (dAct?.kind === 'shot' && (s.arc === 'knee' || s.arc === 'upper')) {
       counter = 'timed';
@@ -207,15 +210,15 @@ export class StrikeSystem {
     else if (counter === 'whiff') dmg *= 1.15;
     dmg *= punish;
     if (e.cfg.fighters[a.side].signatureTechniques.includes(s.id)) dmg *= 1.08;
-    const flush = !blocked && e.rng.chance(0.05 + (A.accuracy - 60) * 0.002 + (counter ? 0.14 : 0) + (isRocked(d) ? 0.08 : 0));
+    const flush = !blocked && e.rng.chance(0.04 + (A.accuracy - 60) * 0.0015 + (counter ? 0.1 : 0) + (isRocked(d) ? 0.06 : 0));
     if (flush) dmg *= 1.25;
 
     if (blocked) {
       let leak = 0.12 + (1 - D.defense / 100) * 0.15 + (1 - staminaFrac(d)) * 0.1;
-      if (s.arc === 'headKick') leak = 0.45;
+      if (s.arc === 'headKick') leak = 0.32;
       if (s.id === 'calfKick') leak = 0.4;
       if (isRocked(d)) leak *= 1.8;
-      e.stamina.spend(d, dmg * 0.22);
+      e.stamina.spend(d, dmg * 0.12);
       if (checked && (s.id === 'rearLegKick' || s.id === 'leadLegKick')) {
         // shin-on-shin: the kicker pays
         const kickLeg = s.limb === 'rearLeg' ? (a.stance === 'orthodox' ? 'legR' : 'legL') : a.stance === 'orthodox' ? 'legL' : 'legR';
