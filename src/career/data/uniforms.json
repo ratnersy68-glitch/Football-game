@@ -1,0 +1,13 @@
+{
+  "_comment": "Team uniform sets. Teams not listed get home/away derived from their primary/secondary colors.",
+  "ohio_state": {
+    "home": { "helmet": "#C0C4C8", "helmetStripe": "#BB0000", "jersey": "#BB0000", "number": "#FFFFFF", "numberOutline": "#000000", "pants": "#C0C4C8", "socks": "#BB0000", "trim": "#FFFFFF" },
+    "away": { "helmet": "#C0C4C8", "helmetStripe": "#BB0000", "jersey": "#FFFFFF", "number": "#BB0000", "numberOutline": "#000000", "pants": "#C0C4C8", "socks": "#FFFFFF", "trim": "#BB0000" },
+    "alternate": { "helmet": "#111111", "helmetStripe": "#BB0000", "jersey": "#111111", "number": "#FFFFFF", "numberOutline": "#BB0000", "pants": "#111111", "socks": "#111111", "trim": "#BB0000" }
+  },
+  "michigan": {
+    "home": { "helmet": "#00274C", "helmetStripe": "#FFCB05", "jersey": "#00274C", "number": "#FFCB05", "numberOutline": "#00274C", "pants": "#FFCB05", "socks": "#00274C", "trim": "#FFCB05" },
+    "away": { "helmet": "#00274C", "helmetStripe": "#FFCB05", "jersey": "#FFFFFF", "number": "#00274C", "numberOutline": "#FFCB05", "pants": "#FFCB05", "socks": "#00274C", "trim": "#FFCB05" },
+    "alternate": { "helmet": "#FFCB05", "helmetStripe": "#00274C", "jersey": "#FFCB05", "number": "#00274C", "numberOutline": "#00274C", "pants": "#00274C", "socks": "#FFCB05", "trim": "#00274C" }
+  }
+}

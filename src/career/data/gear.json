@@ -1,0 +1,18 @@
+{
+  "_comment": "Every option here changes the 3D player model. 'team' = team primary, 'team2' = team secondary.",
+  "facemask": { "label": "Facemask", "options": [["standard", "Standard"], ["open", "Open (QB)"], ["bullbar", "Bull Bar"], ["robot", "Robot"]] },
+  "facemaskColor": { "label": "Facemask Color", "options": [["team", "Team"], ["white", "White"], ["black", "Black"], ["chrome", "Chrome"], ["gray", "Gray"]] },
+  "visor": { "label": "Visor", "options": [["none", "None"], ["clear", "Clear"], ["dark", "Dark Tint"], ["iridescent", "Iridescent"]] },
+  "mouthguard": { "label": "Mouthguard", "options": [["none", "None"], ["white", "White"], ["black", "Black"], ["team", "Team"], ["gold", "Gold"]] },
+  "eyeBlack": { "label": "Eye Black", "options": [["none", "None"], ["stripe", "Stripe"], ["sticker", "Sticker"]] },
+  "leftSleeve": { "label": "Left Arm", "options": [["none", "Bare"], ["white", "White Sleeve"], ["black", "Black Sleeve"], ["team", "Team Sleeve"], ["short_white", "Short White"]] },
+  "rightSleeve": { "label": "Right Arm", "options": [["none", "Bare"], ["white", "White Sleeve"], ["black", "Black Sleeve"], ["team", "Team Sleeve"], ["short_white", "Short White"]] },
+  "wristbands": { "label": "Wristbands", "options": [["none", "None"], ["white", "White"], ["black", "Black"], ["team", "Team"], ["playcard", "QB Play Card"]] },
+  "gloves": { "label": "Gloves", "options": [["none", "No Gloves"], ["team", "Team"], ["white", "White"], ["black", "Black"], ["team2", "Team Accent"]] },
+  "handWarmer": { "label": "Hand Warmer", "options": [["none", "None"], ["team", "Team"], ["black", "Black"]] },
+  "towel": { "label": "Towel", "options": [["none", "None"], ["front", "Front"], ["back", "Back"], ["both", "Both Sides"]] },
+  "backPlate": { "label": "Back Plate", "options": [["none", "None"], ["team", "Team"], ["black", "Black"]] },
+  "shoulderPads": { "label": "Shoulder Pads", "options": [["small", "Small"], ["normal", "Normal"], ["large", "Large"]] },
+  "socks": { "label": "Socks", "options": [["team", "Team"], ["white", "White"], ["black", "Black"], ["high_white", "High White"]] },
+  "cleats": { "label": "Cleats", "options": [["black", "Black"], ["white", "White"], ["team", "Team"], ["gold", "Gold"], ["red_white", "Two-Tone"]] }
+}
