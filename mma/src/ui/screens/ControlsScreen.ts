@@ -35,8 +35,11 @@ export class ControlsScreen implements Screen {
         const pads = inp.pad[b.id] ?? [];
         const kBtn = h('button', { class: 'bind' + (this.capturing === kId ? ' cap' : ''), onclick: () => this.captureKey(b.id) },
           this.capturing === kId ? 'Press a key… (Esc = cancel)' : keys.length ? keys.map(keyName).join(' / ') : '—');
-        const pBtn = h('button', { class: 'bind' + (this.capturing === pId ? ' cap' : ''), onclick: () => this.capturePad(b.id) },
-          this.capturing === pId ? 'Press a pad button…' : b.id === 'up' || b.id === 'down' || b.id === 'left' || b.id === 'right' ? 'Left stick' : pads.length ? pads.map((x) => PAD_BUTTON_NAMES[x] ?? `B${x}`).join(' / ') : '—');
+        const stick = b.id === 'up' || b.id === 'down' || b.id === 'left' || b.id === 'right';
+        const pBtn = stick
+          ? h('span', { style: 'color:var(--muted);font-size:14px;padding-left:8px' }, 'Left stick (fixed)')
+          : h('button', { class: 'bind' + (this.capturing === pId ? ' cap' : ''), onclick: () => this.capturePad(b.id) },
+            this.capturing === pId ? (inp.padConnected ? 'Press a pad button… (Esc = cancel)' : 'No gamepad detected — Esc to cancel') : pads.length ? pads.map((x) => PAD_BUTTON_NAMES[x] ?? `B${x}`).join(' / ') : '—');
         box.append(h('div', { class: 'ctl-row' }, h('span', null, b.label), kBtn, pBtn, b.help ? h('div', { class: 'help' }, b.help) : null));
       }
       wrap.append(box);
@@ -86,7 +89,6 @@ export class ControlsScreen implements Screen {
   }
 
   private capturePad(id: Logical) {
-    if (id === 'up' || id === 'down' || id === 'left' || id === 'right') return;
     const inp = this.app.input;
     this.capturing = `p:${id}`;
     this.render();
@@ -100,6 +102,13 @@ export class ControlsScreen implements Screen {
   }
 
   tick() {
-    if (!this.capturing && this.app.input.pressed('pause')) this.onBack();
+    const inp = this.app.input;
+    if (this.capturing?.startsWith('p:') && inp.pressed('pause')) {
+      inp.cancelCapture();
+      this.capturing = null;
+      this.render();
+      return;
+    }
+    if (!this.capturing && inp.pressed('pause')) this.onBack();
   }
 }

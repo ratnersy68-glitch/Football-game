@@ -1,5 +1,7 @@
 # SATURDAY 26
 
+> **Also in this repo:** [`mma/`](mma/README.md) — *Octagon Fight Night*, a separate real-time tactical MMA game (`cd mma && npm install && npm run dev`).
+
 A college football **head coach** simulation. You run a Big Ten, SEC or Big 12 program; the engine simulates every game play by play, and you watch it unfold on a broadcast-style field while making the calls a head coach makes.
 
 > Private personal-use prototype. Real program names, stadiums and colors are used as data; all players and coaches are fictional.

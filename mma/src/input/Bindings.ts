@@ -25,7 +25,7 @@ export const BINDING_INFO: BindingInfo[] = [
   { id: 'leadKick', label: 'Lead Kick', group: 'Striking', help: 'Inside leg kick · Clinch: knee' },
   { id: 'rearKick', label: 'Rear Kick', group: 'Striking', help: 'Leg kick · Clinch: knee' },
   { id: 'modBody', label: 'Body Modifier', group: 'Modifiers', help: 'Punches/kicks go to the body' },
-  { id: 'modSpecial', label: 'Special Modifier', group: 'Modifiers', help: 'Uppercuts, overhand, spinning backfist, front kick, calf kick, knees up close' },
+  { id: 'modSpecial', label: 'Special Modifier', group: 'Modifiers', help: 'Uppercuts (elbows up close), overhand, spinning backfist, front kick (knee up close), calf kick (step knee up close)' },
   { id: 'modHigh', label: 'High Modifier', group: 'Modifiers', help: 'Kicks go to the head · with Special: spinning back kick, flying knee, superman punch' },
   { id: 'padUpper', label: 'Pad: Hook / High', group: 'Modifiers', help: 'Gamepad only: turns jab/cross into hooks and kicks into head kicks' },
   { id: 'blockHigh', label: 'High Block', group: 'Defense', help: 'Hold. With Body modifier = low block. Ground: cover up' },
