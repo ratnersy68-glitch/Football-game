@@ -4,7 +4,7 @@ import type { FightSetup } from '../../modes/types';
 import { snapshot } from '../../presentation/Snapshot';
 import { Renderer } from '../../render/Renderer';
 import { audio } from '../../audio/AudioSystem';
-import type { App, Screen } from '../App';
+import type { UIManager, Screen } from '../UIManager';
 import { clear, h } from '../dom';
 
 /**
@@ -21,7 +21,7 @@ export class Walkout implements Screen {
   private time = 0;
   private stages: Array<{ dur: number; render: () => HTMLElement }>;
 
-  constructor(private app: App, private setup: FightSetup, private onDone: () => void) {
+  constructor(private app: UIManager, private setup: FightSetup, private onDone: () => void) {
     const canvas = h('canvas');
     this.overlay = h('div');
     this.el = h('div', { class: 'walkout' }, canvas, this.overlay, h('div', { class: 'skip' }, 'CLICK / ANY KEY TO SKIP'));

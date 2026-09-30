@@ -3,7 +3,7 @@ import type { FightSession } from '../../modes/FightSession';
 import type { Highlight } from '../../presentation/ReplayRecorder';
 import { Renderer } from '../../render/Renderer';
 import { ARENA_BY_ID } from '../../data';
-import type { App, Screen } from '../App';
+import type { UIManager, Screen } from '../UIManager';
 import { clear, h } from '../dom';
 import { roundStatsTable } from './statsView';
 
@@ -25,7 +25,7 @@ export class ResultScreen implements Screen {
   private replayTitle: HTMLElement;
   private time = 0;
 
-  constructor(private app: App, readonly session: FightSession, actions: ResultActions) {
+  constructor(private app: UIManager, readonly session: FightSession, actions: ResultActions) {
     const e = session.engine;
     const r = e.result!;
     const [a, b] = e.f;

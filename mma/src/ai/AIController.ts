@@ -645,7 +645,7 @@ export class AIController {
       const posQ: Record<string, number> = { backControl: 1.5, mount: 1.1, sideControl: 0.6, halfGuard: 0.3, turtle: 0.8, fullGuard: 0 };
       options.push(['strike', (plan.groundGoal === 'pound' ? 1.0 : 0.55) + opHurt * 1.5]);
       if (g.pos !== 'backControl') options.push(['advance', d.groundIQ * (g.pos === 'mount' ? 0.25 : 1) * (plan.groundGoal === 'submit' ? 1.3 : 0.8)]);
-      if (subs.length) options.push(['sub', 0.1 * d.groundIQ * (plan.groundGoal === 'submit' ? 1 : 0.25) * posQ[g.pos] * (0.6 + opTired + opHurt) * (A.submissions / 90)]);
+      if (subs.length && posQ[g.pos] >= 0.6) options.push(['sub', 0.07 * d.groundIQ * (plan.groundGoal === 'submit' ? 1 : 0.3) * posQ[g.pos] * (0.4 + opTired * 1.5 + opHurt) * (A.submissions / 90)]);
       if (plan.groundGoal === 'standup') options.push(['standup', 0.8]);
     } else {
       if (subs.length) options.push(['sub', 0.2 * Math.pow(A.submissions / 100, 2) * (g.pos === 'fullGuard' ? 1.2 : 0.35) * (plan.groundGoal === 'submit' ? 1.3 : 0.6)]);

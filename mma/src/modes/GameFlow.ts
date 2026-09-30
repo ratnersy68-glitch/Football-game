@@ -1,5 +1,5 @@
 import { FIGHTER_BY_ID } from '../data';
-import type { App } from '../ui/App';
+import type { UIManager } from '../ui/UIManager';
 import { BracketScreen, TournamentSetup } from '../ui/screens/TournamentScreens';
 import { ControlsScreen } from '../ui/screens/ControlsScreen';
 import { FightScreen } from '../ui/screens/FightScreen';
@@ -15,7 +15,7 @@ import type { FightSetup } from './types';
 
 /** Screen-to-screen flow for every game mode. */
 export class GameFlow {
-  constructor(private app: App) {}
+  constructor(private app: UIManager) {}
 
   menu = () => {
     this.app.show(new MainMenu(this.app, {

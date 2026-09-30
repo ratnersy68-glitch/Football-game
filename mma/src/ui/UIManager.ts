@@ -11,7 +11,7 @@ export interface Screen {
 }
 
 /** Owns the root element, shared services and the single requestAnimationFrame loop. */
-export class App {
+export class UIManager {
   readonly input = new InputManager();
   settings: Settings = loadSettings();
   private current: Screen | null = null;

@@ -10,9 +10,9 @@ interface JudgeProfile {
 }
 
 const JUDGES: JudgeProfile[] = [
-  { name: 'Judge D. Alvarez', striking: 1.3, grappling: 0.7, noise: 0.42 },
-  { name: 'Judge S. Whitfield', striking: 0.8, grappling: 1.45, noise: 0.42 },
-  { name: 'Judge M. Okafor', striking: 1.0, grappling: 1.0, noise: 0.4 },
+  { name: 'Judge D. Alvarez', striking: 1.3, grappling: 0.7, noise: 0.55 },
+  { name: 'Judge S. Whitfield', striking: 0.8, grappling: 1.45, noise: 0.55 },
+  { name: 'Judge M. Okafor', striking: 1.0, grappling: 1.0, noise: 0.52 },
 ];
 
 /**
@@ -56,8 +56,10 @@ export class JudgeSystem {
         const kdDiff = w.knockdowns - l.knockdowns;
         const dominance = wi / Math.max(4, li);
         let loser = 9;
-        if ((dominance > 2.8 && wi - li > 38) || kdDiff >= 2 || (kdDiff >= 1 && wi - li > 30 && dominance > 2.2)) loser = 8;
-        if (kdDiff >= 3 || (dominance > 6 && wi - li > 110 && kdDiff >= 2)) loser = 7;
+        // 10-8 needs dominance AND damage/duration (or multiple knockdowns); 10-7 is extraordinarily rare.
+        const nearFinish = w.knockdowns > 0 || w.rockedOpp >= 2 || w.nearFinishes > 0;
+        if ((kdDiff >= 2 && dominance > 2) || (kdDiff >= 1 && dominance > 3.5 && wi - li > 80) || (dominance > 8 && wi - li > 180 && nearFinish)) loser = 8;
+        if (kdDiff >= 3 && dominance > 5) loser = 7;
         score = winner === 0 ? [10, loser] : [loser, 10];
       }
       out.push(score);

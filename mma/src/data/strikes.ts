@@ -70,6 +70,7 @@ add(S({ id: 'leadHeadKick', name: 'Lead Head Kick', limb: 'leadLeg', kind: 'kick
 add(S({ id: 'rearHeadKick', name: 'Head Kick', limb: 'rearLeg', kind: 'kick', arc: 'headKick', target: 'head', reach: 1.02, windup: 0.44, active: 0.12, recovery: 0.5, damage: 11, daze: 1.6, stamina: 7.0, accuracy: -0.12, power: true, telegraph: 1.25 }));
 add(S({ id: 'frontKick', name: 'Front Kick', limb: 'leadLeg', kind: 'kick', arc: 'kick', target: 'body', reach: 1.12, windup: 0.26, active: 0.09, recovery: 0.3, damage: 4.0, daze: 0, stamina: 3.2, accuracy: 0.06, knockback: 0.45 }));
 add(S({ id: 'spinningBackKick', name: 'Spinning Back Kick', limb: 'rearLeg', kind: 'kick', arc: 'spin', target: 'body', reach: 1.02, windup: 0.42, active: 0.12, recovery: 0.5, damage: 10.5, daze: 0, stamina: 7.0, accuracy: -0.1, power: true, telegraph: 1.4, knockback: 0.35 }));
+add(S({ id: 'standingElbow', name: 'Elbow', limb: 'rearHand', kind: 'elbow', arc: 'elbow', target: 'head', reach: 0.5, windup: 0.22, active: 0.08, recovery: 0.28, damage: 5.6, daze: 1.3, stamina: 2.8, accuracy: 0.0, power: true, cutRisk: 0.2 }));
 add(S({ id: 'leadKnee', name: 'Knee to the Body', limb: 'leadLeg', kind: 'knee', arc: 'knee', target: 'body', reach: 0.6, windup: 0.22, active: 0.09, recovery: 0.26, damage: 6.0, daze: 0, stamina: 3.0, accuracy: 0.04 }));
 add(S({ id: 'stepKnee', name: 'Step-in Knee', limb: 'rearLeg', kind: 'knee', arc: 'knee', target: 'head', reach: 0.62, windup: 0.26, active: 0.1, recovery: 0.3, damage: 8.0, daze: 1.4, stamina: 4.2, accuracy: -0.06, power: true }));
 add(S({ id: 'flyingKnee', name: 'Flying Knee', limb: 'rearLeg', kind: 'knee', arc: 'knee', target: 'head', reach: 0.95, windup: 0.38, active: 0.12, recovery: 0.55, damage: 11, daze: 1.7, stamina: 7.0, accuracy: -0.16, power: true, telegraph: 1.3 }));
@@ -134,8 +135,8 @@ export function resolveStrike(ctx: StrikeContext, btn: StrikeButton, m: StrikeMo
   switch (btn) {
     case 'jab': return m.special ? 'spinningBackfist' : m.body ? 'bodyJab' : 'jab';
     case 'cross': return m.special ? 'overhand' : m.body ? 'bodyCross' : 'cross';
-    case 'leadHook': return m.special ? 'leadUppercut' : m.body ? 'leadBodyHook' : 'leadHook';
-    case 'rearHook': return m.special ? 'rearUppercut' : m.body ? 'rearBodyHook' : 'rearHook';
+    case 'leadHook': return m.special ? (close ? 'standingElbow' : 'leadUppercut') : m.body ? 'leadBodyHook' : 'leadHook';
+    case 'rearHook': return m.special ? (close ? 'standingElbow' : 'rearUppercut') : m.body ? 'rearBodyHook' : 'rearHook';
     case 'leadKick':
       if (m.special) return close ? 'leadKnee' : 'frontKick';
       return m.high ? 'leadHeadKick' : m.body ? 'leadBodyKick' : 'leadLegKick';

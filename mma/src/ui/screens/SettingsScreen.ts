@@ -1,11 +1,11 @@
-import type { App, Screen } from '../App';
+import type { UIManager, Screen } from '../UIManager';
 import { clear, h } from '../dom';
 import { CLOCK_OPTIONS, DEFAULT_SETTINGS } from '../Settings';
 
 export class SettingsScreen implements Screen {
   el: HTMLElement;
   private body: HTMLElement;
-  constructor(private app: App, private onBack: () => void) {
+  constructor(private app: UIManager, private onBack: () => void) {
     this.body = h('div', { style: 'padding:20px 30px;max-width:760px' });
     this.el = h('div', { class: 'screen' },
       h('div', { class: 'topbar' }, h('button', { class: 'btn small', onclick: onBack }, '‹ Back'), h('h1', null, 'Settings')),

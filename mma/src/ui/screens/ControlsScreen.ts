@@ -1,6 +1,6 @@
 import { BINDING_INFO, keyName, PAD_BUTTON_NAMES, type Logical } from '../../input/Bindings';
 import { resolveStrike, STRIKES, type StrikeButton } from '../../data';
-import type { App, Screen } from '../App';
+import type { UIManager, Screen } from '../UIManager';
 import { clear, h } from '../dom';
 
 /** Keyboard + gamepad bindings (click to rebind) and a full strike reference. */
@@ -9,7 +9,7 @@ export class ControlsScreen implements Screen {
   private body: HTMLElement;
   private capturing: string | null = null;
 
-  constructor(private app: App, private onBack: () => void) {
+  constructor(private app: UIManager, private onBack: () => void) {
     this.body = h('div', { class: 'scroll', style: 'flex:1' });
     this.el = h('div', { class: 'screen' },
       h('div', { class: 'topbar' }, h('button', { class: 'btn small', onclick: () => { app.input.cancelCapture(); onBack(); } }, '‹ Back'), h('h1', null, 'Controls'),

@@ -5,7 +5,7 @@ import {
   advance, createTournament, divisionLabel, divisionPool, isFinal, loadTournament, playerAlive, playerMatch, roundName,
   saveTournament, simulateOthers, type TournamentDivision, type TournamentState,
 } from '../../modes/Tournament';
-import type { App, Screen } from '../App';
+import type { UIManager, Screen } from '../UIManager';
 import { clear, h } from '../dom';
 import { fighterCard } from '../components';
 import { CLOCK_OPTIONS } from '../Settings';
@@ -20,7 +20,7 @@ export class TournamentSetup implements Screen {
   private clockSpeed: number;
   private body: HTMLElement;
 
-  constructor(private app: App, private onBack: () => void, private onStart: (s: TournamentState) => void) {
+  constructor(private app: UIManager, private onBack: () => void, private onStart: (s: TournamentState) => void) {
     this.clockSpeed = app.settings.clockSpeed;
     this.body = h('div', { class: 'select-body', style: 'grid-template-columns:330px 1fr' });
     const saved = loadTournament();
@@ -84,7 +84,7 @@ export class BracketScreen implements Screen {
   private body: HTMLElement;
   private bar: HTMLElement;
 
-  constructor(private app: App, private state: TournamentState, private actions: { fight: (s: TournamentState) => void; menu: () => void }) {
+  constructor(private app: UIManager, private state: TournamentState, private actions: { fight: (s: TournamentState) => void; menu: () => void }) {
     this.body = h('div', { class: 'bracket' });
     this.bar = h('div', { class: 'options' });
     this.el = h('div', { class: 'screen' },

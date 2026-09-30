@@ -1,5 +1,5 @@
 import { FIGHTERS } from '../../data';
-import type { App, Screen } from '../App';
+import type { UIManager, Screen } from '../UIManager';
 import { h } from '../dom';
 
 export interface MenuActions {
@@ -12,7 +12,7 @@ export interface MenuActions {
 
 export class MainMenu implements Screen {
   el: HTMLElement;
-  constructor(private app: App, a: MenuActions) {
+  constructor(private app: UIManager, a: MenuActions) {
     const item = (label: string, desc: string, fn: () => void) => h('button', { class: 'btn menu-item', onclick: fn }, label, h('small', null, desc));
     const men = FIGHTERS.filter((f) => f.gender === 'M').length;
     const women = FIGHTERS.length - men;

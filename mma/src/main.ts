@@ -1,6 +1,6 @@
 import './styles.css';
 import { GameFlow } from './modes/GameFlow';
-import { App } from './ui/App';
+import { UIManager } from './ui/UIManager';
 
-const app = new App(document.getElementById('app')!);
+const app = new UIManager(document.getElementById('app')!);
 new GameFlow(app).menu();

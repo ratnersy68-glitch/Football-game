@@ -24,8 +24,8 @@ export const TUNING = {
   koHeadPenalty: 0.13,
   koKnockdownPenalty: 9,
   rockedAt: 0.42,
-  knockdownAt: 0.8,
-  spikeKnockdown: 0.34,
+  knockdownAt: 0.88,
+  spikeKnockdown: 0.38,
   spikeKO: 0.5,
 
   refBase: 24,

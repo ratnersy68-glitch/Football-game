@@ -167,7 +167,8 @@ export class FightEngine {
     for (const f of this.order()) {
       const cmd = cmds[f.side];
       const act = f.action;
-      const canGuard = !f.down && this.mode !== 'sub' && (!act || act.kind === 'defense' || act.kind === 'stun' || act.kind === 'recover' || act.kind === 'getup' || act.kind === 'transition');
+      const recovering = act?.kind === 'strike' && act.resolved && act.t > act.w + act.a + act.r * 0.4;
+      const canGuard = !f.down && this.mode !== 'sub' && (!act || recovering || act.kind === 'defense' || act.kind === 'stun' || act.kind === 'recover' || act.kind === 'getup' || act.kind === 'transition');
       f.guard = canGuard ? cmd.guard : 'none';
       if (f.buffered) {
         f.buffered.t -= dt;

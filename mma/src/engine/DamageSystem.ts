@@ -110,7 +110,7 @@ export class DamageSystem {
       this.knockdown(a, d, s, true, 'head');
       return;
     }
-    if (!onGround && !isDown(d) && ((d.daze >= T * TUNING.knockdownAt && hitDaze >= 7) || hitDaze >= T * TUNING.spikeKnockdown)) {
+    if (!onGround && !isDown(d) && ((d.daze >= T * TUNING.knockdownAt && hitDaze >= 8) || hitDaze >= T * TUNING.spikeKnockdown)) {
       this.knockdown(a, d, s, d.daze >= T * 0.86 || hitDaze >= T * 0.36, 'head');
       return;
     }
@@ -160,6 +160,7 @@ export class DamageSystem {
       if (f.daze > floor) {
         let rate = TUNING.dazeDecayBase + a.recovery * TUNING.dazeDecayRecovery;
         if (f.down) rate *= 0.8;
+        rate *= 0.6 + 0.4 * Math.min(1, f.stamina / 100); // gassed fighters clear their heads slower
         if (e.time - f.lastHitT < 1.2) rate *= 0.35;
         f.daze = Math.max(floor, f.daze - rate * dt);
       }

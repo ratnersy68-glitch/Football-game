@@ -1,14 +1,14 @@
 import { ARCHETYPES, countryCode, fighterAge, heightString, recordString, WEIGHT_CLASS_BY_ID, type FighterData } from '../../data';
 import type { FightSetup } from '../../modes/types';
 import { ARENA_BY_ID } from '../../data';
-import type { App, Screen } from '../App';
+import type { UIManager, Screen } from '../UIManager';
 import { h } from '../dom';
 
 /** Broadcast-style Tale of the Tape. */
 export class TaleOfTape implements Screen {
   el: HTMLElement;
   private t = 0;
-  constructor(private app: App, setup: FightSetup, private onDone: () => void) {
+  constructor(private app: UIManager, setup: FightSetup, private onDone: () => void) {
     const [a, b] = setup.fighters;
     const arena = ARENA_BY_ID[setup.arenaId];
     const adv = (x: number, y: number, higherBetter = true): [string, string] => (x === y ? ['', ''] : (x > y) === higherBetter ? ['adv', ''] : ['', 'adv']);

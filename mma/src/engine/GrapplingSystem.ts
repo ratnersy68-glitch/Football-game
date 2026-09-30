@@ -201,10 +201,10 @@ export class GrapplingSystem {
     }
     const off = A.takedowns * 0.6 + A.wrestling * 0.4 + (inClinch ? A.clinch * 0.3 - 20 : 0);
     const def = D.takedownDefense * 0.8 + D.wrestling * 0.2 + (inClinch ? D.clinch * 0.3 - 20 : 0);
-    let p = 0.4 + (off - def) * 0.009;
+    let p = 0.33 + (off - def) * 0.009;
     p += (staminaFrac(f) - staminaFrac(o)) * 0.3;
     p += Math.log(f.data.weightLbs / o.data.weightLbs) * 0.8;
-    if (act.timed) p += 0.17;
+    if (act.timed) p += 0.13;
     if (act.caughtKick) p += 0.4;
     if (act.variant === 'cage') p += 0.1;
     if (inClinch && e.clinch) p += e.clinch.control * (f.side === 0 ? 1 : -1) * 0.15;

@@ -1,6 +1,6 @@
 import { FightSession } from '../../modes/FightSession';
 import type { FightSetup } from '../../modes/types';
-import type { App, Screen } from '../App';
+import type { UIManager, Screen } from '../UIManager';
 import { cornerAdvice } from '../CornerAdvice';
 import { h } from '../dom';
 import { Hud } from '../Hud';
@@ -15,7 +15,7 @@ export class FightScreen implements Screen {
   private roundOverlayShown = 0;
   private ended = false;
 
-  constructor(private app: App, readonly setup: FightSetup, private onEnd: (s: FightSession) => void, private onQuit: () => void) {
+  constructor(private app: UIManager, readonly setup: FightSetup, private onEnd: (s: FightSession) => void, private onQuit: () => void) {
     const canvas = h('canvas');
     this.el = h('div', { class: 'fight' }, canvas);
     const label = setup.title ?? (setup.context === 'main' ? 'Main Event' : setup.context === 'tournament' ? 'Tournament' : 'Quick Fight');

@@ -1,7 +1,7 @@
 import { DIFFICULTY_LIST, type DifficultyId } from '../../ai/Difficulty';
 import { ARCHETYPES, ARENAS, FIGHTERS, recordString, WEIGHT_CLASSES, type FighterData, type WeightClassId } from '../../data';
 import type { FightSetup } from '../../modes/types';
-import type { App, Screen } from '../App';
+import type { UIManager, Screen } from '../UIManager';
 import { clear, h } from '../dom';
 import { fighterCard } from '../components';
 import { CLOCK_OPTIONS } from '../Settings';
@@ -27,7 +27,7 @@ export class SelectScreen implements Screen {
   private body: HTMLElement;
   private opts: HTMLElement;
 
-  constructor(private app: App, private o: SelectOptions) {
+  constructor(private app: UIManager, private o: SelectOptions) {
     this.clockSpeed = app.settings.clockSpeed;
     if (o.mode === 'main') {
       this.rounds = 5;
