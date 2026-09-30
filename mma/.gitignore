@@ -2,3 +2,5 @@ node_modules
 dist
 dist-standalone
 *.log
+scripts/_diag.ts
+scripts/_diag2.ts
