@@ -1,5 +1,18 @@
 # Changelog
 
+## 0.3.0 — Player Career, Milestone 1: play one drive in 3D
+
+### Added
+- **Player Career mode** (main menu). Create a QB: name/nickname/hometown, position (QB), archetype, height/weight/body type, skin/hair/facial hair, 100-point build with live OVR/stars/recruiting rank, jersey number with coach alternatives, full gear customization with a live 3D turntable (helmet/arms/cleats close-ups), difficulty and quarter length.
+- **Real-time football engine** (`src/play/engine`): 22 athletes at 60 Hz; route running, pass protection vs 4-man rush and blitzes, Cover 0/1/2/3 with reaction lag, projectile ball flight with lead and an accuracy model, catches/drops/deflections/INTs, control of the receiver after the catch, pursuit with intercept angles, tackling with jukes/spins/stiff arms/hurdles/dives and gang/diving tackles, sacks, out of bounds, touchdowns, safeties.
+- **Three.js presentation**: Ohio Stadium-style horseshoe (double deck, south stands, stone facade, press box, light towers, video board), painted field with Block-O midfield and end zones, PS2/PS3-style rigged players showing every gear option, animated runs/throws/catches/tackles, ball with spiral, LOS & first-down lines, pre-snap route art, receiver icons with read assist, three cameras with zoom/height.
+- **Drive loop & HUD**: play-call screen with route diagrams and the coach's call, play clock with delay-of-game, snap/drop back/charge-and-release throws (touch/bullet/lob), result cards, 4th-down go/FG/punt, drive summary with QB stats and log, pause menu, controls help, scorebug.
+- Keyboard + gamepad input layer (`src/play/input.ts`).
+- Tests: `tests/playEngine.test.ts` (15). `scripts/playtestBot.ts` tuning harness. `scripts/e2e/career.mjs` browser playtest.
+
+### Changed
+- Main menu leads with Player Career; coach dynasty unchanged.
+
 ## 0.2.0 — Milestone 2: postseason, multi-season & logos
 
 ### Added

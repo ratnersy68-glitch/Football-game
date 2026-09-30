@@ -1,6 +1,8 @@
 # Architecture
 
-**Stack:** TypeScript · React 19 (UI) · Canvas 2D (field) · Vite · Vitest. No backend; saves live in IndexedDB.
+**Stack:** TypeScript · React 19 (UI) · Three.js (3D player mode) · Canvas 2D (coach-mode field) · Vite · Vitest · Playwright. No backend; saves live in IndexedDB / localStorage.
+
+The repo holds two games that share data (teams, rosters, colors): the **Coach Dynasty** (play-by-play sim, below) and the **Player Career** (real-time 3D, next section).
 Everything under `src/simulation` is pure TypeScript with no DOM/React imports, so it runs identically in the browser, in Node scripts and in tests, and a future 3D renderer (Three.js) can consume the same play events.
 
 ## Core principle
@@ -67,7 +69,59 @@ tests/                    Vitest suites (engine invariants, reproducibility, OT,
 scripts/                  simulateMany (10k-game audit), oneGame, simulateSeason, e2e/ (Playwright)
 ```
 
-## Game engine
+## Player Career (real-time 3D)
+
+```
+InputManager (keyboard/gamepad) ─▶ Frame ─▶ GameController ─▶ PlaySim.step(1/60, UserInput)
+                                                  │                   │
+                                                  │                   ▼ athletes, ball, events, outcome
+                                                  ├─▶ Drive.apply(outcome)  (downs, clock, score, stats)
+                                                  └─▶ GameRenderer.render(sim)  (Three.js, read-only)
+React PlayScreen ◀─ Snapshot (20 Hz) ─ GameController
+```
+
+Nothing is predetermined: every outcome (completion, drop, INT, YAC, sack, tackle) emerges from the positions, velocities and ratings of 22 athletes stepped at 60 Hz. The renderer never feeds back into the simulation.
+
+```
+src/career/
+  data/qbArchetypes.json   attributes, weights, 5 archetypes, 5 body types, build points/cap, position list
+  data/gear.json           every gear slot + options (each one is visible on the 3D model)
+  data/uniforms.json       home/away/alternate sets (fallback: team colors)
+  player.ts                CreatedPlayer model, rating math (archetype + body + height/weight + build), OVR/stars/rank, persistence
+src/play/
+  engine/  (pure TS, no DOM — runs in tests and the headless bot)
+    types.ts               Ratings, Athlete, Task, Ball, SimEvent, PlayOutcome, UserInput, SimSettings
+    playbook.ts            route tree (points in downfield/outside yards), formations, 10 pass concepts, defensive calls, routePreview()
+    roster.ts              22 athletes: the user's QB + generated Ohio State / Michigan starters mapped to engine ratings
+    sim.ts                 PlaySim: movement/accel, routes, pass pro vs rush (engage/shed), man/zone coverage with reaction lag,
+                           projectile ball + lead + accuracy model, catch/deflection/INT, pursuit (intercept angles), tackling
+                           (moves, momentum, gang, diving), boundaries, outcomes
+    drive.ts               Drive: downs/distance/spot, clock runoff, score, QB stats, coach play caller, adaptive DC, FG odds
+  input.ts                 InputManager → Frame (move, sprint, snap, throw charge/release, lob, moves, camera) for keys + gamepad
+  controller.ts            GameController: stage machine call → presnap → live → whistle → result → fourth/over; fixed-step loop
+  settings.ts              difficulty / quarter length / read assist persistence
+  render/
+    playerModel.ts         low-poly rigged player built from primitives; gear → meshes; procedural run/throw/catch/tackle poses
+    stadium.ts             painted field texture, horseshoe double deck + south stands, facade, lights, video board, sun/shadows
+    scene.ts               GameRenderer: avatars, ball (held/air/snap), LOS & first-down lines, route art, receiver icons, cameras
+src/ui/career/             CareerMenu, CreatePlayer (7 steps), PlayerPreview (3D turntable), PlayScreen (HUD/overlays)
+scripts/playtestBot.ts     headless bot QB for tuning (completion %, YPA, sacks, INTs, YAC percentiles)
+scripts/e2e/career.mjs     Playwright: create player → gear → stadium → call/snap/throw/run with real keyboard input
+tests/playEngine.test.ts   determinism, legal outcomes, control switch, route art ≡ sim routes, drive rules, input charging
+```
+
+**Units & axes.** Yards and seconds. Field x = downfield (offense attacks +x, goal line at 100), y = across (0–53.33), z = height. Scene mapping: `scene.x = x`, `scene.z = y`, `scene.y = z`.
+
+**Key models.**
+- *Reaction:* defenders track `perceived()` positions — where a receiver was `delay` seconds ago, extrapolated with his velocity then. Delay comes from route running vs coverage/awareness and difficulty, so hard cuts create real separation and straight lines don't.
+- *Throw:* speed from power (charge time) and arm strength; lead solved iteratively against the receiver's projected route (`predict`); aim error sigma grows with distance band accuracy, pressure, throwing on the run, fatigue; vz is solved so the ball arrives at catch height. The ball is a projectile; anyone near it can make a play.
+- *Catch:* receiver probability from hands, contest, ball height/speed; defenders attempt INTs/deflections by ball skills.
+- *Tackling:* tackle vs break-tackle, momentum (weight × speed), carrier moves with timing windows, gang tackles, diving tackles from behind.
+- *Difficulty* changes only AI brains: reaction delays, pursuit angle commitment, rush technique, coordinator adapting to your tendencies. Ratings are never boosted (`tests/playEngine.test.ts`).
+
+**Adding content.** New route/concept: add to `ROUTES`/`PLAYS` (art and the sim update together). New gear option: add to `gear.json` and draw it in `playerModel.ts`. New position for the user: set `available` in `qbArchetypes.json`'s position list, add its archetype data and a controller mode (the sim already switches control to any ball carrier). Gamepad remaps: `input.ts` only.
+
+## Coach Dynasty — game engine
 
 `GameSimulation` holds a `GState` (quarter, clock, possession, ball spot 0–100 from the offense's goal line, down, distance, score, timeouts, phase `kickoff | scrimmage | pat | final`, OT state, momentum). `step()` resolves exactly one play or period transition and returns a `PlayEvent`. This lets the UI animate plays one at a time, change coaching settings between snaps and pause for 4th-down decisions, while `simulateToEnd()` is used for CPU games.
 

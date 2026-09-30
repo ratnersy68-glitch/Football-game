@@ -54,3 +54,24 @@
 - [ ] Difficulty settings (recruiting/portal competition, AI roster management, scouting fog)
 - [ ] 100-season inflation audit
 - [ ] Presentation: crowd noise, bands, night games, individual stadium geometry, Three.js renderer
+
+## Player Career — Milestone 1 (playable drive) ✅
+- [x] Create Player: identity, position (QB), archetype, height/weight/body type, look, 100-pt build, number w/ coach alternatives
+- [x] Gear customization visible on the 3D model (15 slots) with live turntable preview
+- [x] Ohio Stadium-style environment, 22 players, Ohio State vs Michigan
+- [x] WASD movement + sprint, snap, drop back, receiver routes
+- [x] Charge-and-release throwing to receivers 1–5 (touch/bullet/lob), projectile ball
+- [x] Catching / drops / INTs, control the receiver after the catch, run, tackles and carrier moves
+- [x] Downs, first downs, touchdowns, clock, scorebug, play clock, 4th-down options, drive summary
+- [x] Difficulty = smarter AI only; keyboard + gamepad
+- [x] Engine tests, bot tuning harness, browser playtest
+
+## Player Career — next
+- [ ] Run game: handoffs, zone/gap blocking, QB draws, RPO/read option (user can keep)
+- [ ] Pre-snap: audibles, hot routes, slide protection, motion; defensive disguise
+- [ ] Pocket feel: step-up/escape animations, throwing on the run with body orientation, pump fake
+- [ ] Full game: kickoffs/punts/FGs as playable plays, opponent possessions (sim or play defense), halftime, OT
+- [ ] Animation pass: blended skeletal clips (drop-back steps, catch variations, wrap tackles), crowd/sound
+- [ ] Other positions for the created player (RB, WR, TE, defense) using the same controller
+- [ ] Career layer: recruiting, depth-chart battles, season schedule, stats/awards/NIL/portal (explicitly out of scope for Milestone 1)
+- [ ] Performance: instanced/merged player meshes and LOD for low-end GPUs; code-split three.js
