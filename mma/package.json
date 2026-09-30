@@ -1,0 +1,23 @@
+{
+  "name": "octagon-fight-night",
+  "private": true,
+  "version": "0.1.0",
+  "description": "Personal, non-commercial UFC-style MMA fighting game (real-time, tactical).",
+  "type": "module",
+  "scripts": {
+    "dev": "vite",
+    "build": "tsc --noEmit && vite build",
+    "build:standalone": "node scripts/buildStandalone.mjs",
+    "preview": "vite preview",
+    "typecheck": "tsc --noEmit",
+    "test": "vitest run",
+    "sim": "vite-node scripts/simMany.ts"
+  },
+  "devDependencies": {
+    "esbuild": "^0.25.0",
+    "typescript": "~5.8.3",
+    "vite": "^6.3.0",
+    "vite-node": "^3.2.0",
+    "vitest": "^3.2.0"
+  }
+}
