@@ -16,7 +16,10 @@ export type Screen =
   | { name: 'quickSim' }
   | { name: 'quickGame'; homeId: string; awayId: string; seed: number }
   | { name: 'hub'; tab?: HubTab }
-  | { name: 'game'; gameId: string };
+  | { name: 'game'; gameId: string }
+  | { name: 'career' }
+  | { name: 'createPlayer'; step?: number }
+  | { name: 'play' };
 
 export type HubTab = 'home' | 'roster' | 'depth' | 'schedule' | 'gameplan' | 'top25' | 'conference' | 'postseason' | 'news' | 'history' | 'coach';
 

@@ -114,3 +114,21 @@ export const DEF_CALL_NAMES: Record<DefCall, string> = {
   cover3: 'Cover 3',
   cover0: 'Cover 0 Blitz',
 };
+
+const FIELD_W = 53.33;
+
+/**
+ * Route art for a play from a given spot: each receiver's alignment and route waypoints (field yards).
+ * Used by the 3D pre-snap overlay and the play-call diagrams; mirrors what `PlaySim.snap()` assigns.
+ */
+export function routePreview(play: PlayDef, los: number, spotY: number): { slot: Slot; start: { x: number; y: number }; pts: { x: number; y: number }[]; block: boolean; continues: boolean }[] {
+  const f = FORMATIONS[play.formation];
+  return SLOTS.map((slot) => {
+    const al = f.align[slot];
+    const y0 = Math.max(2, Math.min(FIELD_W - 2, al.y !== undefined ? al.y : spotY + (al.dy ?? 0)));
+    const start = { x: los + al.dx, y: y0 };
+    const r = ROUTES[play.routes[slot]] ?? ROUTES.checkdown;
+    const pts = r.points.map(([dx, dout]) => ({ x: start.x + dx, y: Math.max(1, Math.min(FIELD_W - 1, y0 + dout * al.side)) }));
+    return { slot, start, pts, block: r.points.length === 0, continues: !!r.continues };
+  });
+}

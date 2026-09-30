@@ -8,6 +8,9 @@ import { SettingsScreen } from '../ui/screens/Settings';
 import { QuickSim } from '../ui/screens/QuickSim';
 import { Hub } from '../ui/dynasty/Hub';
 import { DynastyGame, QuickGame } from '../ui/game/GameScreen';
+import { CareerMenu } from '../ui/career/CareerMenu';
+import { CreatePlayer } from '../ui/career/CreatePlayer';
+import { PlayScreen } from '../ui/career/PlayScreen';
 
 export function App() {
   const { screen, toast } = useStore();
@@ -39,6 +42,15 @@ export function App() {
       break;
     case 'game':
       view = <DynastyGame key={screen.gameId} gameId={screen.gameId} />;
+      break;
+    case 'career':
+      view = <CareerMenu />;
+      break;
+    case 'createPlayer':
+      view = <CreatePlayer initialStep={screen.step ?? 0} />;
+      break;
+    case 'play':
+      view = <PlayScreen />;
       break;
   }
   return (

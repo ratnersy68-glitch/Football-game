@@ -28,6 +28,11 @@ export interface ResultSummary {
   gained: number;
 }
 
+/** Make probability for a field goal of `distance` yards. */
+export function fieldGoalChance(distance: number): number {
+  return Math.max(0.05, Math.min(0.97, 1 / (1 + Math.exp((distance - 49) / 4.5))));
+}
+
 export class Drive {
   los = 25;
   spotY = 53.33 / 2;
@@ -54,6 +59,7 @@ export class Drive {
   }
 
   downLabel(): string {
+    if (this.down > 4) return 'Turnover on downs';
     const ord = ['', '1st', '2nd', '3rd', '4th'][this.down];
     return `${ord} & ${this.goalToGo ? 'Goal' : this.distance}`;
   }
@@ -208,8 +214,7 @@ export class Drive {
   /** 4th-down field goal (kicker resolved by distance; not playable in Milestone 1). */
   kickFieldGoal(rng: Rng): { good: boolean; distance: number } {
     const distance = 100 - this.los + 17;
-    const p = Math.max(0.05, Math.min(0.97, 1 / (1 + Math.exp((distance - 49) / 4.5))));
-    const good = rng.chance(p);
+    const good = rng.chance(fieldGoalChance(distance));
     if (good) this.score.us += 3;
     this.finish(good ? `Field goal good (${distance} yds)` : `Field goal missed (${distance} yds)`);
     return { good, distance };

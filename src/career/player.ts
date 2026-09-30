@@ -37,7 +37,8 @@ export const QB = qbJson as unknown as {
 };
 
 export type GearKey = Exclude<keyof typeof gearJson, "_comment">;
-export const GEAR = gearJson as unknown as Record<GearKey, { label: string; options: [string, string][] }>;
+/** Gear slots and their options (the JSON's `_comment` documentation key is stripped). */
+export const GEAR = Object.fromEntries(Object.entries(gearJson).filter(([k]) => k !== '_comment')) as unknown as Record<GearKey, { label: string; options: [string, string][] }>;
 export type Gear = Record<GearKey, string>;
 
 export interface Appearance {

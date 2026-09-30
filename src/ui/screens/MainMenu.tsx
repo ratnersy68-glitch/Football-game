@@ -28,8 +28,11 @@ export function MainMenu() {
         <div className="logo">
           SATURDAY <span>26</span>
         </div>
-        <div className="tagline">College Football Head Coach</div>
+        <div className="tagline">College Football · Coach or Play</div>
         <div className="menu-list">
+          <button className="menu-item hero" onClick={() => navigate({ name: 'career' })}>
+            Player Career<small>Create a QB and play the snaps yourself in 3D</small>
+          </button>
           <button className="menu-item" onClick={() => navigate({ name: 'teamSelect' })}>
             New Dynasty<small>Take over a Big Ten, SEC or Big 12 program</small>
           </button>
