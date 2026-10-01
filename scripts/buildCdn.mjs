@@ -17,12 +17,44 @@ if (shaArg === -1) {
   console.log('embed/saturday26.js + embed/saturday26.css written.');
 } else {
   const sha = process.argv[shaArg + 1];
-  const base = `https://cdn.jsdelivr.net/gh/ratnersy68-glitch/Football-game@${sha}/embed`;
-  const snippet = `<link rel="stylesheet" href="${base}/saturday26.css">
-<style>html,body{margin:0;min-height:100%;background:#07090e}</style>
-<div id="root"></div>
-<script type="module" src="${base}/saturday26.js"></script>
-<script>window.__S26_SOURCE__=document.documentElement.outerHTML;</script>
+  const repo = 'ratnersy68-glitch/Football-game';
+  // Three mirrors of the same commit: if one CDN is blocked or slow, the next is tried. Any load or
+  // startup error is printed on screen instead of leaving a blank page.
+  const snippet = `<style>html,body{margin:0;min-height:100%;background:#07090e}#s26-status{color:#cfd6e6;font:16px system-ui,sans-serif;text-align:center;padding:60px 20px;line-height:1.5}</style>
+<div id="root"><div id="s26-status">Loading SATURDAY 26…</div></div>
+<script>
+(function () {
+  window.__S26_SOURCE__ = document.documentElement.outerHTML;
+  var bases = [
+    'https://cdn.jsdelivr.net/gh/${repo}@${sha}/embed/',
+    'https://cdn.statically.io/gh/${repo}/${sha}/embed/',
+    'https://rawcdn.githack.com/${repo}/${sha}/embed/'
+  ];
+  function say(msg) { var el = document.getElementById('s26-status'); if (el) el.innerHTML = msg; }
+  window.addEventListener('error', function (e) { say('The game hit an error while starting:<br><code>' + (e.message || e) + '</code>'); });
+  window.addEventListener('unhandledrejection', function (e) { say('The game hit an error while starting:<br><code>' + ((e.reason && e.reason.message) || e.reason) + '</code>'); });
+  function attempt(i) {
+    if (i >= bases.length) {
+      say('Could not download the game files from any CDN.<br>Your network (a school or work filter?) may block them.<br>Use the single-file version (embed/saturday26-code.txt) instead.');
+      return;
+    }
+    if (i > 0) say('Loading SATURDAY 26… (trying mirror ' + (i + 1) + ')');
+    var css = document.createElement('link');
+    css.rel = 'stylesheet';
+    css.href = bases[i] + 'saturday26.css';
+    css.onerror = function () { css.remove(); attempt(i + 1); };
+    css.onload = function () {
+      var js = document.createElement('script');
+      js.type = 'module';
+      js.src = bases[i] + 'saturday26.js';
+      js.onerror = function () { js.remove(); css.remove(); attempt(i + 1); };
+      document.body.appendChild(js);
+    };
+    document.head.appendChild(css);
+  }
+  attempt(0);
+})();
+</script>
 `;
   writeFileSync('embed/EMBED_CODE.html', snippet);
   console.log(snippet);

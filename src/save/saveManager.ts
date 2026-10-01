@@ -80,6 +80,37 @@ export class IndexedDbBackend implements StorageBackend {
   }
 }
 
+/**
+ * IndexedDB when the page may use it, otherwise memory (saves last for the session) — some sandboxed
+ * embeds (e.g. website builders) deny IndexedDB.
+ */
+export class BrowserBackend implements StorageBackend {
+  private ready: Promise<StorageBackend>;
+  constructor(name = 'saturday26') {
+    this.ready = (async () => {
+      try {
+        const idb = new IndexedDbBackend(name);
+        await idb.all('meta');
+        return idb;
+      } catch {
+        return new MemoryBackend();
+      }
+    })();
+  }
+  async get(store: 'meta' | 'data', key: string) {
+    return (await this.ready).get(store, key);
+  }
+  async put(store: 'meta' | 'data', key: string, value: unknown) {
+    return (await this.ready).put(store, key, value);
+  }
+  async delete(store: 'meta' | 'data', key: string) {
+    return (await this.ready).delete(store, key);
+  }
+  async all(store: 'meta') {
+    return (await this.ready).all(store);
+  }
+}
+
 export function metaFor(d: Dynasty, slotId: string, name: string, auto: boolean): SaveMeta {
   const r = d.teams[d.userTeamId].record;
   return {

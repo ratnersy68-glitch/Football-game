@@ -4,7 +4,7 @@
  */
 import { useSyncExternalStore } from 'react';
 import type { Dynasty } from '../models/types';
-import { IndexedDbBackend, MemoryBackend, SaveManager } from '../save/saveManager';
+import { BrowserBackend, MemoryBackend, SaveManager } from '../save/saveManager';
 import { setLogosEnabled } from '../visualization/logoCache';
 
 export type Screen =
@@ -68,7 +68,7 @@ let state: State = {
 };
 const listeners = new Set<() => void>();
 
-export const saves = new SaveManager(typeof indexedDB !== 'undefined' ? new IndexedDbBackend() : new MemoryBackend());
+export const saves = new SaveManager(typeof indexedDB !== 'undefined' ? new BrowserBackend() : new MemoryBackend());
 
 export function getState(): State {
   return state;
