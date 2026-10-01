@@ -26,7 +26,35 @@ export class UIManager {
     };
     window.addEventListener('pointerdown', unlock);
     window.addEventListener('keydown', unlock);
+    this.addFullscreenButton();
     requestAnimationFrame(this.frame);
+  }
+
+  /**
+   * Full-screen toggle (handy inside small embeds such as Google Sites). If the embedding frame
+   * doesn't allow full screen, the game opens in its own browser tab instead.
+   */
+  private addFullscreenButton() {
+    const btn = document.createElement('button');
+    btn.className = 'fs-btn';
+    btn.title = 'Full screen';
+    btn.textContent = '⛶';
+    const openInTab = () => {
+      const src = (window as unknown as { __OCT_SOURCE__?: string }).__OCT_SOURCE__;
+      if (src) window.open(URL.createObjectURL(new Blob(['<!doctype html>\n' + src], { type: 'text/html' })), '_blank');
+      else window.open(window.location.href, '_blank');
+    };
+    btn.addEventListener('click', async () => {
+      try {
+        if (document.fullscreenElement) await document.exitFullscreen();
+        else if (document.fullscreenEnabled) await document.documentElement.requestFullscreen();
+        else openInTab();
+      } catch {
+        openInTab();
+      }
+    });
+    document.addEventListener('fullscreenchange', () => (btn.textContent = document.fullscreenElement ? '⤡' : '⛶'));
+    document.body.append(btn);
   }
 
   saveSettings() {

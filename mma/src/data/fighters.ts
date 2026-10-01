@@ -24,7 +24,8 @@ function attrs(a: A15): Attributes {
   return { striking, power, speed, accuracy, defense, cardio, chin, wrestling, takedowns, takedownDefense, submissions, submissionDefense, clinch, groundControl, recovery };
 }
 
-const slug = (s: string) => s.toLowerCase().normalize('NFD').replace(/[̀-ͯ]/g, '').replace(/[^a-z0-9]+/g, '_').replace(/^_|_$/g, '');
+const COMBINING_MARKS = new RegExp('[\\u0300-\\u036f]', 'g');
+const slug = (s: string) => s.toLowerCase().normalize('NFD').replace(COMBINING_MARKS, '').replace(/[^a-z0-9]+/g, '_').replace(/^_|_$/g, '');
 
 interface Opt {
   sig?: string[];
