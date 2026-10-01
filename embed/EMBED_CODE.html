@@ -1,5 +1,35 @@
-<link rel="stylesheet" href="https://cdn.jsdelivr.net/gh/ratnersy68-glitch/Football-game@2abcc72c30a96178c2ac2be7dfcd7d4e07beb72c/embed/saturday26.css">
-<style>html,body{margin:0;min-height:100%;background:#07090e}</style>
-<div id="root"></div>
-<script type="module" src="https://cdn.jsdelivr.net/gh/ratnersy68-glitch/Football-game@2abcc72c30a96178c2ac2be7dfcd7d4e07beb72c/embed/saturday26.js"></script>
-<script>window.__S26_SOURCE__=document.documentElement.outerHTML;</script>
+<style>html,body{margin:0;min-height:100%;background:#07090e}#s26-status{color:#cfd6e6;font:16px system-ui,sans-serif;text-align:center;padding:60px 20px;line-height:1.5}</style>
+<div id="root"><div id="s26-status">Loading SATURDAY 26…</div></div>
+<script>
+(function () {
+  window.__S26_SOURCE__ = document.documentElement.outerHTML;
+  var bases = [
+    'https://cdn.jsdelivr.net/gh/ratnersy68-glitch/Football-game@e621ce674da3860ba7d67b7a107e477d72dcc82f/embed/',
+    'https://cdn.statically.io/gh/ratnersy68-glitch/Football-game/e621ce674da3860ba7d67b7a107e477d72dcc82f/embed/',
+    'https://rawcdn.githack.com/ratnersy68-glitch/Football-game/e621ce674da3860ba7d67b7a107e477d72dcc82f/embed/'
+  ];
+  function say(msg) { var el = document.getElementById('s26-status'); if (el) el.innerHTML = msg; }
+  window.addEventListener('error', function (e) { say('The game hit an error while starting:<br><code>' + (e.message || e) + '</code>'); });
+  window.addEventListener('unhandledrejection', function (e) { say('The game hit an error while starting:<br><code>' + ((e.reason && e.reason.message) || e.reason) + '</code>'); });
+  function attempt(i) {
+    if (i >= bases.length) {
+      say('Could not download the game files from any CDN.<br>Your network (a school or work filter?) may block them.<br>Use the single-file version (embed/saturday26-code.txt) instead.');
+      return;
+    }
+    if (i > 0) say('Loading SATURDAY 26… (trying mirror ' + (i + 1) + ')');
+    var css = document.createElement('link');
+    css.rel = 'stylesheet';
+    css.href = bases[i] + 'saturday26.css';
+    css.onerror = function () { css.remove(); attempt(i + 1); };
+    css.onload = function () {
+      var js = document.createElement('script');
+      js.type = 'module';
+      js.src = bases[i] + 'saturday26.js';
+      js.onerror = function () { js.remove(); css.remove(); attempt(i + 1); };
+      document.body.appendChild(js);
+    };
+    document.head.appendChild(css);
+  }
+  attempt(0);
+})();
+</script>
