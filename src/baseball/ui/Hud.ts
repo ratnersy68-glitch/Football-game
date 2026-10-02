@@ -239,7 +239,7 @@ export class Hud {
   replayUi(t: number, d: number, paused: boolean, speed: number) {
     this.set('banner', '');
     this.set('replay', `<div class="replay-tag">REPLAY</div><div class="replay-ui"><span>${paused ? '❚❚' : '▶'} ${speed < 1 ? speed + 'x' : ''}</span><div class="tl"><i style="width:${(Math.min(1, t / Math.max(0.01, d)) * 100).toFixed(1)}%"></i></div>
-      <span>${'<kbd>SPACE</kbd> play/pause <kbd>S</kbd> slow-mo <kbd>←</kbd><kbd>→</kbd> scrub <kbd>drag</kbd>/<kbd>A</kbd><kbd>D</kbd> rotate <kbd>W</kbd><kbd>S</kbd>/wheel zoom <kbd>R</kbd>/<kbd>ESC</kbd> exit'}</span></div>`);
+      <span>${'<kbd>SPACE</kbd> play/pause <kbd>Z</kbd> slow-mo <kbd>←</kbd><kbd>→</kbd> scrub <kbd>drag</kbd>/<kbd>A</kbd><kbd>D</kbd> rotate <kbd>W</kbd><kbd>S</kbd>/wheel zoom <kbd>R</kbd>/<kbd>ESC</kbd> exit'}</span></div>`);
   }
 
   hideGameplayRegions(hide: boolean) {

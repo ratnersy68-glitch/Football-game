@@ -40,7 +40,9 @@ await page.evaluate(() => {
         else inp.pci = { x: 0, y: 2.5 };
       }
       if (mode === 'bat' && e.phase !== 'pitch') inp.skip = i % 20 === 0;
+      const before = e.phase;
       e.update(1 / 60, inp);
+      a.trackReplay(e, before, 1 / 60);
       a.handleEvents(e.drainEvents());
       a.hud.update(e, { throwHold: null, throwFill: 1, swingPreview: 'normal', runnerSel: null, replayAvailable: false });
       a.hud.tick(1 / 60);
@@ -71,6 +73,11 @@ for (let k = 0; k < 400 && inPlay < 3; k++) {
   }
 }
 console.log('after batting', await step(1));
+const opened = await page.evaluate(() => { const a = window.__bb.app; const ok = a.replay.open(); if (ok) { a.hud.hideGameplayRegions(true); a.replay.t = 1.5; } return ok; });
+console.log('replay opened', opened);
+await page.waitForTimeout(1500);
+await page.screenshot({ path: `${out}/replay.png` });
+await page.evaluate(() => { const a = window.__bb.app; a.replay.close(); a.hud.hideGameplayRegions(false); });
 // Advance to the bottom half (we field).
 for (let k = 0; k < 200; k++) { st = await step(60); if (st.half === 'bottom') break; }
 console.log('bottom', st);

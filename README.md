@@ -53,3 +53,9 @@ See [ARCHITECTURE.md](ARCHITECTURE.md), [TODO.md](TODO.md) and [CHANGELOG.md](CH
 ### Short embed code (no big file)
 
 `npm run build:cdn`, commit + push, then `node scripts/buildCdn.mjs --snippet <commitSha>` prints a 5-line snippet (saved to `embed/EMBED_CODE.html`) that loads `embed/saturday26.js`/`.css` from this public repo via jsDelivr. Paste that snippet into Google Sites → Insert → Embed → Embed code. Rebuild and use the new commit id after game updates.
+
+## ⚾ DIAMOND '26 — playable baseball (new)
+
+A separate, fully playable MLB-style baseball game lives on its own page: `npm run baseball`
+(→ `/baseball.html`). You pitch, hit with a PCI, field, throw and run the bases against the CPU
+with all 30 MLB clubs and simplified versions of their ballparks. See [BASEBALL.md](BASEBALL.md).
