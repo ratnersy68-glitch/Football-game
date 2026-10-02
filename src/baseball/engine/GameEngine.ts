@@ -243,7 +243,7 @@ export class GameEngine {
     } else this.aiPlan = null;
   }
 
-  private swingMods(): SwingMods {
+  swingMods(): SwingMods {
     if (this.userSideBatting()) return { timing: BAT_TIMING[this.diffIndex], pci: BAT_PCI[this.diffIndex] };
     return { timing: 1, pci: 1 };
   }
