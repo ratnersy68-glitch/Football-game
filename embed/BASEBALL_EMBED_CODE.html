@@ -1,0 +1,35 @@
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Oswald:wght@400;500;600;700&family=Inter:wght@400;500;600;700&display=swap">
+<style>html,body{margin:0;height:100%;background:#07101f;overflow:hidden}#bb-status{position:fixed;inset:0;display:flex;align-items:center;justify-content:center;text-align:center;color:#cfd6e6;font:16px system-ui,sans-serif;padding:20px;line-height:1.5;z-index:5}#bb-fs{position:fixed;right:8px;bottom:8px;z-index:50;background:rgba(0,0,0,.55);color:#fff;border:1px solid rgba(255,255,255,.3);border-radius:6px;font:16px system-ui;padding:4px 9px;cursor:pointer}</style>
+<div id="game-root"><div id="canvas-wrap"></div><div id="ui"></div></div>
+<div id="bb-status">Loading DIAMOND '26… (click the game once it appears so it gets your keyboard)</div>
+<button id="bb-fs" title="Full screen">⛶</button>
+<script>
+document.getElementById('bb-fs').onclick=function(){var d=document.documentElement;if(document.fullscreenElement){document.exitFullscreen();}else if(d.requestFullscreen){d.requestFullscreen().catch(function(){window.open(location.href,'_blank');});}};
+new MutationObserver(function(_, o){ if (document.querySelector('#canvas-wrap canvas')) { var s=document.getElementById('bb-status'); if (s) s.remove(); o.disconnect(); } }).observe(document.getElementById('canvas-wrap'), { childList: true });
+(function () {
+  var bases = [
+    'https://cdn.jsdelivr.net/gh/ratnersy68-glitch/Football-game@6595ff5a592c0e5adb4eef1d3fecd7585ce18e5f/embed/',
+    'https://cdn.statically.io/gh/ratnersy68-glitch/Football-game/6595ff5a592c0e5adb4eef1d3fecd7585ce18e5f/embed/',
+    'https://rawcdn.githack.com/ratnersy68-glitch/Football-game/6595ff5a592c0e5adb4eef1d3fecd7585ce18e5f/embed/'
+  ];
+  function say(m) { var el = document.getElementById('bb-status'); if (el) el.innerHTML = m; }
+  window.addEventListener('error', function (e) { say('The game hit an error while starting:<br><code>' + (e.message || e) + '</code>'); });
+  function attempt(i) {
+    if (i >= bases.length) { say('Could not download the game files from any CDN.<br>Use the single-file version (embed/diamond26.html) instead.'); return; }
+    if (i > 0) say('Loading DIAMOND \'26… (trying mirror ' + (i + 1) + ')');
+    var css = document.createElement('link');
+    css.rel = 'stylesheet';
+    css.href = bases[i] + 'diamond26.css';
+    css.onerror = function () { css.remove(); attempt(i + 1); };
+    css.onload = function () {
+      var js = document.createElement('script');
+      js.type = 'module';
+      js.src = bases[i] + 'diamond26.js';
+      js.onerror = function () { js.remove(); css.remove(); attempt(i + 1); };
+      document.body.appendChild(js);
+    };
+    document.head.appendChild(css);
+  }
+  attempt(0);
+})();
+</script>
