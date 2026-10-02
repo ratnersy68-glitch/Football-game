@@ -1,22 +1,26 @@
-/** Player Career hub: continue with the saved player, edit him, or create a new one. */
+/** Player Career menu: continue the career, quick practice drive, edit the player, or start over. */
 import { useState } from 'react';
 import { navigate } from '../../app/store';
-import { archetypeOf, heightLabel, loadPlayer, overall, ratings, savePlayer, newPlayer, starRating } from '../../career/player';
+import { TEAM_BY_ID } from '../../data';
+import { archetypeOf, heightLabel, loadPlayer, playerOverall, savePlayer, newPlayer, starRating } from '../../career/player';
+import { clearCareer, loadCareer, record } from '../../career/season';
 import { PlayerPreview } from './PlayerPreview';
 import { lookFor } from './CreatePlayer';
 
 export function CareerMenu() {
-  const [player, setPlayer] = useState(loadPlayer);
+  const [career] = useState(loadCareer);
+  const [player] = useState(() => career?.player ?? loadPlayer());
   const [confirmNew, setConfirmNew] = useState(false);
-  const ovr = player ? overall(ratings(player)) : 0;
+  const has = !!player && !!player.firstName;
+  const ovr = has ? playerOverall(player!) : 0;
 
   const startNew = () => {
-    if (player && !confirmNew) {
+    if (has && !confirmNew) {
       setConfirmNew(true);
       return;
     }
+    clearCareer();
     savePlayer(newPlayer());
-    setPlayer(null);
     navigate({ name: 'createPlayer', step: 0 });
   };
 
@@ -27,44 +31,47 @@ export function CareerMenu() {
           <div className="logo small">
             PLAYER <span>CAREER</span>
           </div>
-          <div className="tagline">Milestone 1 · One drive at Ohio Stadium</div>
+          <div className="tagline">Pick your school · live the week · play Saturdays in 3D</div>
           <div className="menu-list">
-            {player && player.firstName ? (
+            {career && has && (
+              <button className="menu-item hero" onClick={() => navigate({ name: 'careerHub' })}>
+                {career.over ? 'Season Summary' : 'Continue Career'}
+                <small>
+                  {TEAM_BY_ID[career.player.teamId]?.school} · Week {Math.min(career.week, 14)} · {record(career).w}-{record(career).l}
+                </small>
+              </button>
+            )}
+            {has && (
               <>
-                <button className="menu-item hero" onClick={() => navigate({ name: 'play' })}>
-                  Play a Drive
-                  <small>
-                    #{player.jersey} {player.firstName} {player.lastName} vs Michigan
-                  </small>
+                <button className="menu-item" onClick={() => navigate({ name: 'play' })}>
+                  Practice Drive<small>One drive vs Michigan — no effect on your career</small>
                 </button>
-                <button className="menu-item" onClick={() => navigate({ name: 'createPlayer', step: 5 })}>
+                <button className="menu-item" onClick={() => navigate({ name: 'createPlayer', step: 6 })}>
                   Edit Gear<small>Facemask, visor, sleeves, gloves, cleats…</small>
                 </button>
-                <button className="menu-item" onClick={() => navigate({ name: 'createPlayer', step: 0 })}>
-                  Edit Player<small>Name, archetype, body, build, number</small>
-                </button>
               </>
-            ) : null}
+            )}
             <button className="menu-item" onClick={startNew}>
-              {confirmNew ? 'Tap again to replace your player' : 'Create New Player'}
-              <small>{player && player.firstName ? 'Replaces the current player' : 'Build your quarterback'}</small>
+              {confirmNew ? 'Tap again to replace your player & career' : 'New Career'}
+              <small>Choose a school and position (QB, RB, WR, TE)</small>
             </button>
             <button className="menu-item" onClick={() => navigate({ name: 'menu' })}>
               Main Menu<small>Back to the coaching dynasty and other modes</small>
             </button>
           </div>
         </div>
-        {player && player.firstName && (
+        {has && (
           <div className="career-card">
-            <PlayerPreview look={lookFor(player)} height={380} />
+            <PlayerPreview look={lookFor(player!)} height={380} />
             <div className="row" style={{ justifyContent: 'center' }}>
               <span className="ovr-num sm">{ovr}</span>
               <div>
                 <b>
-                  {player.firstName} {player.lastName}
+                  {player!.firstName} {player!.lastName}
                 </b>
                 <div className="muted tiny">
-                  {archetypeOf(player).name} QB · {heightLabel(player.heightIn)} {player.weight} lbs · {'★'.repeat(starRating(ovr))}
+                  {TEAM_BY_ID[player!.teamId]?.abbreviation} {player!.position} · {archetypeOf(player!).name} · {heightLabel(player!.heightIn)} {player!.weight} lbs ·{' '}
+                  {'★'.repeat(starRating(ovr))}
                 </div>
               </div>
             </div>

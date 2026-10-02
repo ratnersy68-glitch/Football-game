@@ -4,7 +4,9 @@
  */
 import type { Player } from '../../models/types';
 import { buildExhibition } from '../../simulation/world';
-import { ratings as createdRatings, type CreatedPlayer } from '../../career/player';
+import { teamRatings } from '../../simulation/teamRatings';
+import type { UnitRatings } from './possession';
+import { ratings as createdRatings, type CreatedPlayer, type PositionId } from '../../career/player';
 import type { AthleteSpec, Ratings, Role } from './types';
 
 const base = (): Ratings => ({
@@ -48,6 +50,25 @@ export function toRatings(p: Player): Ratings {
   r.height = p.height;
   r.awareness = Math.round(55 + (p.overall - 60) * 0.7);
   switch (p.position) {
+    case 'QB':
+      Object.assign(r, {
+        speed: a.speed,
+        acceleration: a.speed - 2,
+        agility: a.agility,
+        throwPower: a.throwPower,
+        shortAccuracy: a.shortAccuracy,
+        mediumAccuracy: a.mediumAccuracy,
+        deepAccuracy: a.deepAccuracy,
+        throwOnRun: (a.agility + a.mediumAccuracy) / 2,
+        underPressure: a.pressureHandling,
+        awareness: a.decisionMaking,
+        breakSack: a.pocketAwareness,
+        playAction: (a.decisionMaking + a.pocketAwareness) / 2,
+        strength: 60,
+        carry: 65,
+        catching: 45,
+      });
+      break;
     case 'WR':
       Object.assign(r, { speed: a.speed, acceleration: a.acceleration, agility: (a.acceleration + a.routeRunning) / 2, catching: a.hands, routeRunning: a.routeRunning, release: a.release, contested: a.contestedCatch, breakTackle: 45 + a.yac * 0.3, juke: a.yac, spin: a.yac - 5, strength: 55, tackle: 35 });
       break;
@@ -75,18 +96,26 @@ export function toRatings(p: Player): Ratings {
   return r;
 }
 
+/** Engine ratings the created player's position doesn't build directly. */
+const CREATED_DEFAULTS: Record<PositionId, Partial<Ratings>> = {
+  QB: { catching: 45, carry: 65 },
+  RB: { release: 62, contested: 52, tackle: 40, routeRunning: 55 },
+  WR: { blocking: 45, carry: 72, stiffArm: 50, tackle: 35 },
+  TE: { juke: 50, spin: 45, carry: 72, agility: 64, tackle: 45 },
+};
+
 export function createdToRatings(cp: CreatedPlayer): Ratings {
   const q = createdRatings(cp);
   const r = base();
-  Object.assign(r, q);
+  Object.assign(r, CREATED_DEFAULTS[cp.position] ?? {}, q);
   r.weight = cp.weight;
   r.height = cp.heightIn;
-  r.breakTackle = Math.round((q.strength + q.breakSack) / 2);
-  r.juke = Math.round((q.agility + q.speed) / 2 - 4);
-  r.spin = Math.round(q.agility - 6);
-  r.stiffArm = Math.round(q.strength - 4);
-  r.carry = 65;
-  r.catching = 45;
+  if (cp.position === 'QB') {
+    r.breakTackle = Math.round((q.strength + q.breakSack) / 2);
+    r.juke = Math.round((q.agility + q.speed) / 2 - 4);
+    r.spin = Math.round(q.agility - 6);
+    r.stiffArm = Math.round(q.strength - 4);
+  }
   return r;
 }
 
@@ -97,6 +126,13 @@ export interface MatchRoster {
   userId: string;
   offenseTeam: string;
   defenseTeam: string;
+  /** Roster-based unit ratings, for simulated possessions. */
+  units: { us: UnitRatings; them: UnitRatings };
+}
+
+/** The offensive slot the created player occupies. */
+export function slotForPosition(pos: PositionId): string {
+  return pos === 'QB' ? 'QB' : pos === 'RB' ? 'RB' : pos === 'TE' ? 'Y' : 'X';
 }
 
 export function buildMatch(cp: CreatedPlayer, opponentId = 'michigan', seed = 26): MatchRoster {
@@ -111,24 +147,25 @@ export function buildMatch(cp: CreatedPlayer, opponentId = 'michigan', seed = 26
   const add = (p: Player, side: 'off' | 'def', role: Role, slot: string) =>
     specs.push({ id: p.id, side, role, slot, name: name(p), number: p.jersey, ratings: toRatings(p) });
 
-  // Offense: the user is QB; everybody else from the real depth chart.
-  const userId = 'user_qb';
+  // Offense: the user takes his position's slot; everybody else comes from the real depth chart.
+  const userId = 'user';
+  const userSlot = slotForPosition(cp.position);
+  const userRole: Role = cp.position === 'QB' ? 'QB' : cp.position === 'RB' ? 'RB' : cp.position === 'TE' ? 'TE' : 'WR';
   specs.push({
     id: userId,
     side: 'off',
-    role: 'QB',
-    slot: 'QB',
+    role: userRole,
+    slot: userSlot,
     name: `${cp.firstName[0] ?? 'Q'}. ${cp.lastName || 'Player'}`,
     number: cp.jersey,
     ratings: createdToRatings(cp),
     user: true,
   });
-  const wr = pick(us, 'WR', 3);
-  add(wr[0], 'off', 'WR', 'X');
-  add(wr[1], 'off', 'WR', 'Z');
-  add(wr[2], 'off', 'WR', 'H');
-  add(pick(us, 'TE', 1)[0], 'off', 'TE', 'Y');
-  add(pick(us, 'RB', 1)[0], 'off', 'RB', 'RB');
+  if (userSlot !== 'QB') add(pick(us, 'QB', 1)[0], 'off', 'QB', 'QB');
+  const wrSlots = ['X', 'Z', 'H'].filter((s) => s !== userSlot);
+  pick(us, 'WR', wrSlots.length).forEach((p, i) => add(p, 'off', 'WR', wrSlots[i]));
+  if (userSlot !== 'Y') add(pick(us, 'TE', 1)[0], 'off', 'TE', 'Y');
+  if (userSlot !== 'RB') add(pick(us, 'RB', 1)[0], 'off', 'RB', 'RB');
   pick(us, 'OL', 5).forEach((p, i) => add(p, 'off', 'OL', ['LT', 'LG', 'C', 'RG', 'RT'][i]));
   // Avoid the user's number on a teammate.
   for (const s of specs) if (s.side === 'off' && s.id !== userId && s.number === cp.jersey) s.number = s.number + 20 > 99 ? s.number - 20 : s.number + 20;
@@ -146,7 +183,24 @@ export function buildMatch(cp: CreatedPlayer, opponentId = 'michigan', seed = 26
   const s = pick(opponentId, 'S', 2);
   add(s[0], 'def', 'S', 'FS');
   add(s[1], 'def', 'S', 'SS');
-  return { specs, userId, offenseTeam: us, defenseTeam: opponentId };
+  const tr = (id: string) => teamRatings(world.teams[id], world.players);
+  const u = tr(us);
+  const t = tr(opponentId);
+  return { specs, userId, offenseTeam: us, defenseTeam: opponentId, units: { us: { offense: u.offense, defense: u.defense }, them: { offense: t.offense, defense: t.defense } } };
+}
+
+/** Real teammates for the phone: name, position and number of key players on the user's team. */
+export function teammates(teamId: string, seed = 26): { id: string; first: string; last: string; position: string; number: number; year: string }[] {
+  const world = buildExhibition(teamId, teamId === 'michigan' ? 'ohio_state' : 'michigan', seed);
+  const t = world.teams[teamId];
+  const out: { id: string; first: string; last: string; position: string; number: number; year: string }[] = [];
+  for (const pos of ['QB', 'RB', 'WR', 'TE', 'OL', 'LB', 'CB', 'S', 'DL'] as const) {
+    for (const id of t.depthChart[pos].slice(0, pos === 'WR' || pos === 'OL' ? 2 : 1)) {
+      const p = world.players[id];
+      out.push({ id: p.id, first: p.firstName, last: p.lastName, position: pos, number: p.jersey, year: String(p.year) });
+    }
+  }
+  return out;
 }
 
 /** Jersey numbers already worn on the team's roster (for the number request). */

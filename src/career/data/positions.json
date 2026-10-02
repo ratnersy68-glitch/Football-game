@@ -1,0 +1,958 @@
+{
+ "_comment": "Created-player positions: attributes (engine rating keys), OVR weights, freshman archetype bases and body types. The player adds buildPoints on top (max buildCap per attribute).",
+ "buildPoints": 100,
+ "buildCap": 20,
+ "list": [
+  {
+   "id": "QB",
+   "name": "Quarterback",
+   "available": true
+  },
+  {
+   "id": "RB",
+   "name": "Running Back",
+   "available": true
+  },
+  {
+   "id": "WR",
+   "name": "Wide Receiver",
+   "available": true
+  },
+  {
+   "id": "TE",
+   "name": "Tight End",
+   "available": true
+  },
+  {
+   "id": "OL",
+   "name": "Offensive Line",
+   "available": false
+  },
+  {
+   "id": "EDGE",
+   "name": "Edge Rusher",
+   "available": false
+  },
+  {
+   "id": "DL",
+   "name": "Defensive Line",
+   "available": false
+  },
+  {
+   "id": "LB",
+   "name": "Linebacker",
+   "available": false
+  },
+  {
+   "id": "CB",
+   "name": "Cornerback",
+   "available": false
+  },
+  {
+   "id": "S",
+   "name": "Safety",
+   "available": false
+  }
+ ],
+ "positions": {
+  "QB": {
+   "attributes": [
+    {
+     "id": "speed",
+     "label": "Speed",
+     "group": "Athletic"
+    },
+    {
+     "id": "acceleration",
+     "label": "Acceleration",
+     "group": "Athletic"
+    },
+    {
+     "id": "agility",
+     "label": "Agility",
+     "group": "Athletic"
+    },
+    {
+     "id": "strength",
+     "label": "Strength",
+     "group": "Athletic"
+    },
+    {
+     "id": "throwPower",
+     "label": "Throw Power",
+     "group": "Passing"
+    },
+    {
+     "id": "shortAccuracy",
+     "label": "Short Accuracy",
+     "group": "Passing"
+    },
+    {
+     "id": "mediumAccuracy",
+     "label": "Medium Accuracy",
+     "group": "Passing"
+    },
+    {
+     "id": "deepAccuracy",
+     "label": "Deep Accuracy",
+     "group": "Passing"
+    },
+    {
+     "id": "throwOnRun",
+     "label": "Throw on the Run",
+     "group": "Passing"
+    },
+    {
+     "id": "underPressure",
+     "label": "Throw Under Pressure",
+     "group": "Mental"
+    },
+    {
+     "id": "awareness",
+     "label": "Awareness",
+     "group": "Mental"
+    },
+    {
+     "id": "playAction",
+     "label": "Play Action",
+     "group": "Mental"
+    },
+    {
+     "id": "breakSack",
+     "label": "Break Sack",
+     "group": "Athletic"
+    }
+   ],
+   "weights": {
+    "speed": 0.06,
+    "acceleration": 0.03,
+    "agility": 0.03,
+    "strength": 0.02,
+    "throwPower": 0.12,
+    "shortAccuracy": 0.14,
+    "mediumAccuracy": 0.13,
+    "deepAccuracy": 0.1,
+    "throwOnRun": 0.07,
+    "underPressure": 0.08,
+    "awareness": 0.14,
+    "playAction": 0.04,
+    "breakSack": 0.04
+   },
+   "archetypes": [
+    {
+     "id": "field_general",
+     "name": "Field General",
+     "blurb": "Accurate, poised and always a step ahead of the defense.",
+     "base": {
+      "speed": 66,
+      "acceleration": 70,
+      "agility": 67,
+      "strength": 58,
+      "throwPower": 70,
+      "shortAccuracy": 72,
+      "mediumAccuracy": 69,
+      "deepAccuracy": 63,
+      "throwOnRun": 60,
+      "underPressure": 66,
+      "awareness": 70,
+      "playAction": 66,
+      "breakSack": 56
+     }
+    },
+    {
+     "id": "dual_threat",
+     "name": "Dual Threat",
+     "blurb": "Can beat you with his arm or his legs on any snap.",
+     "base": {
+      "speed": 80,
+      "acceleration": 81,
+      "agility": 78,
+      "strength": 60,
+      "throwPower": 69,
+      "shortAccuracy": 66,
+      "mediumAccuracy": 62,
+      "deepAccuracy": 58,
+      "throwOnRun": 66,
+      "underPressure": 59,
+      "awareness": 60,
+      "playAction": 64,
+      "breakSack": 68
+     }
+    },
+    {
+     "id": "gunslinger",
+     "name": "Gunslinger",
+     "blurb": "Elite arm talent. Every window is open to him.",
+     "base": {
+      "speed": 67,
+      "acceleration": 70,
+      "agility": 66,
+      "strength": 62,
+      "throwPower": 79,
+      "shortAccuracy": 64,
+      "mediumAccuracy": 64,
+      "deepAccuracy": 67,
+      "throwOnRun": 62,
+      "underPressure": 62,
+      "awareness": 60,
+      "playAction": 60,
+      "breakSack": 58
+     }
+    },
+    {
+     "id": "scrambler",
+     "name": "Scrambler",
+     "blurb": "Extends plays and makes defenders miss in space.",
+     "base": {
+      "speed": 77,
+      "acceleration": 80,
+      "agility": 81,
+      "strength": 57,
+      "throwPower": 67,
+      "shortAccuracy": 65,
+      "mediumAccuracy": 61,
+      "deepAccuracy": 57,
+      "throwOnRun": 64,
+      "underPressure": 60,
+      "awareness": 60,
+      "playAction": 60,
+      "breakSack": 70
+     }
+    },
+    {
+     "id": "improviser",
+     "name": "Improviser",
+     "blurb": "Deadly off-platform. Throws on the move better than anyone.",
+     "base": {
+      "speed": 73,
+      "acceleration": 75,
+      "agility": 75,
+      "strength": 60,
+      "throwPower": 71,
+      "shortAccuracy": 66,
+      "mediumAccuracy": 63,
+      "deepAccuracy": 60,
+      "throwOnRun": 72,
+      "underPressure": 66,
+      "awareness": 61,
+      "playAction": 60,
+      "breakSack": 65
+     }
+    }
+   ],
+   "bodyTypes": [
+    {
+     "id": "lean",
+     "name": "Lean",
+     "mods": {
+      "agility": 2,
+      "speed": 1,
+      "strength": -3,
+      "breakSack": -2
+     },
+     "weight": [
+      185,
+      205
+     ]
+    },
+    {
+     "id": "athletic",
+     "name": "Athletic",
+     "mods": {
+      "speed": 1,
+      "acceleration": 1
+     },
+     "weight": [
+      200,
+      220
+     ]
+    },
+    {
+     "id": "muscular",
+     "name": "Muscular",
+     "mods": {
+      "strength": 3,
+      "breakSack": 1,
+      "agility": -1
+     },
+     "weight": [
+      210,
+      230
+     ]
+    },
+    {
+     "id": "power",
+     "name": "Power",
+     "mods": {
+      "strength": 4,
+      "breakSack": 3,
+      "speed": -2,
+      "agility": -2
+     },
+     "weight": [
+      220,
+      240
+     ]
+    },
+    {
+     "id": "heavy",
+     "name": "Heavy",
+     "mods": {
+      "strength": 5,
+      "breakSack": 4,
+      "speed": -4,
+      "acceleration": -3,
+      "agility": -3
+     },
+     "weight": [
+      230,
+      250
+     ]
+    }
+   ],
+   "height": [
+    70,
+    79
+   ],
+   "defaultHeight": 75,
+   "defaultWeight": 212,
+   "defaultJersey": 7
+  },
+  "RB": {
+   "attributes": [
+    {
+     "id": "speed",
+     "label": "Speed",
+     "group": "Athletic"
+    },
+    {
+     "id": "acceleration",
+     "label": "Acceleration",
+     "group": "Athletic"
+    },
+    {
+     "id": "agility",
+     "label": "Agility",
+     "group": "Athletic"
+    },
+    {
+     "id": "strength",
+     "label": "Strength",
+     "group": "Athletic"
+    },
+    {
+     "id": "stamina",
+     "label": "Stamina",
+     "group": "Athletic"
+    },
+    {
+     "id": "carry",
+     "label": "Ball Security",
+     "group": "Ball Carrier"
+    },
+    {
+     "id": "breakTackle",
+     "label": "Break Tackle",
+     "group": "Ball Carrier"
+    },
+    {
+     "id": "juke",
+     "label": "Juke Move",
+     "group": "Ball Carrier"
+    },
+    {
+     "id": "spin",
+     "label": "Spin Move",
+     "group": "Ball Carrier"
+    },
+    {
+     "id": "stiffArm",
+     "label": "Stiff Arm",
+     "group": "Ball Carrier"
+    },
+    {
+     "id": "catching",
+     "label": "Catching",
+     "group": "Receiving"
+    },
+    {
+     "id": "routeRunning",
+     "label": "Route Running",
+     "group": "Receiving"
+    },
+    {
+     "id": "blocking",
+     "label": "Pass Blocking",
+     "group": "Receiving"
+    },
+    {
+     "id": "awareness",
+     "label": "Vision / Awareness",
+     "group": "Mental"
+    }
+   ],
+   "weights": {
+    "speed": 0.12,
+    "acceleration": 0.1,
+    "agility": 0.1,
+    "strength": 0.05,
+    "stamina": 0.03,
+    "carry": 0.09,
+    "breakTackle": 0.12,
+    "juke": 0.09,
+    "spin": 0.04,
+    "stiffArm": 0.05,
+    "catching": 0.07,
+    "routeRunning": 0.03,
+    "blocking": 0.03,
+    "awareness": 0.08
+   },
+   "archetypes": [
+    {
+     "id": "power",
+     "name": "Power Back",
+     "blurb": "Runs through arm tackles and finishes every run falling forward.",
+     "base": {
+      "speed": 76,
+      "acceleration": 76,
+      "agility": 70,
+      "strength": 72,
+      "stamina": 78,
+      "carry": 74,
+      "breakTackle": 80,
+      "juke": 62,
+      "spin": 62,
+      "stiffArm": 78,
+      "catching": 58,
+      "routeRunning": 52,
+      "blocking": 64,
+      "awareness": 64
+     }
+    },
+    {
+     "id": "elusive",
+     "name": "Elusive Back",
+     "blurb": "Makes the first man miss and turns nothing into something.",
+     "base": {
+      "speed": 83,
+      "acceleration": 84,
+      "agility": 84,
+      "strength": 58,
+      "stamina": 74,
+      "carry": 68,
+      "breakTackle": 64,
+      "juke": 80,
+      "spin": 76,
+      "stiffArm": 58,
+      "catching": 64,
+      "routeRunning": 58,
+      "blocking": 52,
+      "awareness": 62
+     }
+    },
+    {
+     "id": "receiving",
+     "name": "Receiving Back",
+     "blurb": "A matchup problem out of the backfield and on third down.",
+     "base": {
+      "speed": 81,
+      "acceleration": 81,
+      "agility": 80,
+      "strength": 60,
+      "stamina": 74,
+      "carry": 68,
+      "breakTackle": 62,
+      "juke": 70,
+      "spin": 64,
+      "stiffArm": 58,
+      "catching": 76,
+      "routeRunning": 72,
+      "blocking": 58,
+      "awareness": 64
+     }
+    },
+    {
+     "id": "all_purpose",
+     "name": "All-Purpose",
+     "blurb": "A little bit of everything \u2014 does whatever the offense needs.",
+     "base": {
+      "speed": 79,
+      "acceleration": 80,
+      "agility": 76,
+      "strength": 64,
+      "stamina": 78,
+      "carry": 72,
+      "breakTackle": 70,
+      "juke": 70,
+      "spin": 66,
+      "stiffArm": 66,
+      "catching": 66,
+      "routeRunning": 62,
+      "blocking": 60,
+      "awareness": 64
+     }
+    }
+   ],
+   "bodyTypes": [
+    {
+     "id": "lean",
+     "name": "Lean",
+     "mods": {
+      "agility": 2,
+      "speed": 1,
+      "breakTackle": -3,
+      "strength": -3
+     },
+     "weight": [
+      185,
+      200
+     ]
+    },
+    {
+     "id": "athletic",
+     "name": "Athletic",
+     "mods": {
+      "acceleration": 1
+     },
+     "weight": [
+      195,
+      212
+     ]
+    },
+    {
+     "id": "compact",
+     "name": "Compact",
+     "mods": {
+      "strength": 2,
+      "breakTackle": 2,
+      "agility": 1,
+      "speed": -1
+     },
+     "weight": [
+      200,
+      218
+     ]
+    },
+    {
+     "id": "power",
+     "name": "Power",
+     "mods": {
+      "strength": 4,
+      "breakTackle": 4,
+      "stiffArm": 3,
+      "speed": -2,
+      "agility": -3
+     },
+     "weight": [
+      215,
+      235
+     ]
+    }
+   ],
+   "height": [
+    67,
+    74
+   ],
+   "defaultHeight": 70,
+   "defaultWeight": 205,
+   "defaultJersey": 22
+  },
+  "WR": {
+   "attributes": [
+    {
+     "id": "speed",
+     "label": "Speed",
+     "group": "Athletic"
+    },
+    {
+     "id": "acceleration",
+     "label": "Acceleration",
+     "group": "Athletic"
+    },
+    {
+     "id": "agility",
+     "label": "Agility",
+     "group": "Athletic"
+    },
+    {
+     "id": "strength",
+     "label": "Strength",
+     "group": "Athletic"
+    },
+    {
+     "id": "stamina",
+     "label": "Stamina",
+     "group": "Athletic"
+    },
+    {
+     "id": "catching",
+     "label": "Catching",
+     "group": "Receiving"
+    },
+    {
+     "id": "routeRunning",
+     "label": "Route Running",
+     "group": "Receiving"
+    },
+    {
+     "id": "release",
+     "label": "Release",
+     "group": "Receiving"
+    },
+    {
+     "id": "contested",
+     "label": "Contested Catch",
+     "group": "Receiving"
+    },
+    {
+     "id": "juke",
+     "label": "Juke Move",
+     "group": "Ball Carrier"
+    },
+    {
+     "id": "breakTackle",
+     "label": "Break Tackle",
+     "group": "Ball Carrier"
+    },
+    {
+     "id": "spin",
+     "label": "Spin Move",
+     "group": "Ball Carrier"
+    },
+    {
+     "id": "awareness",
+     "label": "Awareness",
+     "group": "Mental"
+    }
+   ],
+   "weights": {
+    "speed": 0.15,
+    "acceleration": 0.08,
+    "agility": 0.07,
+    "strength": 0.02,
+    "stamina": 0.02,
+    "catching": 0.16,
+    "routeRunning": 0.15,
+    "release": 0.07,
+    "contested": 0.08,
+    "juke": 0.05,
+    "breakTackle": 0.04,
+    "spin": 0.02,
+    "awareness": 0.09
+   },
+   "archetypes": [
+    {
+     "id": "deep_threat",
+     "name": "Deep Threat",
+     "blurb": "Takes the top off the defense. Safeties have to respect you every snap.",
+     "base": {
+      "speed": 88,
+      "acceleration": 84,
+      "agility": 76,
+      "strength": 52,
+      "stamina": 74,
+      "catching": 68,
+      "routeRunning": 64,
+      "release": 66,
+      "contested": 60,
+      "juke": 66,
+      "breakTackle": 54,
+      "spin": 58,
+      "awareness": 60
+     }
+    },
+    {
+     "id": "route_tech",
+     "name": "Route Technician",
+     "blurb": "Separation through precision \u2014 corners never know where you're going.",
+     "base": {
+      "speed": 80,
+      "acceleration": 82,
+      "agility": 82,
+      "strength": 54,
+      "stamina": 74,
+      "catching": 74,
+      "routeRunning": 80,
+      "release": 74,
+      "contested": 60,
+      "juke": 64,
+      "breakTackle": 52,
+      "spin": 58,
+      "awareness": 68
+     }
+    },
+    {
+     "id": "possession",
+     "name": "Possession",
+     "blurb": "Reliable hands in traffic; the QB's best friend on third down.",
+     "base": {
+      "speed": 77,
+      "acceleration": 76,
+      "agility": 72,
+      "strength": 64,
+      "stamina": 76,
+      "catching": 80,
+      "routeRunning": 70,
+      "release": 68,
+      "contested": 78,
+      "juke": 56,
+      "breakTackle": 62,
+      "spin": 54,
+      "awareness": 68
+     }
+    },
+    {
+     "id": "playmaker",
+     "name": "Slot Playmaker",
+     "blurb": "Dangerous with the ball in your hands \u2014 every catch can go the distance.",
+     "base": {
+      "speed": 84,
+      "acceleration": 86,
+      "agility": 84,
+      "strength": 54,
+      "stamina": 74,
+      "catching": 70,
+      "routeRunning": 68,
+      "release": 68,
+      "contested": 56,
+      "juke": 78,
+      "breakTackle": 62,
+      "spin": 70,
+      "awareness": 62
+     }
+    }
+   ],
+   "bodyTypes": [
+    {
+     "id": "lean",
+     "name": "Lean",
+     "mods": {
+      "speed": 1,
+      "agility": 1,
+      "strength": -3,
+      "contested": -2
+     },
+     "weight": [
+      170,
+      188
+     ]
+    },
+    {
+     "id": "athletic",
+     "name": "Athletic",
+     "mods": {
+      "acceleration": 1
+     },
+     "weight": [
+      182,
+      200
+     ]
+    },
+    {
+     "id": "big",
+     "name": "Big Body",
+     "mods": {
+      "strength": 3,
+      "contested": 3,
+      "breakTackle": 2,
+      "agility": -2,
+      "speed": -1
+     },
+     "weight": [
+      198,
+      220
+     ]
+    }
+   ],
+   "height": [
+    68,
+    78
+   ],
+   "defaultHeight": 73,
+   "defaultWeight": 190,
+   "defaultJersey": 11
+  },
+  "TE": {
+   "attributes": [
+    {
+     "id": "speed",
+     "label": "Speed",
+     "group": "Athletic"
+    },
+    {
+     "id": "acceleration",
+     "label": "Acceleration",
+     "group": "Athletic"
+    },
+    {
+     "id": "strength",
+     "label": "Strength",
+     "group": "Athletic"
+    },
+    {
+     "id": "stamina",
+     "label": "Stamina",
+     "group": "Athletic"
+    },
+    {
+     "id": "catching",
+     "label": "Catching",
+     "group": "Receiving"
+    },
+    {
+     "id": "routeRunning",
+     "label": "Route Running",
+     "group": "Receiving"
+    },
+    {
+     "id": "release",
+     "label": "Release",
+     "group": "Receiving"
+    },
+    {
+     "id": "contested",
+     "label": "Contested Catch",
+     "group": "Receiving"
+    },
+    {
+     "id": "blocking",
+     "label": "Blocking",
+     "group": "Blocking"
+    },
+    {
+     "id": "breakTackle",
+     "label": "Break Tackle",
+     "group": "Ball Carrier"
+    },
+    {
+     "id": "stiffArm",
+     "label": "Stiff Arm",
+     "group": "Ball Carrier"
+    },
+    {
+     "id": "awareness",
+     "label": "Awareness",
+     "group": "Mental"
+    }
+   ],
+   "weights": {
+    "speed": 0.1,
+    "acceleration": 0.06,
+    "strength": 0.08,
+    "stamina": 0.02,
+    "catching": 0.15,
+    "routeRunning": 0.11,
+    "release": 0.06,
+    "contested": 0.1,
+    "blocking": 0.14,
+    "breakTackle": 0.07,
+    "stiffArm": 0.03,
+    "awareness": 0.08
+   },
+   "archetypes": [
+    {
+     "id": "vertical",
+     "name": "Vertical Threat",
+     "blurb": "A receiver in a tight end's body \u2014 wins up the seam.",
+     "base": {
+      "speed": 80,
+      "acceleration": 76,
+      "strength": 62,
+      "stamina": 74,
+      "catching": 72,
+      "routeRunning": 68,
+      "release": 66,
+      "contested": 70,
+      "blocking": 56,
+      "breakTackle": 64,
+      "stiffArm": 62,
+      "awareness": 62
+     }
+    },
+    {
+     "id": "possession",
+     "name": "Possession",
+     "blurb": "Sure hands, finds the soft spot in every zone.",
+     "base": {
+      "speed": 74,
+      "acceleration": 72,
+      "strength": 66,
+      "stamina": 76,
+      "catching": 76,
+      "routeRunning": 70,
+      "release": 64,
+      "contested": 74,
+      "blocking": 62,
+      "breakTackle": 66,
+      "stiffArm": 64,
+      "awareness": 68
+     }
+    },
+    {
+     "id": "blocking",
+     "name": "Blocking",
+     "blurb": "The sixth offensive lineman who can still catch it in the flat.",
+     "base": {
+      "speed": 70,
+      "acceleration": 68,
+      "strength": 76,
+      "stamina": 78,
+      "catching": 64,
+      "routeRunning": 58,
+      "release": 62,
+      "contested": 64,
+      "blocking": 76,
+      "breakTackle": 70,
+      "stiffArm": 70,
+      "awareness": 64
+     }
+    }
+   ],
+   "bodyTypes": [
+    {
+     "id": "athletic",
+     "name": "Athletic",
+     "mods": {
+      "speed": 1,
+      "acceleration": 1,
+      "blocking": -2
+     },
+     "weight": [
+      225,
+      240
+     ]
+    },
+    {
+     "id": "balanced",
+     "name": "Balanced",
+     "mods": {},
+     "weight": [
+      235,
+      250
+     ]
+    },
+    {
+     "id": "heavy",
+     "name": "Heavy",
+     "mods": {
+      "strength": 3,
+      "blocking": 3,
+      "speed": -2,
+      "acceleration": -2
+     },
+     "weight": [
+      248,
+      265
+     ]
+    }
+   ],
+   "height": [
+    74,
+    80
+   ],
+   "defaultHeight": 77,
+   "defaultWeight": 245,
+   "defaultJersey": 88
+  }
+ }
+}

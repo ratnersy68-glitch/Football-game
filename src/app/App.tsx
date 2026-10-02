@@ -11,6 +11,7 @@ import { DynastyGame, QuickGame } from '../ui/game/GameScreen';
 import { CareerMenu } from '../ui/career/CareerMenu';
 import { CreatePlayer } from '../ui/career/CreatePlayer';
 import { PlayScreen } from '../ui/career/PlayScreen';
+import { CareerHub } from '../ui/career/CareerHub';
 
 export function App() {
   const { screen, toast } = useStore();
@@ -50,7 +51,10 @@ export function App() {
       view = <CreatePlayer initialStep={screen.step ?? 0} />;
       break;
     case 'play':
-      view = <PlayScreen />;
+      view = <PlayScreen key={screen.career ? 'career' : 'drive'} career={!!screen.career} />;
+      break;
+    case 'careerHub':
+      view = <CareerHub />;
       break;
   }
   return (

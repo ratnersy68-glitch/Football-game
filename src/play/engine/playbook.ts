@@ -91,8 +91,20 @@ export interface PlayDef {
   routes: Record<Slot, string>;
   playAction?: boolean;
   /** Rough intent for the coach's play caller. */
-  depth: 'quick' | 'medium' | 'deep';
+  depth: 'quick' | 'medium' | 'deep' | 'run';
+  /** Run plays: the hole (lateral yards from the ball, + = right), handoff delay and blocking style. */
+  run?: RunDef;
 }
+
+export interface RunDef {
+  hole: number;
+  /** Seconds after the snap before the back starts to the mesh (draws). */
+  delay?: number;
+  style: 'zone' | 'stretch' | 'power' | 'draw';
+}
+
+/** On run plays everyone but the back blocks. */
+const RUN_ROUTES: Record<Slot, string> = { X: 'block', Z: 'block', H: 'block', Y: 'block', RB: 'block' };
 
 export const PLAYS: PlayDef[] = [
   { id: 'mesh', name: 'Mesh', formation: 'gun_doubles', depth: 'quick', routes: { X: 'drag', Z: 'drag', H: 'corner', Y: 'dig', RB: 'flat' } },
@@ -105,6 +117,10 @@ export const PLAYS: PlayDef[] = [
   { id: 'pa_cross', name: 'PA Cross', formation: 'singleback', depth: 'medium', playAction: true, routes: { X: 'post', Z: 'dig', H: 'drag', Y: 'corner', RB: 'flat' } },
   { id: 'pa_shot', name: 'PA Post-Wheel', formation: 'singleback', depth: 'deep', playAction: true, routes: { X: 'comeback', Z: 'post', H: 'wheel', Y: 'seam', RB: 'block' } },
   { id: 'flood', name: 'Flood', formation: 'gun_trips', depth: 'medium', routes: { X: 'post', Z: 'go', H: 'out', Y: 'flat', RB: 'checkdown' } },
+  { id: 'inside_zone', name: 'Inside Zone', formation: 'gun_doubles', depth: 'run', run: { hole: -1.4, style: 'zone' }, routes: RUN_ROUTES },
+  { id: 'outside_zone', name: 'Outside Zone', formation: 'singleback', depth: 'run', run: { hole: 7.5, style: 'stretch' }, routes: RUN_ROUTES },
+  { id: 'power', name: 'Power', formation: 'singleback', depth: 'run', run: { hole: -2.8, style: 'power' }, routes: RUN_ROUTES },
+  { id: 'hb_draw', name: 'HB Draw', formation: 'gun_trips', depth: 'run', run: { hole: 0.6, delay: 0.7, style: 'draw' }, routes: RUN_ROUTES },
 ];
 
 export type DefCall = 'cover1' | 'cover2' | 'cover3' | 'cover0';
@@ -127,8 +143,26 @@ export function routePreview(play: PlayDef, los: number, spotY: number): { slot:
     const al = f.align[slot];
     const y0 = Math.max(2, Math.min(FIELD_W - 2, al.y !== undefined ? al.y : spotY + (al.dy ?? 0)));
     const start = { x: los + al.dx, y: y0 };
+    if (play.run && slot === 'RB') {
+      const path = runPath(play, los, spotY, start);
+      return { slot, start, pts: path, block: false, continues: true };
+    }
     const r = ROUTES[play.routes[slot]] ?? ROUTES.checkdown;
     const pts = r.points.map(([dx, dout]) => ({ x: start.x + dx, y: Math.max(1, Math.min(FIELD_W - 1, y0 + dout * al.side)) }));
     return { slot, start, pts, block: r.points.length === 0, continues: !!r.continues };
   });
+}
+
+/** The back's path on a run play: mesh with the QB, press the hole, then through it. */
+export function runPath(play: PlayDef, los: number, spotY: number, rbStart: { x: number; y: number }): { x: number; y: number }[] {
+  const run = play.run!;
+  const f = FORMATIONS[play.formation];
+  const qbX = f.shotgun ? los - 5 : los - 1.3;
+  const holeY = Math.max(2, Math.min(FIELD_W - 2, spotY + run.hole));
+  const side = Math.sign(holeY - rbStart.y) || 1;
+  const mesh = { x: f.shotgun ? qbX + 0.6 : qbX - 2.2, y: spotY + side * 0.9 };
+  const pts = [mesh];
+  if (run.style === 'stretch') pts.push({ x: los - 1.5, y: holeY - side * 1.5 });
+  pts.push({ x: los + 0.6, y: holeY }, { x: los + 6, y: holeY + (run.style === 'stretch' ? side * 1.5 : 0) });
+  return pts;
 }

@@ -5,29 +5,42 @@
 import { useEffect, useRef, useState } from 'react';
 import { navigate } from '../../app/store';
 import { loadPlayer } from '../../career/player';
+import { benchedFirstQuarter, finishGame, isEligible, loadCareer, pendingGame, saveCareer } from '../../career/season';
+import type { GameOptions } from '../../play/controller';
 import { GameController, fmtClock, type Snapshot } from '../../play/controller';
 import { BUTTON_ORDER, FORMATIONS, PLAYS, routePreview, type PlayDef } from '../../play/engine/playbook';
 import { ICON_COLORS } from '../../play/render/scene';
 import { DIFFICULTY_NAMES, loadPlaySettings } from '../../play/settings';
 
-export function PlayScreen() {
+export function PlayScreen({ career = false }: { career?: boolean }) {
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const ctrl = useRef<GameController | null>(null);
   const [snap, setSnap] = useState<Snapshot | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [showControls, setShowControls] = useState(false);
-  const [player] = useState(loadPlayer);
+  const [cs] = useState(() => (career ? loadCareer() : null));
+  const [player] = useState(() => cs?.player ?? loadPlayer());
   const [settings] = useState(loadPlaySettings);
+  const quit = () => navigate(career ? { name: 'careerHub' } : { name: 'career' });
 
   useEffect(() => {
     if (!player || !player.firstName) {
       navigate({ name: 'createPlayer', step: 0 });
       return;
     }
+    let opts: Partial<GameOptions> = {};
+    if (career) {
+      const g = cs ? pendingGame(cs) : undefined;
+      if (!cs || !g || !isEligible(cs)) {
+        navigate({ name: 'careerHub' });
+        return;
+      }
+      opts = { mode: 'game', opponentId: g.opponentId, home: g.home, benchQ1: benchedFirstQuarter(cs), energy: cs.meters.energy, seed: (cs.seed + g.week * 97) % 100000 };
+    }
     const canvas = canvasRef.current!;
     let c: GameController;
     try {
-      c = new GameController(canvas, player, settings);
+      c = new GameController(canvas, player, settings, opts);
     } catch (e) {
       setError(`Could not start the 3D game: ${(e as Error).message}. Your browser needs WebGL.`);
       return;
@@ -46,7 +59,17 @@ export function PlayScreen() {
       ctrl.current = null;
       delete (window as unknown as { __game?: GameController }).__game;
     };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [player, settings]);
+
+  const finishCareerGame = () => {
+    const f = ctrl.current?.snapshot().final;
+    if (!cs || !f) return;
+    const r = finishGame(cs, { us: f.us, them: f.them, stats: f.stats, simmed: false });
+    saveCareer(cs);
+    void r;
+    navigate({ name: 'careerHub' });
+  };
 
   // Keyboard shortcuts for the menus (play call, result, 4th down, drive over, controls).
   useEffect(() => {
@@ -63,6 +86,8 @@ export function PlayScreen() {
         if (e.code === 'Enter') c.callPlay(c.snapshot().suggested);
       } else if (c.stage === 'result' && e.code === 'Enter') c.advance();
       else if (c.stage === 'over' && e.code === 'Enter') c.newDrive();
+      else if (c.stage === 'sim' && e.code === 'Enter') c.continueSim();
+      else if (c.stage === 'final' && e.code === 'Enter') finishCareerGame();
     };
     window.addEventListener('keydown', onKey);
     return () => window.removeEventListener('keydown', onKey);
@@ -116,7 +141,15 @@ export function PlayScreen() {
                 {s.playName} <span className="muted">· Play clock</span> <b className={s.playClock < 6 ? 'bad' : ''}>{Math.ceil(s.playClock)}</b>
               </div>
               <div>
-                <kbd>Space</kbd> snap · then hold <kbd>1</kbd>–<kbd>5</kbd> to throw (release to let it go) · <kbd>Q</kbd> lob
+                {s.userRole === 'QB' ? (
+                  <>
+                    <kbd>Space</kbd> snap · then hold <kbd>1</kbd>–<kbd>5</kbd> to throw (release to let it go) · <kbd>Q</kbd> lob
+                  </>
+                ) : (
+                  <>
+                    <kbd>Space</kbd> snap · you're the <b>{s.userRole}</b> (gold ring) · <kbd>E</kbd> call for the ball
+                  </>
+                )}
               </div>
               <button className="btn primary" onClick={() => c.snap()}>
                 Snap
@@ -124,7 +157,7 @@ export function PlayScreen() {
             </div>
           )}
 
-          {s.stage === 'call' && <PlayCall s={s} onPick={(id) => c.callPlay(id)} onQuit={() => navigate({ name: 'career' })} />}
+          {s.stage === 'call' && <PlayCall s={s} onPick={(id) => c.callPlay(id)} onQuit={quit} />}
 
           {s.stage === 'result' && s.result && (
             <div className="overlay result-card">
@@ -170,6 +203,43 @@ export function PlayScreen() {
 
           {s.stage === 'over' && <DriveOver s={s} c={c} />}
 
+          {s.stage === 'sim' && s.simCard && (
+            <div className="overlay result-card">
+              <div className="small-caps">
+                {s.periodLabel} {fmtClock(s.clock)} · {s.teams.us.abbr} {s.score.us} — {s.teams.them.abbr} {s.score.them}
+              </div>
+              <div className="result-head">{s.simCard.title}</div>
+              <div className="muted">{s.simCard.text}</div>
+              <button className="btn primary" onClick={() => c.continueSim()}>
+                Continue <kbd>Space</kbd>
+              </button>
+            </div>
+          )}
+
+          {s.stage === 'final' && s.final && (
+            <div className="overlay result-card wide">
+              <div className={`result-head ${s.final.won ? 'big' : ''}`}>{s.final.won ? 'VICTORY' : 'FINAL'}</div>
+              <div className="big-score">
+                {s.teams.us.abbr} {s.final.us} <span className="muted">—</span> {s.teams.them.abbr} {s.final.them}
+              </div>
+              <StatLine s={s} />
+              <div className="drive-log">
+                {s.log.slice(-12).map((l, i) => (
+                  <div key={i}>{l}</div>
+                ))}
+              </div>
+              {career ? (
+                <button className="btn primary" onClick={finishCareerGame}>
+                  Back to Campus <kbd>Enter</kbd>
+                </button>
+              ) : (
+                <button className="btn primary" onClick={quit}>
+                  Done
+                </button>
+              )}
+            </div>
+          )}
+
           {s.paused && (
             <div className="overlay result-card">
               <div className="result-head">Paused</div>
@@ -186,8 +256,8 @@ export function PlayScreen() {
                 <button className="btn" onClick={() => c.cycleCamera()}>
                   Camera: {s.camera}
                 </button>
-                <button className="btn" onClick={() => navigate({ name: 'career' })}>
-                  Quit to Career Menu
+                <button className="btn" onClick={quit}>
+                  {career ? 'Quit to Career (game stays unplayed)' : 'Quit to Career Menu'}
                 </button>
               </div>
             </div>
@@ -200,18 +270,19 @@ export function PlayScreen() {
 }
 
 function Scorebug({ s }: { s: Snapshot }) {
+  const tb = (t: Snapshot['teams']['us']) => ({ background: `linear-gradient(180deg, ${t.color}, ${t.color}cc)`, color: '#fff' });
   return (
     <div className="scorebug">
-      <div className="sb-team osu">
-        <span className="sb-name">OSU</span>
+      <div className="sb-team" style={tb(s.teams.us)}>
+        <span className="sb-name">{s.teams.us.abbr}</span>
         <span className="sb-score">{s.score.us}</span>
       </div>
-      <div className="sb-team mich">
-        <span className="sb-name">MICH</span>
+      <div className="sb-team" style={tb(s.teams.them)}>
+        <span className="sb-name">{s.teams.them.abbr}</span>
         <span className="sb-score">{s.score.them}</span>
       </div>
       <div className="sb-clock">
-        <span>Q{s.quarter}</span>
+        <span>{s.periodLabel}</span>
         <b>{fmtClock(s.clock)}</b>
       </div>
       <div className="sb-down">
@@ -239,7 +310,12 @@ function PlayerHud({ s }: { s: Snapshot }) {
           <span>{ch ? `${label} → ${BUTTON_ORDER.indexOf(ch.slot) + 1}` : 'HOLD 1–5 TO THROW'}</span>
         </div>
       )}
-      {!s.controlledIsQB && s.stage === 'live' && (
+      {!s.controlledIsQB && !s.controlledHasBall && (
+        <div className="moves-hint">
+          Your {s.userRole === 'RB' ? 'run path / route' : 'route or block'} runs automatically. Touch <kbd>WASD</kbd> to freelance · <kbd>E</kbd> call for the ball
+        </div>
+      )}
+      {!s.controlledIsQB && s.controlledHasBall && s.stage === 'live' && (
         <div className="moves-hint">
           <kbd>J</kbd>/<kbd>L</kbd> juke <kbd>K</kbd> spin <kbd>I</kbd> stiff arm <kbd>H</kbd> hurdle <kbd>F</kbd> dive
         </div>
@@ -334,7 +410,7 @@ function DriveOver({ s, c }: { s: Snapshot; c: GameController }) {
       <div className="result-head">Drive Over — {s.overReason}</div>
       <div className="row" style={{ justifyContent: 'center', gap: 24 }}>
         <div className="big-score">
-          OSU {s.score.us} <span className="muted">—</span> MICH {s.score.them}
+          {s.teams.us.abbr} {s.score.us} <span className="muted">—</span> {s.teams.them.abbr} {s.score.them}
         </div>
       </div>
       <div className="stat-line">
@@ -443,6 +519,36 @@ function ControlsHelp({ onClose, gamepad }: { onClose: () => void; gamepad: bool
         </table>
         <div className="muted tiny">After a catch you control the receiver. Receiver icons turn green when open (read assist).</div>
       </div>
+    </div>
+  );
+}
+
+function StatLine({ s }: { s: Snapshot }) {
+  const st = s.stats;
+  const items: [string, string | number][] =
+    s.userRole === 'QB'
+      ? [
+          ['Comp/Att', `${st.comp}/${st.att}`],
+          ['Pass Yds', st.passYds],
+          ['TD', st.passTD],
+          ['INT', st.int],
+          ['Rush Yds', st.rushYds],
+        ]
+      : [
+          ['Carries', st.rushAtt],
+          ['Rush Yds', st.rushYds],
+          ['Rec', st.rec],
+          ['Rec Yds', st.recYds],
+          ['TD', st.rushTD + st.recTD],
+        ];
+  return (
+    <div className="stat-line">
+      {items.map(([k, v]) => (
+        <div key={k}>
+          <b>{v}</b>
+          <span>{k}</span>
+        </div>
+      ))}
     </div>
   );
 }

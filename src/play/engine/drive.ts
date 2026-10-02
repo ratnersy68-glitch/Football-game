@@ -16,7 +16,14 @@ export interface DriveStats {
   rushAtt: number;
   rushYds: number;
   rushTD: number;
+  rec: number;
+  recYds: number;
+  recTD: number;
   longest: number;
+}
+
+export function emptyDriveStats(): DriveStats {
+  return { att: 0, comp: 0, passYds: 0, passTD: 0, int: 0, sacks: 0, rushAtt: 0, rushYds: 0, rushTD: 0, rec: 0, recYds: 0, recTD: 0, longest: 0 };
 }
 
 export interface ResultSummary {
@@ -43,15 +50,24 @@ export class Drive {
   score = { us: 0, them: 0 };
   plays = 0;
   over = false;
+  /** Overtime: no game clock, possessions from the opponent's 25. */
+  ot = false;
   reason = '';
-  stats: DriveStats = { att: 0, comp: 0, passYds: 0, passTD: 0, int: 0, sacks: 0, rushAtt: 0, rushYds: 0, rushTD: 0, longest: 0 };
+  stats: DriveStats = emptyDriveStats();
   log: string[] = [];
   /** Offensive tendencies the defensive coordinator watches (smarter at higher difficulty). */
-  tendency = { deep: 0, quick: 0, medium: 0 };
+  tendency = { deep: 0, quick: 0, medium: 0, run: 0 };
   private recent: string[] = [];
 
-  constructor(public settings: SimSettings) {
+  /** Scoreboard abbreviations (offense first). */
+  abbr = { us: 'OSU', them: 'MICH' };
+
+  constructor(
+    public settings: SimSettings,
+    abbr?: { us: string; them: string },
+  ) {
     this.clock = settings.quarterMinutes * 60;
+    if (abbr) this.abbr = abbr;
   }
 
   get goalToGo(): boolean {
@@ -64,7 +80,7 @@ export class Drive {
     return `${ord} & ${this.goalToGo ? 'Goal' : this.distance}`;
   }
 
-  spotLabel(ours = 'OSU', theirs = 'MICH'): string {
+  spotLabel(ours = this.abbr.us, theirs = this.abbr.them): string {
     const x = Math.round(this.los);
     if (x === 50) return '50';
     return x < 50 ? `${ours} ${x}` : `${theirs} ${100 - x}`;
@@ -73,8 +89,9 @@ export class Drive {
   /** Coach picks the play from down, distance and field position. */
   coachCall(rng: Rng): PlayDef {
     const d = this.distance;
-    const want: PlayDef['depth'][] = d <= 3 ? ['quick', 'quick', 'medium'] : d >= 10 ? ['medium', 'deep', 'medium'] : ['quick', 'medium', 'medium', 'deep'];
-    if (this.los >= 88) want.push('quick', 'quick');
+    const want: PlayDef['depth'][] =
+      d <= 3 ? ['run', 'run', 'quick', 'run', 'medium'] : d >= 10 ? ['medium', 'deep', 'run', 'medium', 'quick'] : ['run', 'quick', 'medium', 'run', 'deep'];
+    if (this.los >= 88) want.push('quick', 'run');
     const depth = rng.pick(want);
     let pool = PLAYS.filter((p) => p.depth === depth && !this.recent.includes(p.id));
     if (!pool.length) pool = PLAYS.filter((p) => !this.recent.includes(p.id));
@@ -101,11 +118,12 @@ export class Drive {
     }
     if (this.settings.difficulty >= 2) {
       const t = this.tendency;
-      const total = t.deep + t.quick + t.medium || 1;
+      const total = t.deep + t.quick + t.medium + t.run || 1;
       w.cover2 += (t.deep / total) * 5;
       w.cover3 += (t.deep / total) * 3;
       w.cover1 += (t.quick / total) * 4;
-      w.cover0 += (t.quick / total) * (this.settings.difficulty - 1) * 2;
+      w.cover0 += ((t.quick + t.run) / total) * (this.settings.difficulty - 1) * 2;
+      w.cover1 += (t.run / total) * 3; // load the box against a running team
     }
     return rng.weightedKey(w);
   }
@@ -123,7 +141,7 @@ export class Drive {
     let touchdown = false;
     let headline = '';
     let detail = o.text;
-    // Stats (the user is always the passer on pass plays; rushing counts when the user carries).
+    // The user's stats: passing as the passer, rushing as a runner, receiving as the catcher.
     if (o.passer === userId) {
       if (o.kind !== 'sack') this.stats.att++;
       if (o.completion) {
@@ -134,32 +152,30 @@ export class Drive {
       if (o.kind === 'interception') this.stats.int++;
     }
     if (o.kind === 'sack') {
-      this.stats.sacks++;
+      if (o.carrier === userId) this.stats.sacks++;
+    } else if (o.completion && o.carrier === userId) {
+      this.stats.rec++;
+      this.stats.recYds += o.passYards;
+      this.stats.longest = Math.max(this.stats.longest, o.passYards);
     } else if (!o.passer && o.carrier === userId && o.kind !== 'incomplete') {
       this.stats.rushAtt++;
       this.stats.rushYds += o.rushYards;
+      this.stats.longest = Math.max(this.stats.longest, o.rushYards);
     }
     // Clock: live time always counts; the clock runs between plays unless it stopped.
-    this.clock -= o.duration;
     const clockStops = o.kind === 'incomplete' || o.kind === 'out_of_bounds' || o.kind === 'touchdown' || o.kind === 'interception';
-    if (!clockStops) this.clock -= 25 * (this.settings.quarterMinutes / 15);
-    if (this.clock <= 0) {
-      if (this.quarter < 4) {
-        this.quarter++;
-        this.clock = this.settings.quarterMinutes * 60;
-        this.log.push(`End of quarter ${this.quarter - 1}.`);
-      } else {
-        this.clock = 0;
-      }
-    }
+    const halfBefore = this.quarter <= 2;
+    this.runClock(o.duration + (clockStops ? 0 : 25 * (this.settings.quarterMinutes / 15)));
+    const halftime = halfBefore && this.quarter >= 3;
 
     switch (o.kind) {
       case 'touchdown':
         touchdown = true;
         gained = 100 - before;
         this.score.us += 7; // automatic PAT in Milestone 1
-        if (o.completion) this.stats.passTD++;
-        else if (o.carrier === userId) this.stats.rushTD++;
+        if (o.completion && o.passer === userId) this.stats.passTD++;
+        if (o.completion && o.carrier === userId) this.stats.recTD++;
+        if (!o.completion && o.carrier === userId) this.stats.rushTD++;
         headline = 'TOUCHDOWN!';
         this.finish('Touchdown');
         break;
@@ -191,7 +207,8 @@ export class Drive {
         }
       }
     }
-    if (!this.over && this.quarter === 4 && this.clock <= 0) this.finish('End of game');
+    if (!this.over && this.quarter === 4 && this.clock <= 0 && !this.ot) this.finish('End of game');
+    else if (!this.over && halftime) this.finish('End of half');
     this.los = Math.round(this.los);
     this.log.push(`${headline} — ${detail}`);
     if (o.kind === 'incomplete') detail = o.text;
@@ -224,16 +241,33 @@ export class Drive {
     this.finish('Punt');
   }
 
-  /** Reset for a new drive from the 25 (score and clock carry over). */
-  newDrive(): void {
-    this.los = 25;
+  /** Run the game clock (live play time, runoff or a simulated possession), rolling quarters over. */
+  runClock(seconds: number): void {
+    if (this.ot) return;
+    this.clock -= seconds;
+    while (this.clock <= 0 && this.quarter < 4) {
+      this.quarter++;
+      this.log.push(`End of quarter ${this.quarter - 1}.`);
+      this.clock += this.settings.quarterMinutes * 60;
+      if (this.quarter === 3 || this.clock <= 0) this.clock = this.settings.quarterMinutes * 60; // halftime resets
+    }
+    if (this.clock < 0) this.clock = 0;
+  }
+
+  get gameOver(): boolean {
+    return !this.ot && this.quarter === 4 && this.clock <= 0;
+  }
+
+  /** Reset for a new drive (score, clock and stats carry over). */
+  newDrive(los = 25): void {
+    this.los = los;
     this.spotY = 53.33 / 2;
     this.down = 1;
-    this.distance = 10;
+    this.distance = Math.min(10, 100 - los);
     this.over = false;
     this.reason = '';
     this.plays = 0;
-    if (this.quarter === 4 && this.clock <= 0) {
+    if (this.quarter === 4 && this.clock <= 0 && !this.ot) {
       this.quarter = 1;
       this.clock = this.settings.quarterMinutes * 60;
     }

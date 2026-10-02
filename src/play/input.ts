@@ -27,6 +27,8 @@ export interface Frame {
   heightDelta: number;
   toggleRoutes: boolean;
   lobHeld: boolean;
+  /** Non-QB: wave for the ball (E / LB). */
+  callForBall: boolean;
 }
 
 const KEY_SLOT: Record<string, Slot> = { Digit1: BUTTON_ORDER[0], Digit2: BUTTON_ORDER[1], Digit3: BUTTON_ORDER[2], Digit4: BUTTON_ORDER[3], Digit5: BUTTON_ORDER[4] };
@@ -105,6 +107,7 @@ export class InputManager {
       heightDelta: 0,
       toggleRoutes: false,
       lobHeld: false,
+      callForBall: false,
     };
     this.wheel = 0;
     const d = this.down;
@@ -118,6 +121,7 @@ export class InputManager {
     f.lobHeld = d.has('KeyQ');
     if (p.has('Space')) f.snap = true;
     if (p.has('KeyT')) f.throwAway = true;
+    if (p.has('KeyE')) f.callForBall = true;
     if (p.has('Tab')) f.cameraCycle = true;
     if (p.has('Escape') || p.has('KeyP')) f.pause = true;
     if (p.has('KeyV')) f.toggleRoutes = true;
@@ -173,6 +177,7 @@ export class InputManager {
     if (btn(15)) f.move.y = 1;
     if (btn(7)) f.sprint = true;
     const lob = btn(4);
+    if (pressed(4)) f.callForBall = true;
     f.lobHeld = f.lobHeld || lob;
     if (pressed(9)) f.pause = true;
     if (pressed(8)) f.cameraCycle = true;

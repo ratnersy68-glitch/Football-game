@@ -68,7 +68,17 @@ export type Task =
   | { kind: 'block' }
   | { kind: 'carrier' }
   | { kind: 'toBall' }
-  | { kind: 'fake'; until: number; after: Task };
+  | { kind: 'fake'; until: number; after: Task }
+  /** QB on a run play: take the snap and hand off to the back at the mesh point. */
+  | { kind: 'handoff'; rb: string }
+  /** Back on a run play before the handoff: mesh, then press the hole. */
+  | { kind: 'runPath'; pts: V2[]; idx: number; startAt: number }
+  /** Linemen / tight end on a run play: drive a defender off the ball. */
+  | { kind: 'runBlock'; target?: string }
+  /** Receiver on a run play: stalk-block the nearest defensive back. */
+  | { kind: 'stalk'; target?: string }
+  /** AI quarterback on a pass play: drop, read, throw. */
+  | { kind: 'qbPass'; dropX: number; readAt: number; nextRead: number };
 
 export interface Athlete extends AthleteSpec {
   x: number;
@@ -115,7 +125,8 @@ export type SimEventType =
   | 'slide'
   | 'move'
   | 'safety'
-  | 'throwaway';
+  | 'throwaway'
+  | 'handoff';
 
 export interface SimEvent {
   type: SimEventType;
@@ -169,6 +180,8 @@ export interface UserInput {
   throwTo?: { slot: string; power: number; lob: boolean };
   moveKind?: MoveKind;
   throwAway?: boolean;
+  /** Non-QB user: wave for the ball (the AI quarterback looks your way if you're open). */
+  callForBall?: boolean;
 }
 
 export interface SimSettings {

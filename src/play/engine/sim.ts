@@ -9,7 +9,7 @@
  * Field axes: x = downfield (offense attacks +x, goal line at 100), y = across (0..53.33), z = height.
  */
 import { Rng } from '../../core/rng';
-import { FORMATIONS, PLAYS, ROUTES, type DefCall, type PlayDef, type Slot } from './playbook';
+import { FORMATIONS, PLAYS, ROUTES, runPath, type DefCall, type PlayDef, type Slot } from './playbook';
 import type { Athlete, AthleteSpec, Ball, MoveKind, PlayOutcome, SimEvent, SimSettings, Task, UserInput, V2 } from './types';
 
 export const FIELD_W = 53.33;
@@ -29,7 +29,9 @@ export function maxSpeed(a: Athlete): number {
   const r = a.ratings;
   let s = 5.4 + r.speed * 0.047; // 99 speed ≈ 10 yd/s, 50 speed ≈ 7.8
   if (a.stamina < 40) s *= 0.86 + a.stamina / 290;
-  if (a.ball) s *= 0.97;
+  if (a.ball) s *= 0.95;
+  // Securing the catch and turning upfield costs a moment.
+  if (a.ball && a.pose === 'catch' && a.poseT < 0.45) s *= 0.65;
   return s;
 }
 
@@ -87,6 +89,16 @@ export class PlaySim {
   private qbCrossed = false;
   private biteUntil = 0;
   private snapT = 0;
+  /** Non-QB user took manual control this play (otherwise his assignment is run for him). */
+  private manual = false;
+  /** Last time a non-QB user called for the ball. */
+  private callT = -9;
+  /** Run plays: the designed hole, and the AI carrier's remaining path through it. */
+  private runHole: V2 | null = null;
+  private carrierPlan: V2[] = [];
+  private carrierHeading = 0;
+  private runRead = false;
+  private carrierReadAt = 0;
 
   constructor(
     specs: AthleteSpec[],
@@ -170,6 +182,13 @@ export class PlaySim {
     this.airYards = 0;
     this.qbCrossed = false;
     this.controlledId = this.userId;
+    this.manual = false;
+    this.callT = -9;
+    this.runHole = null;
+    this.carrierPlan = [];
+    this.carrierHeading = 0;
+    this.runRead = false;
+    this.carrierReadAt = 0;
     const L = this.los;
     const Y = this.spotY;
     const f = FORMATIONS[s.play.formation];
@@ -294,14 +313,33 @@ export class PlaySim {
     this.emit('snap', 'Hut!', this.los, this.spotY, center?.id);
 
     // Offensive assignments
+    const run = this.play.run;
+    const rb = this.bySlot('RB');
     for (const a of this.offense()) {
       a.pose = 'run';
-      if (a.id === this.userId) {
-        a.task = { kind: 'user' };
+      if (a.role === 'QB') {
+        if (run && rb) a.task = { kind: 'handoff', rb: rb.id };
+        else if (a.id === this.userId) a.task = { kind: 'user' };
+        else {
+          const readAt = this.t + (this.play.depth === 'quick' ? 0.85 : this.play.depth === 'deep' ? 1.5 : 1.15);
+          a.task = { kind: 'qbPass', dropX: this.los - 7, readAt, nextRead: readAt };
+        }
         continue;
       }
-      if (a.role === 'OL') a.task = { kind: 'passpro' };
-      else if (a.slotKind) {
+      if (a.role === 'OL') {
+        a.task = run ? { kind: 'runBlock' } : { kind: 'passpro' };
+        continue;
+      }
+      if (run) {
+        if (a.slotKind === 'RB') {
+          const pts = runPath(this.play, this.los, this.spotY, { x: a.x, y: a.y });
+          a.task = { kind: 'runPath', pts, idx: 0, startAt: this.t + (run.delay ?? 0) };
+          this.runHole = pts[pts.length - 2];
+        } else if (a.slotKind === 'Y') a.task = { kind: 'runBlock' };
+        else a.task = { kind: 'stalk' };
+        continue;
+      }
+      if (a.slotKind) {
         const r = ROUTES[this.play.routes[a.slotKind]] ?? ROUTES.checkdown;
         const routeTask = this.makeRoute(a, r.name === 'Block & Release' ? ROUTES.block_release : r);
         if (r.points.length === 0) a.task = { kind: 'passpro' };
@@ -362,7 +400,33 @@ export class PlaySim {
       this.biteUntil = this.t + clamp(0.35 + (pa - 60) * 0.012, 0.2, 0.9);
     } else this.biteUntil = 0;
     for (const a of this.defense()) a.pose = 'run';
-    this.assignProtection();
+    if (run) this.assignRunBlocks();
+    else this.assignProtection();
+  }
+
+  /** Run blocking: each blocker takes the nearest defender in front of him, linemen before linebackers. */
+  private assignRunBlocks() {
+    const blockers = this.offense()
+      .filter((o) => o.task.kind === 'runBlock')
+      .sort((a, b) => Math.abs(a.y - (this.runHole?.y ?? this.spotY)) - Math.abs(b.y - (this.runHole?.y ?? this.spotY)));
+    const defenders = this.defense().filter((d) => d.role === 'DL' || d.role === 'LB');
+    const taken = new Set<string>();
+    for (const b of blockers) {
+      let best: Athlete | undefined;
+      let bd = Infinity;
+      for (const d of defenders) {
+        if (taken.has(d.id)) continue;
+        const dist = len(d.x - b.x, d.y - b.y) + (d.role === 'LB' ? 2.5 : 0);
+        if (dist < bd) {
+          bd = dist;
+          best = d;
+        }
+      }
+      if (best) {
+        taken.add(best.id);
+        (b.task as { kind: 'runBlock'; target?: string }).target = best.id;
+      }
+    }
   }
 
   private makeRoute(a: Athlete, r: (typeof ROUTES)[string]): Task {
@@ -424,6 +488,11 @@ export class PlaySim {
       return;
     }
     const diff = this.settings.difficulty;
+    // Second-level defenders read run keys right after the snap (before the handoff).
+    if (this.play.run && !this.runRead && this.t - this.snapT > 0.3) {
+      this.runRead = true;
+      this.startPursuit();
+    }
     for (const a of this.athletes) {
       a.stunned = Math.max(0, a.stunned - dt);
       a.moveCooldown = Math.max(0, a.moveCooldown - dt);
@@ -433,9 +502,17 @@ export class PlaySim {
       if (a.history.length > 90) a.history.shift();
     }
 
-    // User control.
+    // User control. A non-QB user's assignment (route, block, run path) is run for him until he
+    // touches the stick; handoffs are always automatic.
     const me = this.controlled;
-    if (me && !me.down) this.userControl(me, input, dt);
+    if (me && !me.down) {
+      if (input.callForBall) this.callT = this.t;
+      const holding = this.ball.state === 'held' && this.ball.holder === me.id;
+      if (me.role !== 'QB' && !holding && len(input.move.x, input.move.y) > 0.15) this.manual = true;
+      const scripted = me.task.kind === 'handoff' || me.task.kind === 'runPath';
+      if (scripted || (me.role !== 'QB' && !holding && !this.manual)) this.ai(me, dt, diff);
+      else this.userControl(me, input, dt);
+    }
 
     // AI.
     for (const a of this.athletes) {
@@ -544,7 +621,7 @@ export class PlaySim {
   predict(a: Athlete, t: number): V2 {
     const task = a.task;
     const speed = Math.max(len(a.vx, a.vy), a.task.kind === 'route' ? maxSpeed(a) * 0.9 : 0);
-    if (task.kind !== 'route' || speed < 0.3) return { x: a.x + a.vx * t, y: a.y + a.vy * t };
+    if (task.kind !== 'route' || speed < 0.3 || (a.id === this.userId && this.manual)) return { x: a.x + a.vx * t, y: a.y + a.vy * t };
     let px = a.x;
     let py = a.y;
     let rem = speed * t;
@@ -771,8 +848,14 @@ export class PlaySim {
         a.poseT = 0;
         const diving = d > 0.95;
         this.emit('catch', `${diving ? 'Diving catch' : 'Caught'} by #${a.number} ${a.name}!`, a.x, a.y, a.id);
-        this.controlledId = a.id;
-        a.task = { kind: 'user' };
+        // A user QB takes over the catcher; a user receiver keeps his own man and the catcher runs on AI.
+        if (a.id === this.userId || this.user.role === 'QB') {
+          this.controlledId = a.id;
+          a.task = { kind: 'user' };
+        } else {
+          a.task = { kind: 'carrier' };
+          this.carrierHeading = 0;
+        }
         this.startPursuit();
         return true;
       }
@@ -883,6 +966,24 @@ export class PlaySim {
       case 'block':
         this.downfieldBlock(a, dt);
         break;
+      case 'handoff':
+        this.handoff(a, t, dt);
+        break;
+      case 'runPath':
+        this.runPathStep(a, t, dt);
+        break;
+      case 'runBlock':
+        this.runBlock(a, t, dt);
+        break;
+      case 'stalk':
+        this.stalk(a, t, dt);
+        break;
+      case 'qbPass':
+        this.aiQuarterback(a, t, dt);
+        break;
+      case 'carrier':
+        this.aiCarrier(a, dt);
+        break;
       default:
         this.moveToward(a, a.x, a.y, 0, dt);
     }
@@ -989,11 +1090,11 @@ export class PlaySim {
     blocker.pose = 'block';
     def.pose = 'block';
     const br = blocker.role === 'OL' ? blocker.ratings.blocking : blocker.ratings.blocking * 0.85;
-    const pr = def.task.kind === 'rush' ? def.ratings.passRush : def.ratings.strength;
+    const pr = this.play.run ? (def.ratings.strength + def.ratings.tackle) / 2 : def.task.kind === 'rush' ? def.ratings.passRush : def.ratings.strength;
     const slider = 1 + (this.settings.sliders.passBlocking - 50) / 100;
     // Smarter rush moves at higher difficulty shorten blocks a little (technique, not ratings).
     const moves = 1 - this.settings.difficulty * 0.06;
-    const mean = 2.6 * Math.pow(Math.max(30, br) / Math.max(30, pr), 1.7) * slider * moves;
+    const mean = (this.play.run ? 1.5 : 2.6) * Math.pow(Math.max(30, br) / Math.max(30, pr), 1.7) * slider * moves;
     def.engageShedAt = this.t + mean * (0.45 + this.rng.next() * 1.1);
     blocker.engageShedAt = def.engageShedAt;
   }
@@ -1002,6 +1103,27 @@ export class PlaySim {
     const o = this.byId.get(a.engaged!);
     if (!o || o.engaged !== a.id) {
       a.engaged = undefined;
+      return;
+    }
+    if (a.side === 'def' && (o.task.kind === 'runBlock' || o.task.kind === 'stalk')) {
+      // Run block: the blocker drives the defender off the ball and away from the hole (or gets driven back).
+      const drive = 0.45 + (o.ratings.blocking - (a.ratings.strength + a.ratings.tackle) / 2) * 0.03;
+      const hole = this.runHole ?? { x: this.los, y: this.spotY };
+      const side = Math.sign(a.y - hole.y) || 1;
+      a.x += drive * dt;
+      a.y += side * 0.35 * dt;
+      o.x = a.x - 0.95;
+      o.y = a.y;
+      a.vx = o.vx = drive;
+      a.vy = o.vy = side * 0.35;
+      a.facing = Math.PI;
+      o.facing = 0;
+      if (this.t >= a.engageShedAt) {
+        a.engaged = undefined;
+        o.engaged = undefined;
+        o.stunned = 0.4;
+        a.pose = 'run';
+      }
       return;
     }
     if (a.side === 'def') {
@@ -1022,7 +1144,7 @@ export class PlaySim {
       a.facing = Math.atan2(vy, vx);
       o.facing = a.facing + Math.PI;
       // Shed.
-      if (this.t >= a.engageShedAt || (this.ball.state === 'held' && this.ball.holder !== qb.id && this.t >= a.engageShedAt - 0.8)) {
+      if (this.t >= a.engageShedAt || (!this.play.run && this.ball.state === 'held' && this.ball.holder !== qb.id && this.t >= a.engageShedAt - 0.8)) {
         a.engaged = undefined;
         o.engaged = undefined;
         o.stunned = 0.5;
@@ -1132,7 +1254,7 @@ export class PlaySim {
         const threats = recs
           .map((r) => this.perceived(r, delay))
           .filter((p) => p.x > this.los + 6 && p.y > z.yr[0] - 4 && p.y < z.yr[1] + 4);
-        tx = Math.max(z.land.x - 3, best.p.x + 3);
+        tx = Math.max(z.land.x - 3, best.p.x + 4.5);
         ty = threats.length >= 2 ? threats.reduce((s, p) => s + p.y, 0) / threats.length : best.p.y * 0.75 + z.land.y * 0.25;
       } else {
         tx = best.p.x - 0.4;
@@ -1155,9 +1277,10 @@ export class PlaySim {
       d.reactAt = Math.max(d.reactAt, this.t + clamp(0.25 + (80 - d.ratings.awareness) * 0.005 - this.settings.difficulty * 0.04, 0.05, 0.5));
       d.task = { kind: 'pursue' };
     }
+    const carrierId = this.carrier()?.id;
     for (const o of this.offense()) {
-      if (o.id === this.controlledId) continue;
-      if (o.task.kind === 'route' || o.task.kind === 'fake' || o.task.kind === 'toBall') o.task = { kind: 'block' };
+      if (o.id === carrierId || (o.id === this.controlledId && o.id !== this.userId)) continue;
+      if (o.task.kind === 'route' || o.task.kind === 'fake' || o.task.kind === 'toBall' || o.task.kind === 'qbPass') o.task = { kind: 'block' };
     }
   }
 
@@ -1173,6 +1296,12 @@ export class PlaySim {
       return;
     }
     const top = maxSpeed(a);
+    // Run read before the handoff: fill your gap instead of chasing the quarterback.
+    if (this.play.run && c.role === 'QB' && this.runHole) {
+      const fx = Math.max(this.los + 1, Math.min(a.x, this.los + 4));
+      this.moveToward(a, fx, this.runHole.y + (a.y - this.runHole.y) * 0.4, top * 0.9, dt, 1.2);
+      return;
+    }
     const d = len(c.x - a.x, c.y - a.y);
     // Pursuit angle: solve for the intercept point; smarter AI commits to the full angle, weaker AI
     // under-leads (chases the hip) and gets outrun.
@@ -1292,15 +1421,24 @@ export class PlaySim {
     const isQB = c.role === 'QB';
     const inPocket = isQB && !this.qbCrossed;
     for (const d of this.defense()) {
-      if (d.down || d.stunned > 0 || d.engaged) continue;
+      if (d.down || d.stunned > 0) continue;
       if (this.t - d.lastTackleTry < 0.75) continue;
       const dist = len(d.x - c.x, d.y - c.y);
+      // A blocked defender can still shed and grab a carrier who runs right past him.
+      if (d.engaged) {
+        if (inPocket || dist > 1.0 || this.ball.holder === undefined) continue;
+        d.lastTackleTry = this.t;
+        if (!this.rng.chance(0.3 + (d.ratings.tackle + d.ratings.strength - 140) * 0.004)) continue;
+        const blocker = this.byId.get(d.engaged);
+        if (blocker) blocker.engaged = undefined;
+        d.engaged = undefined;
+      }
       // Beyond arm's reach a trailing pursuer can still lay out for a diving (shoestring) tackle.
       const diving = dist > TACKLE_REACH;
       if (diving && (dist > DIVE_REACH || inPocket || !this.rng.chance(0.12 + this.settings.difficulty * 0.03))) continue;
       d.lastTackleTry = this.t;
       const r = c.ratings;
-      let p = 0.7 + (d.ratings.tackle - 70) * 0.012 - (r.breakTackle - 70) * 0.009;
+      let p = 0.8 + (d.ratings.tackle - 70) * 0.012 - (r.breakTackle - 70) * 0.009;
       if (diving) p -= 0.28;
       // Momentum: heavier & faster players win collisions.
       const cm = r.weight * len(c.vx, c.vy);
@@ -1400,6 +1538,243 @@ export class PlaySim {
     }
     if (kind === 'incomplete') this.ball.state = 'ground';
     else if (this.ball.state === 'held') this.ball.state = 'dead';
+  }
+
+  // ───────────────────────── Run game & AI offense ─────────────────────────
+
+  /** QB on a run play: secure the snap, meet the back at the mesh, hand it off. */
+  private handoff(a: Athlete, t: Extract<Task, { kind: 'handoff' }>, dt: number) {
+    const rb = this.byId.get(t.rb);
+    if (!rb || this.ball.state !== 'held' || this.ball.holder !== a.id) {
+      this.moveToward(a, a.x, a.y, 0, dt);
+      return;
+    }
+    const mesh = rb.task.kind === 'runPath' ? rb.task.pts[0] : { x: a.x, y: a.y };
+    this.moveToward(a, Math.min(a.x, mesh.x + 0.4), a.y + (mesh.y - a.y) * 0.35, 4, dt);
+    a.facing = Math.atan2(rb.y - a.y, rb.x - a.x);
+    const ready = rb.task.kind !== 'runPath' || rb.task.idx >= 1 || len(rb.x - a.x, rb.y - a.y) < 0.9;
+    if (len(rb.x - a.x, rb.y - a.y) > 1.3 || !ready) return;
+    const plan = rb.task.kind === 'runPath' ? rb.task.pts.slice(Math.max(1, rb.task.idx)) : [];
+    this.giveBall(rb);
+    rb.pose = 'run';
+    a.task = { kind: 'idle' };
+    a.pose = 'run';
+    this.emit('handoff', `${a.name} hands off to #${rb.number} ${rb.name}`, a.x, a.y, rb.id);
+    if (rb.id === this.userId || a.id === this.userId) {
+      this.controlledId = rb.id;
+      rb.task = { kind: 'user' };
+    } else {
+      rb.task = { kind: 'carrier' };
+      this.carrierPlan = plan;
+      this.carrierHeading = 0;
+    }
+    this.startPursuit();
+  }
+
+  /** Back before the handoff: (wait on draws,) mesh with the QB, then press the hole. */
+  private runPathStep(a: Athlete, t: Extract<Task, { kind: 'runPath' }>, dt: number) {
+    if (this.t < t.startAt) {
+      this.moveToward(a, a.x, a.y, 0, dt);
+      return;
+    }
+    const p = t.pts[Math.min(t.idx, t.pts.length - 1)];
+    if (len(p.x - a.x, p.y - a.y) < 0.7 && t.idx < t.pts.length - 1) t.idx++;
+    const top = maxSpeed(a) * (t.idx === 0 ? 0.7 : 0.9);
+    this.moveToward(a, p.x, p.y, top, dt, 1.2, false);
+  }
+
+  /** Run block: get between the defender and the hole, then engage and drive him. */
+  private runBlock(a: Athlete, t: Extract<Task, { kind: 'runBlock' }>, dt: number) {
+    let d = t.target ? this.byId.get(t.target) : undefined;
+    if (!d || d.down || (d.engaged && d.engaged !== a.id)) {
+      d = this.nearestFree(a, 6, (x) => x.role !== 'CB' || len(x.x - a.x, x.y - a.y) < 3);
+      t.target = d?.id;
+      if (!d) {
+        this.moveToward(a, a.x + 1.5, a.y, 3, dt);
+        return;
+      }
+    }
+    const hole = this.runHole ?? { x: this.los, y: this.spotY };
+    const vx = hole.x - d.x;
+    const vy = hole.y - d.y;
+    const vd = len(vx, vy) || 1;
+    this.moveToward(a, d.x + (vx / vd) * 0.9, d.y + (vy / vd) * 0.9, maxSpeed(a) * 0.85, dt, 1.4);
+    a.facing = Math.atan2(d.y - a.y, d.x - a.x);
+    if (len(d.x - a.x, d.y - a.y) < 1.1 && !d.engaged && d.stunned <= 0) this.engage(a, d);
+  }
+
+  /** Receiver stalk block on a run: square up the nearest defensive back and wall him off. */
+  private stalk(a: Athlete, t: Extract<Task, { kind: 'stalk' }>, dt: number) {
+    let d = t.target ? this.byId.get(t.target) : undefined;
+    if (!d || d.down || (d.engaged && d.engaged !== a.id)) {
+      d = this.nearestFree(a, 14, (x) => x.role === 'CB' || x.role === 'S');
+      t.target = d?.id;
+      if (!d) {
+        this.moveToward(a, a.x, a.y, 0, dt);
+        return;
+      }
+    }
+    const c = this.carrier() ?? this.qb();
+    const vx = c.x - d.x;
+    const vy = c.y - d.y;
+    const vd = len(vx, vy) || 1;
+    this.moveToward(a, d.x + (vx / vd) * 1.0, d.y + (vy / vd) * 1.0, maxSpeed(a) * 0.85, dt);
+    a.facing = Math.atan2(d.y - a.y, d.x - a.x);
+    if (len(d.x - a.x, d.y - a.y) < 1.0 && !d.engaged && this.t - this.snapT > 0.5) {
+      a.engaged = d.id;
+      d.engaged = a.id;
+      a.pose = 'block';
+      d.engageShedAt = this.t + 0.6 + this.rng.next() * 1.4 * (a.ratings.blocking / 65);
+      a.engageShedAt = d.engageShedAt;
+    }
+  }
+
+  private nearestFree(a: Athlete, within: number, ok: (d: Athlete) => boolean): Athlete | undefined {
+    let best: Athlete | undefined;
+    let bd = within;
+    for (const d of this.defense()) {
+      if (d.down || d.engaged || !ok(d)) continue;
+      const dist = len(d.x - a.x, d.y - a.y);
+      if (dist < bd) {
+        bd = dist;
+        best = d;
+      }
+    }
+    return best;
+  }
+
+  /** Separation of any offensive player: distance to the nearest non-lineman defender. */
+  private sepOf(r: Athlete): number {
+    let best = 99;
+    for (const d of this.defense()) if (d.role !== 'DL' && !d.down) best = Math.min(best, len(d.x - r.x, d.y - r.y));
+    return best;
+  }
+
+  /**
+   * AI quarterback (when the user plays another position): drop, set, slide away from pressure and
+   * read the field — throws to an open man, favors a user who is calling for the ball and open, throws
+   * it away under pressure. Awareness speeds up the reads.
+   */
+  private aiQuarterback(a: Athlete, t: Extract<Task, { kind: 'qbPass' }>, dt: number) {
+    if (this.ball.state !== 'held' || this.ball.holder !== a.id) {
+      this.moveToward(a, a.x, a.y, 0, dt);
+      return;
+    }
+    const el = this.t - this.snapT;
+    let near: Athlete | undefined;
+    let nd = 99;
+    for (const d of this.defense()) {
+      if (d.down || d.engaged) continue;
+      const dd = len(d.x - a.x, d.y - a.y);
+      if (dd < nd) {
+        nd = dd;
+        near = d;
+      }
+    }
+    let tx = a.x > t.dropX + 0.2 && el < 1.4 ? t.dropX : a.x;
+    let ty = a.y;
+    if (near && nd < 3.5) {
+      tx -= ((near.x - a.x) / nd) * 1.2;
+      ty -= ((near.y - a.y) / nd) * 1.5;
+    }
+    this.moveToward(a, Math.min(tx, this.los - 1.5), clamp(ty, this.spotY - 4.5, this.spotY + 4.5), 4.5, dt);
+    a.facing = 0;
+    if (this.t < t.nextRead) return;
+    t.nextRead = this.t + clamp(0.24 - a.ratings.awareness * 0.0012, 0.1, 0.22);
+    const over = this.t - t.readAt;
+    const need = clamp(2.5 - over * 0.8, 1.3, 2.5);
+    const calling = this.t - this.callT < 1.3;
+    let best: Athlete | undefined;
+    let bestScore = -99;
+    let fallback: Athlete | undefined;
+    let fallbackSep = 1.25;
+    for (const r of this.offense()) {
+      if (r.id === a.id || r.role === 'OL') continue;
+      if (r.task.kind !== 'route' && !(r.id === this.userId && this.manual)) continue;
+      const sep = this.sepOf(r);
+      const depth = r.x - this.los;
+      let score = sep + clamp(depth, -2, 20) * 0.06;
+      let needR = need;
+      if (r.id === this.userId && calling) {
+        score += 1.2;
+        needR = Math.min(need, 1.7);
+      }
+      if (score >= needR && score > bestScore) {
+        best = r;
+        bestScore = score;
+      }
+      if (sep > fallbackSep) {
+        fallback = r;
+        fallbackSep = sep;
+      }
+    }
+    if (!best && ((nd < 1.5 && el > 1.4) || el > 3.6)) {
+      if (fallback) best = fallback;
+      else if (this.rng.chance(0.45 + a.ratings.awareness / 220)) {
+        this.throwAway(a);
+        return;
+      }
+    }
+    if (!best) return;
+    const dist = len(best.x - a.x, best.y - a.y);
+    this.throwBall(a, best, clamp(0.35 + dist / 40, 0.35, 0.95), dist > 30 && this.sepOf(best) > 2.5);
+  }
+
+  /**
+   * AI ball carrier: follow the designed path through the line, then pick the most open lane among a
+   * fan of headings (forward progress vs defenders near the lane vs sideline), with jukes and stiff arms.
+   */
+  private aiCarrier(a: Athlete, dt: number) {
+    const top = maxSpeed(a);
+    if (this.carrierPlan.length && a.x < this.los + 1.2) {
+      let p = this.carrierPlan[0];
+      if (len(p.x - a.x, p.y - a.y) < 0.8 && this.carrierPlan.length > 1) {
+        this.carrierPlan.shift();
+        p = this.carrierPlan[0];
+      }
+      this.moveToward(a, p.x, p.y, top, dt, 1.2, false);
+      return;
+    }
+    // Re-read the field a few times a second (vision isn't instant); keep the chosen lane in between.
+    if (this.t < this.carrierReadAt) {
+      const h = this.carrierHeading;
+      this.moveToward(a, a.x + Math.cos(h) * 5, a.y + Math.sin(h) * 5, top, dt, 1 + a.ratings.agility / 220, false);
+      a.facing = Math.atan2(a.vy, a.vx);
+      return;
+    }
+    this.carrierReadAt = this.t + clamp(0.32 - a.ratings.awareness * 0.002, 0.12, 0.3);
+    let best = 0;
+    let bestScore = -Infinity;
+    for (let k = -5; k <= 5; k++) {
+      const ang = k * 0.26;
+      const dx = Math.cos(ang);
+      const dy = Math.sin(ang);
+      const px = a.x + dx * 4;
+      const py = a.y + dy * 4;
+      let score = dx * 4;
+      if (py < 1.5 || py > FIELD_W - 1.5) score -= 6;
+      for (const d of this.defense()) {
+        if (d.down || d.engaged) continue;
+        const dd = len(d.x - px, d.y - py);
+        if (dd < 3.2) score -= (3.2 - dd) * 1.4;
+      }
+      score -= Math.abs(ang - this.carrierHeading) * 0.6;
+      if (score > bestScore) {
+        bestScore = score;
+        best = ang;
+      }
+    }
+    this.carrierHeading = best;
+    this.moveToward(a, a.x + Math.cos(best) * 5, a.y + Math.sin(best) * 5, top, dt, 1 + a.ratings.agility / 220, false);
+    a.facing = Math.atan2(a.vy, a.vx);
+    if (a.moveCooldown <= 0) {
+      const threat = this.defense().find((d) => !d.down && !d.engaged && d.x > a.x - 0.5 && len(d.x - a.x, d.y - a.y) < 1.9);
+      if (threat && this.rng.chance(0.08 + a.ratings.juke * 0.0012)) {
+        const left = Math.sin(Math.atan2(threat.y - a.y, threat.x - a.x) - a.facing) < 0;
+        const kind: MoveKind = a.ratings.stiffArm > a.ratings.juke + 8 ? 'stiff_arm' : left ? 'juke_left' : 'juke_right';
+        this.doMove(a, kind);
+      }
+    }
   }
 
   /** Open-ness of a receiver for the read-assist icon: nearest defender distance. */

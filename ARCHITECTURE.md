@@ -110,6 +110,21 @@ scripts/e2e/career.mjs     Playwright: create player → gear → stadium → ca
 tests/playEngine.test.ts   determinism, legal outcomes, control switch, route art ≡ sim routes, drive rules, input charging
 ```
 
+**Career layer (Milestone 2).**
+```
+src/career/data/positions.json   QB/RB/WR/TE attributes, OVR weights, archetypes, body types, build points
+src/career/data/activities.json  week templates, activities (meter effects, XP tags), invite/chatter text
+src/career/season.ts             CareerState: schedule (generateSchedule), calendar clock, meters, contacts &
+                                 messages, invites/plans, training → player.progress, eligibility, games
+src/play/engine/possession.ts    simulated possessions and whole games from unit ratings (teamRatings)
+src/ui/career/CareerHub.tsx      week view, calendar, phone, schedule, stats, ratings, diary
+```
+`GameController` runs in `drive` mode (one practice drive) or `game` mode: our possessions are played in
+3D, the opponent's are `simPossession` cards; halftime, end of regulation and overtime are handled in
+`afterPossession`. The final score and the user's stat line flow back into `finishGame` in the career.
+In the engine, non-QB users have their task (route, block, run path) run by the AI until they move the
+stick; the AI QB (`aiQuarterback`) and AI carrier (`aiCarrier`) play the rest.
+
 **Units & axes.** Yards and seconds. Field x = downfield (offense attacks +x, goal line at 100), y = across (0–53.33), z = height. Scene mapping: `scene.x = x`, `scene.z = y`, `scene.y = z`.
 
 **Key models.**

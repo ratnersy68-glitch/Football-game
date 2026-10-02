@@ -2,7 +2,7 @@
 
 Two ways to play college football:
 
-- **Player Career (new, 3D):** create a quarterback, customize every piece of his gear, walk into an Ohio Stadium-style horseshoe and play the snaps yourself — real-time Three.js, real ball flight, real route running and coverage.
+- **Player Career (3D):** create a QB, RB, WR or TE, pick any of 50 Big Ten / SEC / Big 12 schools, and live a freshman season — class, practice, training, studying and a phone full of friends, teammates, coaches and an academic advisor making plans with you — then play every Saturday yourself in real-time 3D against your real schedule.
 - **Coach Dynasty:** a college football **head coach** simulation. You run a Big Ten, SEC or Big 12 program; the engine simulates every game play by play, and you watch it unfold on a broadcast-style field while making the calls a head coach makes.
 
 > Private personal-use prototype. Real program names, stadiums and colors are used as data; all players and coaches are fictional.
@@ -24,9 +24,22 @@ npm run dev          # http://localhost:5173
 | `npm run sim:season` | Simulate a full dynasty season headlessly |
 | `npm run sim:dynasty -- 10` | Simulate N complete seasons (postseason + offseason) and print champions, Heismans and rating trends |
 | `npm run build:embed` | Build ONE self-contained HTML file (`dist-embed/saturday26-embed.html`) to paste into Google Sites → Insert → Embed → Embed code |
+| `npm run e2e:season` | Browser test: create a WR at Texas, live a week, use the phone, play game day to the final (needs `npm run dev`) |
 | `npm run e2e:career` | Browser test that creates a player and plays a drive with real keyboard input (needs `npm run dev`) |
 | `npx tsx scripts/playtestBot.ts 400 1` | Headless bot QB plays N snaps at difficulty D and prints completion %, YPA, sacks, INTs, YAC — the engine tuning harness |
 | `npm run e2e` | Browser smoke tests (needs `npm run dev` running; set `CHROMIUM_PATH` if Playwright can't find Chromium) |
+
+## Player Career — a season of college life (Milestone 2)
+
+**Main menu → Player Career → New Career.** Name & hometown → **position (QB, RB, WR, TE)** → **school (any of the 50)** → archetype → body & look → build → number → gear → difficulty → **Start My Career**.
+
+**Your week** (Career hub): a calendar of 7 days × morning / afternoon / evening. Class every weekday morning, practice Monday–Thursday, walkthrough Friday, **game day Saturday**, recovery Sunday; bye weeks have more free time. Each slot you choose: go to class or skip it, practice or skip it, and in free time train (weight room, position drills, film), study (library, tutor), rest, hang out, play video games or party.
+
+**Four meters** decide your season: ⚡ energy (training effectiveness and in-game stamina), 😊 morale (training effectiveness), 📚 grades (under 40 = **ineligible**, the game is simmed without you), 🧢 coach trust (under 35 = **benched the first quarter**). Training permanently raises your ratings.
+
+**📱 Phone:** your mom, your position coach, your academic advisor, real teammates from your school's roster, your roommate and a classmate text you every day — invites to lift, study, run routes, game night or a party, check-ins, warnings when your grades slip, reactions to games. Accept or decline invites, or text anyone to make plans yourself (they can say no). Plans with friends give a morale bonus and build friendships; bailing on a plan hurts them.
+
+**Game day:** play the game in 3D — you play your team's offensive drives at your position (as a RB/WR/TE your assignment runs automatically until you touch the stick; **E** calls for the ball; the AI quarterback reads the field) while the opponent's drives are simulated from both rosters — or sim it. Your 12-game schedule is your school's real conference slate plus non-conference games.
 
 ## Player Career — Milestone 1 (playable 3D drive)
 

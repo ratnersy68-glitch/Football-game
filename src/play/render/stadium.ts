@@ -14,6 +14,7 @@ const MZ = 14; // texture margin beyond the sidelines (z)
 export interface StadiumTeams {
   homeName: string; // e.g. OHIO STATE
   homeNick: string; // BUCKEYES
+  homeAbbr: string; // OSU (midfield)
   homeColor: string;
   homeColor2: string;
   awayName: string;
@@ -111,7 +112,7 @@ function fieldTexture(t: StadiumTeams, maxAniso: number): THREE.Texture {
       g.restore();
     }
   }
-  // Midfield logo: block "O"
+  // Midfield logo: team roundel with the school's letters
   g.save();
   g.translate(fx(50), fz(FIELD_W / 2));
   g.fillStyle = '#ffffff';
@@ -122,14 +123,15 @@ function fieldTexture(t: StadiumTeams, maxAniso: number): THREE.Texture {
   g.beginPath();
   g.ellipse(0, 0, 5.1 * PX, 3.7 * PX, 0, 0, Math.PI * 2);
   g.fill();
-  g.fillStyle = '#ffffff';
-  g.beginPath();
-  g.ellipse(0, 0, 3.4 * PX, 2.1 * PX, 0, 0, Math.PI * 2);
-  g.fill();
-  g.fillStyle = '#3b8a34';
-  g.beginPath();
-  g.ellipse(0, 0, 2.9 * PX, 1.6 * PX, 0, 0, Math.PI * 2);
-  g.fill();
+  g.rotate(-Math.PI / 2);
+  g.font = `bold ${(t.homeAbbr.length > 3 ? 2.2 : 3) * PX}px "Arial Black", Impact, sans-serif`;
+  g.textAlign = 'center';
+  g.textBaseline = 'middle';
+  g.lineWidth = 0.35 * PX;
+  g.strokeStyle = '#ffffff';
+  g.fillStyle = t.homeColor2;
+  g.strokeText(t.homeAbbr, 0, 0);
+  g.fillText(t.homeAbbr, 0, 0);
   g.restore();
   // Team names painted in the sideline margins
   g.save();
@@ -147,10 +149,14 @@ function fieldTexture(t: StadiumTeams, maxAniso: number): THREE.Texture {
   return tex;
 }
 
-const CROWD = ['#bb0000', '#bb0000', '#bb0000', '#c9c9c9', '#8a8f96', '#ffffff', '#1d1d1d', '#9e0000', '#d9a384', '#6a4a35', '#bb0000', '#e8e8e8'];
+/** Crowd palette: mostly the home team's colors, plus neutrals and skin tones. */
+function crowdPalette(c1: string, c2: string): string[] {
+  const dark = `#${new THREE.Color(c1).multiplyScalar(0.8).getHexString()}`;
+  return [c1, c1, c1, dark, c2, c2, '#c9c9c9', '#8a8f96', '#ffffff', '#1d1d1d', '#d9a384', '#6a4a35'];
+}
 
 /** Build a stepped seating deck swept along a path of (x, z) points with outward normals. */
-function deck(path: THREE.Vector2[], rows: number, off0: number, h0: number, tread: number, rise: number, rng: () => number, awayPct: number, awayColor: string): THREE.Mesh {
+function deck(path: THREE.Vector2[], rows: number, off0: number, h0: number, tread: number, rise: number, rng: () => number, awayPct: number, awayColor: string, CROWD: string[]): THREE.Mesh {
   // Profile: riser then tread for each row.
   const prof: [number, number][] = [];
   for (let r = 0; r < rows; r++) {
@@ -350,9 +356,10 @@ export function buildStadium(teams: StadiumTeams, renderer: THREE.WebGLRenderer)
   }
 
   // Bowl: lower deck + upper deck swept around the horseshoe.
-  const lower = deck(horseshoePath(0), 38, 0.5, 1.3, 0.95, 0.42, rng, 0.02, '#00274C');
+  const crowd = crowdPalette(teams.homeColor, teams.homeColor2);
+  const lower = deck(horseshoePath(0), 38, 0.5, 1.3, 0.95, 0.42, rng, 0.03, teams.awayColor, crowd);
   group.add(lower);
-  const upper = deck(horseshoePath(0), 26, 34, 21, 1.0, 0.6, rng, 0.04, '#00274C');
+  const upper = deck(horseshoePath(0), 26, 34, 21, 1.0, 0.6, rng, 0.05, teams.awayColor, crowd);
   group.add(upper);
   // Upper deck fascia (scarlet band)
   const fasciaPath = horseshoePath(0);
@@ -370,10 +377,10 @@ export function buildStadium(teams: StadiumTeams, renderer: THREE.WebGLRenderer)
   // South stands (open end) — low bleachers
   const south: THREE.Vector2[] = [];
   for (let z = -4; z <= FIELD_W + 4; z += 1.5) south.push(new THREE.Vector2(-22, z));
-  group.add(deck(south, 14, 0, 0.8, 0.95, 0.4, rng, 0.35, '#00274C'));
+  group.add(deck(south, 14, 0, 0.8, 0.95, 0.4, rng, 0.35, teams.awayColor, crowd));
 
   // Video board above the south stands
-  const board = videoBoardTexture([`${teams.homeName} vs ${teams.awayName}`, 'WELCOME TO', 'THE SHOE'], teams.homeColor);
+  const board = videoBoardTexture([`${teams.homeName} vs ${teams.awayName}`, 'GAME DAY', teams.homeNick], teams.homeColor);
   const boardMesh = new THREE.Mesh(new THREE.PlaneGeometry(36, 13.5), new THREE.MeshBasicMaterial({ map: board }));
   boardMesh.position.set(-40, 22, FIELD_W / 2);
   boardMesh.rotation.y = Math.PI / 2;

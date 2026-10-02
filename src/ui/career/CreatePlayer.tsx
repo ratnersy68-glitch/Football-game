@@ -10,8 +10,12 @@ import {
   GEAR,
   HAIR_COLORS,
   HAIR_STYLES,
-  QB,
+  BUILD_CAP,
+  BUILD_POINTS,
+  POSITIONS,
   SKIN_TONES,
+  posDef,
+  withPosition,
   archetypeOf,
   baseRatings,
   bodyTypeOf,
@@ -28,13 +32,17 @@ import {
   uniformFor,
   type CreatedPlayer,
   type GearKey,
+  type PositionId,
 } from '../../career/player';
+import { loadCareer, newCareer, saveCareer } from '../../career/season';
+import { CONFERENCES, TEAM_BY_ID, UNIVERSE_TEAMS } from '../../data';
+import { TeamBadge } from '../components/common';
 import { takenNumbers } from '../../play/engine/roster';
 import { DIFFICULTY_BLURBS, DIFFICULTY_NAMES, loadPlaySettings, savePlaySettings } from '../../play/settings';
 import { PlayerPreview, type PreviewFocus } from './PlayerPreview';
 import type { PlayerLook } from '../../play/render/playerModel';
 
-const STEPS = ['Identity', 'Archetype', 'Body & Look', 'Build', 'Number', 'Gear', 'Kickoff'];
+const STEPS = ['Identity', 'School', 'Archetype', 'Body & Look', 'Build', 'Number', 'Gear', 'Kickoff'];
 
 const STATES = ['AL', 'AZ', 'CA', 'FL', 'GA', 'IL', 'IN', 'KY', 'LA', 'MD', 'MI', 'MS', 'NC', 'NJ', 'NY', 'OH', 'OK', 'PA', 'SC', 'TN', 'TX', 'VA', 'WA'];
 
@@ -89,22 +97,30 @@ export function CreatePlayer({ initialStep = 0 }: { initialStep?: number }) {
   const upd = (patch: Partial<CreatedPlayer>) => setP((q) => ({ ...q, ...patch }));
   const r = ratings(p);
   const base = baseRatings(p);
-  const ovr = overall(r);
+  const ovr = overall(r, p.position);
   const stars = starRating(ovr);
   const ranks = recruitRanks(ovr);
   const spent = pointsSpent(p);
-  const left = QB.buildPoints - spent;
+  const left = BUILD_POINTS - spent;
   const body = bodyTypeOf(p);
 
   const nameOk = p.firstName.trim().length > 0 && p.lastName.trim().length > 0;
   const canNext = step !== 0 || nameOk;
 
+  const existing = useMemo(() => loadCareer(), []);
+  // Editing the same player (same school & position) keeps the career; anything else starts a new one.
+  const hasCareer = !!existing && !existing.over && existing.player.teamId === p.teamId && existing.player.position === p.position;
   const finish = () => {
     // Never take the field in a returning player's number.
     const jersey = taken.has(p.jersey) ? alternatives(p.jersey)[0] : p.jersey;
-    savePlayer({ ...p, jersey });
+    const done = { ...p, jersey };
+    savePlayer(done);
     savePlaySettings(settings);
-    navigate({ name: 'play' });
+    if (hasCareer && existing) {
+      existing.player = { ...done, progress: existing.player.progress };
+      saveCareer(existing);
+    } else saveCareer(newCareer(done));
+    navigate({ name: 'careerHub' });
   };
 
   const alternatives = (n: number): number[] => {
@@ -125,13 +141,13 @@ export function CreatePlayer({ initialStep = 0 }: { initialStep?: number }) {
 
   const autoBuild = () => {
     const arch = archetypeOf(p);
-    const order = QB.attributes
-      .map((a) => ({ id: a.id, s: (QB.weights[a.id] ?? 1) * (arch.base[a.id] ?? 60) }))
+    const order = posDef(p).attributes
+      .map((a) => ({ id: a.id, s: (posDef(p).weights[a.id] ?? 1) * (arch.base[a.id] ?? 60) }))
       .sort((a, b) => b.s - a.s);
     const build: Record<string, number> = {};
-    let pts = QB.buildPoints;
+    let pts = BUILD_POINTS;
     for (const o of order) {
-      const give = Math.min(QB.buildCap, pts, 99 - base[o.id]);
+      const give = Math.min(BUILD_CAP, pts, 99 - base[o.id]);
       if (give > 0) build[o.id] = give;
       pts -= Math.max(0, give);
       if (pts <= 0) break;
@@ -159,10 +175,12 @@ export function CreatePlayer({ initialStep = 0 }: { initialStep?: number }) {
         <div className="ovr-card">
           <div className="ovr-num">{ovr}</div>
           <div>
-            <div className="small-caps">QB · {archetypeOf(p).name}</div>
+            <div className="small-caps">
+              {p.position} · {archetypeOf(p).name}
+            </div>
             <Stars n={stars} />
             <div className="muted tiny">
-              #{ranks.position} QB · #{ranks.national} national
+              #{ranks.position} {p.position} · #{ranks.national} national
             </div>
           </div>
         </div>
@@ -212,9 +230,9 @@ export function CreatePlayer({ initialStep = 0 }: { initialStep?: number }) {
               </div>
               <h3 style={{ marginTop: 12 }}>Position</h3>
               <div className="pos-grid">
-                {QB.positions.map((pos) =>
+                {POSITIONS.list.map((pos) =>
                   pos.available ? (
-                    <button key={pos.id} className={`pos-card ${p.position === pos.id ? 'active' : ''}`} onClick={() => upd({ position: 'QB' })}>
+                    <button key={pos.id} className={`pos-card ${p.position === pos.id ? 'active' : ''}`} onClick={() => setP((q) => withPosition(q, pos.id as PositionId))}>
                       <b>{pos.id}</b>
                       <span>{pos.name}</span>
                     </button>
@@ -222,21 +240,48 @@ export function CreatePlayer({ initialStep = 0 }: { initialStep?: number }) {
                     <div key={pos.id} className="pos-card locked" title="Arrives in a later milestone">
                       <b>{pos.id}</b>
                       <span>{pos.name}</span>
-                      <em>Later milestone</em>
+                      <em>Coming later</em>
                     </div>
                   ),
                 )}
               </div>
-              <div className="muted tiny">School: Ohio State Buckeyes (Milestone 1 test school).</div>
+              <div className="muted tiny">Changing position resets archetype, size, build and number to that position's defaults.</div>
               {!nameOk && <div className="warn">Enter a first and last name to continue.</div>}
             </div>
           )}
 
           {step === 1 && (
             <div className="col">
-              <h3>Quarterback Archetype</h3>
+              <h3>Choose Your School</h3>
+              <div className="muted tiny">Your full schedule, teammates, uniforms and stadium all come from the school you pick.</div>
+              {CONFERENCES.filter((cf) => cf.playable).map((cf) => (
+                <div key={cf.id} className="col" style={{ gap: 6 }}>
+                  <div className="small-caps">{cf.name}</div>
+                  <div className="school-grid">
+                    {UNIVERSE_TEAMS.filter((t) => t.conference === cf.id).map((t) => (
+                      <button
+                        key={t.id}
+                        className={`school-pick ${p.teamId === t.id ? 'active' : ''}`}
+                        style={{ borderColor: p.teamId === t.id ? t.primaryColor : undefined }}
+                        onClick={() => upd({ teamId: t.id })}
+                        title={`${t.school} ${t.nickname}`}
+                      >
+                        <TeamBadge teamId={t.id} size={34} />
+                        <span>{t.school}</span>
+                        <em>{'★'.repeat(Math.max(1, Math.round(t.prestige / 20)))}</em>
+                      </button>
+                    ))}
+                  </div>
+                </div>
+              ))}
+            </div>
+          )}
+
+          {step === 2 && (
+            <div className="col">
+              <h3>{POSITIONS.list.find((x) => x.id === p.position)?.name} Archetype</h3>
               <div className="arch-grid">
-                {QB.archetypes.map((a) => {
+                {posDef(p).archetypes.map((a) => {
                   const sel = p.archetype === a.id;
                   const top = Object.entries(a.base)
                     .sort((x, y) => y[1] - x[1])
@@ -247,7 +292,7 @@ export function CreatePlayer({ initialStep = 0 }: { initialStep?: number }) {
                       <div className="muted tiny">{a.blurb}</div>
                       {top.map(([k, v]) => (
                         <div key={k} className="mini-bar">
-                          <span>{QB.attributes.find((x) => x.id === k)?.label}</span>
+                          <span>{posDef(p).attributes.find((x) => x.id === k)?.label}</span>
                           <i style={{ width: `${v}%` }} />
                           <b>{v}</b>
                         </div>
@@ -259,11 +304,11 @@ export function CreatePlayer({ initialStep = 0 }: { initialStep?: number }) {
             </div>
           )}
 
-          {step === 2 && (
+          {step === 3 && (
             <div className="col">
               <h3>Body</h3>
               <div className="row wrap">
-                {QB.bodyTypes.map((b) => (
+                {posDef(p).bodyTypes.map((b) => (
                   <button
                     key={b.id}
                     className={`chip ${p.bodyType === b.id ? 'active' : ''}`}
@@ -275,7 +320,7 @@ export function CreatePlayer({ initialStep = 0 }: { initialStep?: number }) {
               </div>
               <label className="slider">
                 Height <b>{heightLabel(p.heightIn)}</b>
-                <input type="range" min={QB.height[0]} max={QB.height[1]} value={p.heightIn} onChange={(e) => upd({ heightIn: Number(e.target.value) })} />
+                <input type="range" min={posDef(p).height[0]} max={posDef(p).height[1]} value={p.heightIn} onChange={(e) => upd({ heightIn: Number(e.target.value) })} />
               </label>
               <label className="slider">
                 Weight <b>{p.weight} lbs</b>
@@ -292,10 +337,10 @@ export function CreatePlayer({ initialStep = 0 }: { initialStep?: number }) {
             </div>
           )}
 
-          {step === 3 && (
+          {step === 4 && (
             <div className="col">
               <div className="row">
-                <h3>Build — {left} / {QB.buildPoints} points left</h3>
+                <h3>Build — {left} / {BUILD_POINTS} points left</h3>
                 <div className="spacer" />
                 <button className="btn small" onClick={autoBuild}>
                   Auto-Build
@@ -304,11 +349,11 @@ export function CreatePlayer({ initialStep = 0 }: { initialStep?: number }) {
                   Reset
                 </button>
               </div>
-              <div className="muted tiny">Up to {QB.buildCap} points per attribute. Ratings drive the simulation directly — accuracy, arm strength, speed and poise all matter on the field.</div>
+              <div className="muted tiny">Up to {BUILD_CAP} points per attribute. Ratings drive the simulation directly — accuracy, arm strength, speed and poise all matter on the field.</div>
               {['Passing', 'Athletic', 'Mental'].map((grp) => (
                 <div key={grp} className="build-group">
                   <div className="small-caps">{grp}</div>
-                  {QB.attributes
+                  {posDef(p).attributes
                     .filter((a) => a.group === grp)
                     .map((a) => {
                       const b = p.build[a.id] ?? 0;
@@ -325,7 +370,7 @@ export function CreatePlayer({ initialStep = 0 }: { initialStep?: number }) {
                           </div>
                           <button
                             className="icon-btn"
-                            disabled={b >= QB.buildCap || left <= 0 || total >= 99}
+                            disabled={b >= BUILD_CAP || left <= 0 || total >= 99}
                             onClick={() => upd({ build: { ...p.build, [a.id]: b + 1 } })}
                             aria-label={`Raise ${a.label}`}
                           >
@@ -341,7 +386,7 @@ export function CreatePlayer({ initialStep = 0 }: { initialStep?: number }) {
             </div>
           )}
 
-          {step === 4 && (
+          {step === 5 && (
             <div className="col">
               <h3>Jersey Number — currently #{p.jersey}</h3>
               <div className="num-grid">
@@ -372,7 +417,7 @@ export function CreatePlayer({ initialStep = 0 }: { initialStep?: number }) {
             </div>
           )}
 
-          {step === 5 && (
+          {step === 6 && (
             <div className="col">
               <div className="row">
                 <h3>Gear</h3>
@@ -416,7 +461,7 @@ export function CreatePlayer({ initialStep = 0 }: { initialStep?: number }) {
             </div>
           )}
 
-          {step === 6 && (
+          {step === 7 && (
             <div className="col">
               <h3>Kickoff</h3>
               <div className="review">
@@ -424,7 +469,10 @@ export function CreatePlayer({ initialStep = 0 }: { initialStep?: number }) {
                   #{p.jersey} {p.firstName} {p.lastName} {p.nickname && <span className="muted">“{p.nickname}”</span>}
                 </div>
                 <div className="muted">
-                  {heightLabel(p.heightIn)} · {p.weight} lbs · {archetypeOf(p).name} QB · {p.hometown}, {p.state}
+                  {heightLabel(p.heightIn)} · {p.weight} lbs · {archetypeOf(p).name} {p.position} · {p.hometown}, {p.state}
+                </div>
+                <div className="muted">
+                  {TEAM_BY_ID[p.teamId]?.school} {TEAM_BY_ID[p.teamId]?.nickname}
                 </div>
                 <div className="row" style={{ marginTop: 8 }}>
                   <span className="ovr-num sm">{ovr}</span>
@@ -452,7 +500,9 @@ export function CreatePlayer({ initialStep = 0 }: { initialStep?: number }) {
                 <input type="checkbox" checked={settings.readAssist} onChange={(e) => setSettings({ ...settings, readAssist: e.target.checked })} />
                 Read assist (receiver icons turn green when open)
               </label>
-              <div className="muted tiny">Opponent: Michigan. Location: Ohio Stadium, Columbus. You start a drive at your own 25.</div>
+              <div className="muted tiny">
+                Your freshman season at {TEAM_BY_ID[p.teamId]?.school}: 12 games, class, practice and a phone full of people who want your time.
+              </div>
             </div>
           )}
 
@@ -467,7 +517,7 @@ export function CreatePlayer({ initialStep = 0 }: { initialStep?: number }) {
               </button>
             ) : (
               <button className="btn primary big" onClick={finish} disabled={!nameOk}>
-                Enter Ohio Stadium ▶
+                {hasCareer ? 'Save & Back to Career ▶' : 'Start My Career ▶'}
               </button>
             )}
           </div>
@@ -475,9 +525,12 @@ export function CreatePlayer({ initialStep = 0 }: { initialStep?: number }) {
         <div className="create-side">
           <PlayerPreview look={lookFor(p, uniformKind)} focus={focus} height={460} />
           <div className="panel tiny-stats">
-            {['throwPower', 'shortAccuracy', 'deepAccuracy', 'speed', 'awareness'].map((k) => (
+            {Object.entries(posDef(p).weights)
+              .sort((a, b) => b[1] - a[1])
+              .slice(0, 5)
+              .map(([k]) => (
               <div key={k} className="mini-bar">
-                <span>{QB.attributes.find((a) => a.id === k)?.label}</span>
+                <span>{posDef(p).attributes.find((a) => a.id === k)?.label}</span>
                 <i style={{ width: `${r[k]}%` }} />
                 <b>{r[k]}</b>
               </div>

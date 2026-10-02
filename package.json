@@ -18,7 +18,8 @@
     "sim:dynasty": "tsx scripts/simulateDynasty.ts",
     "build:embed": "node scripts/buildEmbed.mjs",
     "build:cdn": "node scripts/buildCdn.mjs",
-    "e2e:career": "node scripts/e2e/career.mjs"
+    "e2e:career": "node scripts/e2e/career.mjs",
+    "e2e:season": "node scripts/e2e/careerSeason.mjs"
   },
   "dependencies": {
     "react": "^19.1.0",

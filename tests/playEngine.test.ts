@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { newPlayer, overall, ratings, pointsSpent, QB, GEAR, defaultGear } from '../src/career/player';
+import { newPlayer, overall, ratings, pointsSpent, BUILD_CAP, GEAR, defaultGear } from '../src/career/player';
 import { buildMatch, takenNumbers } from '../src/play/engine/roster';
 import { PlaySim } from '../src/play/engine/sim';
 import { Drive, fieldGoalChance } from '../src/play/engine/drive';
@@ -173,8 +173,8 @@ describe('created player', () => {
   it('build points are capped and change the overall', () => {
     const p = newPlayer();
     const base = overall(ratings(p));
-    p.build = { throwPower: QB.buildCap, deepAccuracy: QB.buildCap };
-    expect(pointsSpent(p)).toBe(QB.buildCap * 2);
+    p.build = { throwPower: BUILD_CAP, deepAccuracy: BUILD_CAP };
+    expect(pointsSpent(p)).toBe(BUILD_CAP * 2);
     expect(overall(ratings(p))).toBeGreaterThan(base);
   });
 

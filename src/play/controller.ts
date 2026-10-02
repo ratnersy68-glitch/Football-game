@@ -6,7 +6,8 @@
  *   call → presnap → live → whistle → result → (fourth | call | over)
  */
 import { Rng } from '../core/rng';
-import { Drive, fieldGoalChance, type ResultSummary } from './engine/drive';
+import { Drive, fieldGoalChance, type DriveStats, type ResultSummary } from './engine/drive';
+import { simPossession } from './engine/possession';
 import { DEF_CALL_NAMES, PLAYS, type PlayDef, type Slot } from './engine/playbook';
 import { buildMatch, type MatchRoster } from './engine/roster';
 import { PlaySim } from './engine/sim';
@@ -19,7 +20,34 @@ import { TEAM_BY_ID } from '../data';
 export const STEP = 1 / 60;
 export const PLAY_CLOCK = 25;
 
-export type Stage = 'call' | 'presnap' | 'live' | 'whistle' | 'result' | 'fourth' | 'over';
+export type Stage = 'call' | 'presnap' | 'live' | 'whistle' | 'result' | 'fourth' | 'over' | 'sim' | 'final';
+
+export interface GameOptions {
+  opponentId: string;
+  /** Is the user's team at home (home stadium, home uniforms)? */
+  home: boolean;
+  /** 'drive' = one practice drive (exhibition); 'game' = full game with simulated opponent possessions. */
+  mode: 'drive' | 'game';
+  seed?: number;
+  /** Coach benched the user for the first quarter (low trust): those drives are simulated. */
+  benchQ1?: boolean;
+  /** Player energy 0–100 from the career: caps in-game stamina. */
+  energy?: number;
+}
+
+export interface GameEndResult {
+  us: number;
+  them: number;
+  won: boolean;
+  stats: DriveStats;
+}
+
+export interface TeamBadge {
+  abbr: string;
+  name: string;
+  color: string;
+  color2: string;
+}
 
 export interface Banner {
   id: number;
@@ -46,6 +74,8 @@ export interface Snapshot {
   stamina: number;
   controlledLabel: string;
   controlledIsQB: boolean;
+  controlledHasBall: boolean;
+  controlledIsUser: boolean;
   banners: Banner[];
   result: ResultSummary | null;
   stats: Drive['stats'];
@@ -57,6 +87,14 @@ export interface Snapshot {
   fgChance: number;
   gamepad: boolean;
   firstDownX: number | null;
+  mode: 'drive' | 'game';
+  teams: { us: TeamBadge; them: TeamBadge };
+  periodLabel: string;
+  /** Simulated possession card (opponent drive, bench, halftime). */
+  simCard: { title: string; text: string } | null;
+  final: GameEndResult | null;
+  /** The user's own position on this play's offense. */
+  userRole: string;
   version: number;
 }
 
@@ -101,32 +139,159 @@ export class GameController {
   private revealDef = false;
   private disposed = false;
   private pendingThrow: Frame['throwTo'] | null = null;
+  readonly opts: GameOptions;
+  readonly teams: { us: TeamBadge; them: TeamBadge };
+  private simCard: { title: string; text: string } | null = null;
+  private afterSim: (() => void) | null = null;
+  private finalResult: GameEndResult | null = null;
+  private usFirst = true;
+  private halfSwitched = false;
+  private staminaCap = 100;
 
   constructor(
     canvas: HTMLCanvasElement,
     readonly player: CreatedPlayer,
     readonly settings: SimSettings,
-    seed = Date.now() % 100000,
+    opts: Partial<GameOptions> = {},
   ) {
+    this.opts = { opponentId: 'michigan', home: true, mode: 'drive', ...opts };
+    const seed = this.opts.seed ?? Date.now() % 100000;
     this.rng = new Rng(seed);
-    this.match = buildMatch(player, 'michigan', 26);
+    this.match = buildMatch(player, this.opts.opponentId, 26);
     this.sim = new PlaySim(this.match.specs, settings, seed + 1);
-    this.drive = new Drive(settings);
-    const home = TEAM_BY_ID[this.match.offenseTeam];
-    const away = TEAM_BY_ID[this.match.defenseTeam];
-    this.renderer = new GameRenderer(canvas, this.match.specs, looksForMatch(this.match.specs, player, this.match.offenseTeam, this.match.defenseTeam), {
-      homeName: (home?.school ?? 'HOME').toUpperCase(),
-      homeNick: (home?.nickname ?? '').toUpperCase(),
-      homeColor: home?.primaryColor ?? '#BB0000',
-      homeColor2: '#FFFFFF',
-      awayName: (away?.school ?? 'AWAY').toUpperCase(),
-      awayColor: away?.primaryColor ?? '#00274C',
+    const us = TEAM_BY_ID[this.match.offenseTeam];
+    const them = TEAM_BY_ID[this.match.defenseTeam];
+    const badge = (t: typeof us, fallback: string): TeamBadge => ({
+      abbr: t?.abbreviation ?? fallback,
+      name: t?.school ?? fallback,
+      color: t?.primaryColor ?? '#444444',
+      color2: t?.secondaryColor ?? '#FFFFFF',
     });
+    this.teams = { us: badge(us, 'HOME'), them: badge(them, 'AWAY') };
+    this.drive = new Drive(settings, { us: this.teams.us.abbr, them: this.teams.them.abbr });
+    const homeT = this.opts.home ? us : them;
+    const awayT = this.opts.home ? them : us;
+    this.renderer = new GameRenderer(
+      canvas,
+      this.match.specs,
+      looksForMatch(this.match.specs, player, this.match.offenseTeam, this.match.defenseTeam, this.opts.home),
+      {
+        homeName: (homeT?.school ?? 'HOME').toUpperCase(),
+        homeNick: (homeT?.nickname ?? '').toUpperCase(),
+        homeAbbr: homeT?.abbreviation ?? 'HOME',
+        homeColor: homeT?.primaryColor ?? '#BB0000',
+        homeColor2: readableOn(homeT?.primaryColor ?? '#BB0000', homeT?.secondaryColor ?? '#FFFFFF'),
+        awayName: (awayT?.school ?? 'AWAY').toUpperCase(),
+        awayColor: awayT?.primaryColor ?? '#00274C',
+      },
+    );
     this.input = new InputManager();
+    this.staminaCap = 55 + (this.opts.energy ?? 100) * 0.45;
     this.suggested = this.drive.coachCall(this.rng);
     // Line up the first play in the background so the stadium shows behind the play call screen.
     this.sim.setup({ los: this.drive.los, spotY: this.drive.spotY, play: this.suggested, defCall: 'cover3' });
+    this.capStamina();
     this.renderer.resetCamera(this.sim);
+    if (this.opts.mode === 'game') {
+      this.usFirst = this.rng.chance(0.5);
+      this.banner(this.usFirst ? `${this.teams.us.abbr} RECEIVES THE OPENING KICKOFF` : `${this.teams.them.abbr} RECEIVES THE OPENING KICKOFF`, 'info');
+      this.nextPossession(this.usFirst ? 'us' : 'them', 25);
+    }
+  }
+
+  private capStamina() {
+    const u = this.sim.user;
+    u.stamina = Math.min(u.stamina, this.staminaCap);
+  }
+
+  // ───────────── possessions (full-game mode) ─────────────
+
+  private nextPossession(team: 'us' | 'them', los: number) {
+    const benched = team === 'us' && this.opts.benchQ1 && this.drive.quarter === 1 && !this.drive.ot;
+    if (team === 'them' || benched) {
+      const u = this.match.units;
+      const p =
+        team === 'them'
+          ? simPossession(u.them.offense, u.us.defense, los, this.rng, this.settings.quarterMinutes, this.teams.them.name)
+          : simPossession(u.us.offense, u.them.defense, los, this.rng, this.settings.quarterMinutes, this.teams.us.name);
+      if (team === 'them') this.drive.score.them += p.points;
+      else this.drive.score.us += p.points;
+      this.drive.runClock(p.seconds);
+      const title = team === 'them' ? `${this.teams.them.abbr} possession` : `${this.teams.us.abbr} possession — you're on the bench`;
+      this.simCard = { title, text: p.text };
+      this.afterSim = () => this.afterPossession(team, p.nextLos);
+      this.stage = 'sim';
+      this.emit(true);
+      return;
+    }
+    this.drive.newDrive(los);
+    this.toCall();
+    this.emit(true);
+  }
+
+  /** Decide who has the ball next: halftime, end of regulation, overtime, or a normal change of possession. */
+  private afterPossession(by: 'us' | 'them', nextLosForOther: number) {
+    const d = this.drive;
+    if (!this.halfSwitched && d.quarter >= 3 && !d.ot) {
+      this.halfSwitched = true;
+      this.banner('HALFTIME', 'info');
+      this.nextPossession(this.usFirst ? 'them' : 'us', 25);
+      return;
+    }
+    if (d.gameOver || d.ot) {
+      if (d.gameOver && !d.ot) {
+        if (d.score.us === d.score.them) {
+          d.ot = true;
+          d.quarter = 5;
+          this.banner('OVERTIME', 'big');
+          this.nextPossession('us', 75);
+        } else this.endGame();
+        return;
+      }
+      // Overtime rounds: we go first from their 25, then they do.
+      if (by === 'us') this.nextPossession('them', 75);
+      else if (d.score.us !== d.score.them) this.endGame();
+      else this.nextPossession('us', 75);
+      return;
+    }
+    this.nextPossession(by === 'us' ? 'them' : 'us', nextLosForOther);
+  }
+
+  /** Where the opponent starts after our drive ends. */
+  private theirStartAfterOurDrive(): number {
+    const d = this.drive;
+    const o = this.sim.outcome;
+    switch (d.reason) {
+      case 'Touchdown':
+        return 25;
+      case 'Interception':
+        return Math.max(5, Math.min(95, Math.round(100 - (o?.spotX ?? d.los))));
+      case 'Safety':
+        return 40;
+      case 'Punt':
+        return Math.max(5, Math.min(35, Math.round(100 - (d.los + 40))));
+      default:
+        if (d.reason.startsWith('Field goal good')) return 25;
+        return Math.max(20, Math.min(95, Math.round(100 - d.los)));
+    }
+  }
+
+  private endGame() {
+    const d = this.drive;
+    this.finalResult = { us: d.score.us, them: d.score.them, won: d.score.us > d.score.them, stats: { ...d.stats } };
+    this.stage = 'final';
+    this.banner(this.finalResult.won ? 'FINAL — WIN!' : 'FINAL', this.finalResult.won ? 'big' : 'info');
+    this.emit(true);
+  }
+
+  /** Continue from a simulated-possession card. */
+  continueSim(): void {
+    if (this.stage !== 'sim' || !this.afterSim) return;
+    const f = this.afterSim;
+    this.afterSim = null;
+    this.simCard = null;
+    f();
+    this.emit(true);
   }
 
   // ───────────── lifecycle ─────────────
@@ -173,6 +338,7 @@ export class GameController {
     this.drive.noteCall(play);
     const defCall = this.drive.defenseCall(this.rng);
     this.sim.setup({ los: this.drive.los, spotY: this.drive.spotY, play, defCall });
+    this.capStamina();
     this.renderer.resetCamera(this.sim);
     this.stage = 'presnap';
     this.pendingThrow = null;
@@ -194,7 +360,8 @@ export class GameController {
   /** Continue from the result card. */
   advance(): void {
     if (this.stage !== 'result') return;
-    if (this.drive.over) this.stage = 'over';
+    if (this.drive.over && this.opts.mode === 'game') this.afterPossession('us', this.theirStartAfterOurDrive());
+    else if (this.drive.over) this.stage = 'over';
     else if (this.drive.down === 4) this.stage = 'fourth';
     else this.toCall();
     this.emit(true);
@@ -207,11 +374,13 @@ export class GameController {
     } else if (choice === 'fg') {
       const r = this.drive.kickFieldGoal(this.rng);
       this.banner(r.good ? `FIELD GOAL IS GOOD! (${r.distance} yds)` : `FIELD GOAL NO GOOD (${r.distance} yds)`, r.good ? 'big' : 'bad');
-      this.stage = 'over';
+      if (this.opts.mode === 'game') this.afterPossession('us', r.good ? 25 : Math.max(20, Math.round(100 - this.drive.los)));
+      else this.stage = 'over';
     } else {
       this.drive.punt();
       this.banner('PUNT', 'info');
-      this.stage = 'over';
+      if (this.opts.mode === 'game') this.afterPossession('us', this.theirStartAfterOurDrive());
+      else this.stage = 'over';
     }
     this.emit(true);
   }
@@ -291,6 +460,7 @@ export class GameController {
               throwTo: first ? f.throwTo : undefined,
               moveKind: first ? f.moveKind : undefined,
               throwAway: first ? f.throwAway : false,
+              callForBall: first ? f.callForBall : false,
             });
             first = false;
             for (const e of this.sim.drainEvents()) this.onEvent(e);
@@ -310,6 +480,9 @@ export class GameController {
           this.sim.step(dt, { move: { x: 0, y: 0 }, sprint: false });
           if (f.snap) this.advance();
           break;
+        case 'sim':
+          if (f.snap) this.continueSim();
+          break;
         default:
           break;
       }
@@ -318,8 +491,12 @@ export class GameController {
     this.banners = this.banners.filter((b) => now - b.t < 2600);
     const board = this.drive;
     this.renderer.setBoard(
-      [`Q${board.quarter}  ${fmtClock(this.displayClock())}`, `OSU ${board.score.us}  MICH ${board.score.them}`, `${board.downLabel()} · ${board.spotLabel()}`],
-      '#BB0000',
+      [
+        `${this.periodLabel()}  ${board.ot ? '' : fmtClock(this.displayClock())}`,
+        `${this.teams.us.abbr} ${board.score.us}  ${this.teams.them.abbr} ${board.score.them}`,
+        this.stage === 'final' ? 'FINAL' : `${board.downLabel()} · ${board.spotLabel()}`,
+      ],
+      (this.opts.home ? this.teams.us : this.teams.them).color,
     );
     this.renderer.render(this.sim, this.paused ? 0 : dt, {
       readAssist: this.settings.readAssist,
@@ -328,6 +505,10 @@ export class GameController {
       firstDownX: this.firstDownX(),
     });
     this.emit(this.banners.length !== bannersBefore);
+  }
+
+  private periodLabel(): string {
+    return this.drive.ot ? 'OT' : `Q${this.drive.quarter}`;
   }
 
   private firstDownX(): number | null {
@@ -346,6 +527,7 @@ export class GameController {
     d.distance += yards;
     this.banner(`FLAG — DELAY OF GAME, ${yards} YARDS`, 'bad');
     this.sim.setup({ los: d.los, spotY: d.spotY, play: this.sim.play, defCall: this.sim.defCall });
+    this.capStamina();
     this.renderer.resetCamera(this.sim);
     this.playClock = PLAY_CLOCK;
     this.emit(true);
@@ -390,6 +572,8 @@ export class GameController {
       stamina: c.stamina,
       controlledLabel: `#${c.number} ${c.name}`,
       controlledIsQB: c.role === 'QB',
+      controlledHasBall: this.sim.ball.state === 'held' && this.sim.ball.holder === c.id,
+      controlledIsUser: c.id === this.sim.userId,
       banners: [...this.banners],
       result: this.result,
       stats: { ...d.stats },
@@ -401,6 +585,12 @@ export class GameController {
       fgChance: fieldGoalChance(fgDistance),
       gamepad: this.input.gamepadConnected,
       firstDownX: this.firstDownX(),
+      mode: this.opts.mode,
+      teams: this.teams,
+      periodLabel: this.periodLabel(),
+      simCard: this.simCard,
+      final: this.finalResult,
+      userRole: this.sim.user.role,
       version: this.version,
     };
   }
@@ -410,4 +600,13 @@ export function fmtClock(s: number): string {
   const m = Math.floor(s / 60);
   const sec = Math.floor(s % 60);
   return `${m}:${String(sec).padStart(2, '0')}`;
+}
+
+/** A team's secondary color if it reads on the primary, else white. */
+function readableOn(primary: string, secondary: string): string {
+  const lum = (h: string) => {
+    const n = parseInt(h.replace('#', ''), 16);
+    return (0.299 * ((n >> 16) & 255) + 0.587 * ((n >> 8) & 255) + 0.114 * (n & 255)) / 255;
+  };
+  return Math.abs(lum(primary) - lum(secondary)) > 0.3 ? secondary : '#FFFFFF';
 }

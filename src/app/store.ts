@@ -19,7 +19,8 @@ export type Screen =
   | { name: 'game'; gameId: string }
   | { name: 'career' }
   | { name: 'createPlayer'; step?: number }
-  | { name: 'play' };
+  | { name: 'play'; career?: boolean }
+  | { name: 'careerHub' };
 
 export type HubTab = 'home' | 'roster' | 'depth' | 'schedule' | 'gameplan' | 'top25' | 'conference' | 'postseason' | 'news' | 'history' | 'coach';
 

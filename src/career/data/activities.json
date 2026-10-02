@@ -1,0 +1,358 @@
+{
+ "_comment": "Weekly life sim. effects: energy/morale/grades/trust deltas; xp: points per training tag (power, speed, skill, mind) split across the position's attributes. fixed = on the team calendar (can be skipped where 'skip' is given).",
+ "slots": [
+  "Morning",
+  "Afternoon",
+  "Evening"
+ ],
+ "days": [
+  "Monday",
+  "Tuesday",
+  "Wednesday",
+  "Thursday",
+  "Friday",
+  "Saturday",
+  "Sunday"
+ ],
+ "template": {
+  "game": [
+   [
+    "class",
+    "practice",
+    null
+   ],
+   [
+    "class",
+    "practice",
+    null
+   ],
+   [
+    "class",
+    "practice",
+    null
+   ],
+   [
+    "class",
+    "practice",
+    null
+   ],
+   [
+    "class",
+    "walkthrough",
+    null
+   ],
+   [
+    null,
+    "game",
+    null
+   ],
+   [
+    "recovery",
+    null,
+    null
+   ]
+  ],
+  "bye": [
+   [
+    "class",
+    "practice",
+    null
+   ],
+   [
+    "class",
+    "practice",
+    null
+   ],
+   [
+    "class",
+    "practice",
+    null
+   ],
+   [
+    "class",
+    null,
+    null
+   ],
+   [
+    "class",
+    null,
+    null
+   ],
+   [
+    null,
+    null,
+    null
+   ],
+   [
+    null,
+    null,
+    null
+   ]
+  ]
+ },
+ "activities": {
+  "class": {
+   "name": "Class",
+   "icon": "📚",
+   "fixed": true,
+   "effects": {
+    "energy": -5,
+    "grades": 4
+   },
+   "skip": {
+    "name": "Skip Class",
+    "effects": {
+     "grades": -7,
+     "morale": 3,
+     "energy": 4
+    }
+   }
+  },
+  "practice": {
+   "name": "Team Practice",
+   "icon": "🏈",
+   "fixed": true,
+   "effects": {
+    "energy": -18,
+    "trust": 2
+   },
+   "xp": {
+    "skill": 18,
+    "speed": 6,
+    "power": 4
+   },
+   "skip": {
+    "name": "Skip Practice",
+    "effects": {
+     "trust": -16,
+     "morale": 4,
+     "energy": 10
+    }
+   }
+  },
+  "walkthrough": {
+   "name": "Walkthrough",
+   "icon": "🧠",
+   "fixed": true,
+   "effects": {
+    "energy": -5,
+    "trust": 1
+   },
+   "xp": {
+    "mind": 10
+   }
+  },
+  "recovery": {
+   "name": "Recovery & Film",
+   "icon": "🧊",
+   "fixed": true,
+   "effects": {
+    "energy": 14,
+    "trust": 1
+   },
+   "xp": {
+    "mind": 8
+   }
+  },
+  "game": {
+   "name": "GAME DAY",
+   "icon": "🏟️",
+   "fixed": true,
+   "effects": {}
+  },
+  "weights": {
+   "name": "Weight Room",
+   "icon": "🏋️",
+   "effects": {
+    "energy": -14,
+    "morale": -1
+   },
+   "xp": {
+    "power": 24
+   },
+   "partner": "gym"
+  },
+  "drills": {
+   "name": "Position Drills",
+   "icon": "🎯",
+   "effects": {
+    "energy": -14
+   },
+   "xp": {
+    "skill": 16,
+    "speed": 10
+   },
+   "partner": "gym"
+  },
+  "film": {
+   "name": "Film Study",
+   "icon": "🎬",
+   "effects": {
+    "energy": -4,
+    "trust": 1
+   },
+   "xp": {
+    "mind": 20
+   },
+   "partner": "coach"
+  },
+  "study": {
+   "name": "Study at the Library",
+   "icon": "📖",
+   "effects": {
+    "energy": -6,
+    "grades": 7,
+    "morale": -2
+   },
+   "partner": "study"
+  },
+  "tutor": {
+   "name": "Tutor Session",
+   "icon": "✏️",
+   "effects": {
+    "energy": -4,
+    "grades": 10,
+    "morale": -1
+   },
+   "partner": "advisor"
+  },
+  "rest": {
+   "name": "Rest / Sleep",
+   "icon": "😴",
+   "effects": {
+    "energy": 22,
+    "morale": 1
+   }
+  },
+  "hangout": {
+   "name": "Hang Out",
+   "icon": "🍕",
+   "effects": {
+    "energy": -3,
+    "morale": 9
+   },
+   "partner": "social"
+  },
+  "gaming": {
+   "name": "Video Games",
+   "icon": "🎮",
+   "effects": {
+    "energy": 5,
+    "morale": 6
+   },
+   "partner": "chill"
+  },
+  "party": {
+   "name": "Party",
+   "icon": "🎉",
+   "effects": {
+    "energy": -18,
+    "morale": 14,
+    "grades": -3,
+    "trust": -5
+   },
+   "partner": "social"
+  }
+ },
+ "freeChoices": [
+  "weights",
+  "drills",
+  "film",
+  "study",
+  "tutor",
+  "rest",
+  "hangout",
+  "gaming",
+  "party"
+ ],
+ "invites": {
+  "weights": [
+   "Lift tonight? Leg day 💪",
+   "Weight room at 7? I need a spotter",
+   "Coach said we gotta get stronger. Lifting later?"
+  ],
+  "drills": [
+   "Wanna run routes on the indoor field?",
+   "Extra reps after class? I'll throw/catch with you",
+   "Footwork drills tonight, you in?"
+  ],
+  "film": [
+   "Film room tonight — want to break down their defense?",
+   "Come watch film with me, I found a tendency 👀"
+  ],
+  "study": [
+   "Library tonight? That exam is gonna be rough",
+   "Study group at 7, we're on the 3rd floor",
+   "Can you help me with this stats homework? Library?"
+  ],
+  "tutor": [
+   "Your grades are slipping. I booked you a tutor — can you make it?",
+   "Tutor session available — please come, eligibility matters."
+  ],
+  "hangout": [
+   "Wings tonight? 🍗",
+   "Come chill at the dorm, we're ordering pizza",
+   "Pickup basketball at the rec, you in?"
+  ],
+  "gaming": [
+   "Run it back on the sticks tonight? 🎮",
+   "Tournament in my room later, you're on my team"
+  ],
+  "party": [
+   "PARTY at the house tonight 🎉 you HAVE to come",
+   "Big party after the game, everybody's going",
+   "Going out tonight, you coming??"
+  ]
+ },
+ "declines": [
+  "Can't tonight, gotta stay focused 🙏",
+  "I'm good, need to rest up",
+  "Next time for sure",
+  "Can't, got stuff to do"
+ ],
+ "theirDeclines": [
+  "Can't tonight, sorry man",
+  "Nah I'm wiped",
+  "Next time!",
+  "I already have plans 😬"
+ ],
+ "theirAccepts": [
+  "Bet 👊",
+  "I'm in!",
+  "Say less",
+  "Let's go",
+  "Perfect, see you there"
+ ],
+ "chatter": {
+  "family": [
+   "Proud of you baby ❤️ call me when you can",
+   "Did you eat today??",
+   "Your uncle says he's watching Saturday!",
+   "Remember to go to class 😤",
+   "We love you, have a great week"
+  ],
+  "coach": [
+   "Need you locked in at practice this week.",
+   "Good work today. Keep stacking days.",
+   "Film doesn't lie. Watch the cut-ups.",
+   "Big game Saturday. Rest up."
+  ],
+  "social": [
+   "bro did you see that video 😂",
+   "dining hall food is criminal today",
+   "you coming out this weekend?"
+  ],
+  "gym": [
+   "PR on bench today 😤",
+   "sleep, eat, lift, repeat"
+  ],
+  "study": [
+   "midterms are coming 😩",
+   "I made flashcards if you want them"
+  ],
+  "chill": [
+   "new game dropped 👀",
+   "I'm napping for 3 hours, wake me up never"
+  ]
+ }
+}

@@ -23,12 +23,12 @@ function hash(s: string): number {
 }
 
 /** Build a look for every athlete: the user's created player exactly, everyone else generated from the id. */
-export function looksForMatch(specs: AthleteSpec[], cp: CreatedPlayer, homeTeam: string, awayTeam: string): Map<string, PlayerLook> {
+export function looksForMatch(specs: AthleteSpec[], cp: CreatedPlayer, offenseTeam: string, defenseTeam: string, offenseHome = true): Map<string, PlayerLook> {
   const out = new Map<string, PlayerLook>();
-  const home = uniformFor(homeTeam, 'home');
-  const away = uniformFor(awayTeam, 'away');
+  const offU = uniformFor(offenseTeam, offenseHome ? 'home' : 'away');
+  const defU = uniformFor(defenseTeam, offenseHome ? 'away' : 'home');
   for (const s of specs) {
-    const u = s.side === 'off' ? home : away;
+    const u = s.side === 'off' ? offU : defU;
     if (s.user) {
       out.set(s.id, {
         uniform: u,

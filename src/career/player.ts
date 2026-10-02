@@ -2,7 +2,7 @@
  * The user's created player: identity, body, appearance, build, number and gear.
  * Pure data + rating math (no UI). Everything here is data-driven from src/career/data/*.json.
  */
-import qbJson from './data/qbArchetypes.json';
+import posJson from './data/positions.json';
 import gearJson from './data/gear.json';
 import uniformsJson from './data/uniforms.json';
 import { TEAM_BY_ID } from '../data';
@@ -25,16 +25,32 @@ export interface BodyTypeDef {
   weight: [number, number];
 }
 
-export const QB = qbJson as unknown as {
-  buildPoints: number;
-  buildCap: number;
+export type PositionId = 'QB' | 'RB' | 'WR' | 'TE';
+
+export interface PositionDef {
   attributes: AttributeDef[];
   weights: Record<string, number>;
   archetypes: ArchetypeDef[];
   bodyTypes: BodyTypeDef[];
   height: [number, number];
-  positions: { id: string; name: string; available: boolean }[];
+  defaultHeight: number;
+  defaultWeight: number;
+  defaultJersey: number;
+}
+
+export const POSITIONS = posJson as unknown as {
+  buildPoints: number;
+  buildCap: number;
+  list: { id: string; name: string; available: boolean }[];
+  positions: Record<PositionId, PositionDef>;
 };
+export const BUILD_POINTS = POSITIONS.buildPoints;
+export const BUILD_CAP = POSITIONS.buildCap;
+
+export function posDef(p: CreatedPlayer | PositionId): PositionDef {
+  const id = typeof p === 'string' ? p : p.position;
+  return POSITIONS.positions[id] ?? POSITIONS.positions.QB;
+}
 
 export type GearKey = Exclude<keyof typeof gearJson, "_comment">;
 /** Gear slots and their options (the JSON's `_comment` documentation key is stripped). */
@@ -57,7 +73,9 @@ export interface CreatedPlayer {
   nickname: string;
   hometown: string;
   state: string;
-  position: 'QB';
+  position: PositionId;
+  /** Ratings gained through training during the career (added on top of base + build). */
+  progress?: Record<string, number>;
   archetype: string;
   heightIn: number;
   weight: number;
@@ -97,7 +115,8 @@ export function defaultGear(): Gear {
   };
 }
 
-export function newPlayer(): CreatedPlayer {
+export function newPlayer(position: PositionId = 'QB', teamId = 'ohio_state'): CreatedPlayer {
+  const d = posDef(position);
   return {
     version: 1,
     firstName: '',
@@ -105,26 +124,36 @@ export function newPlayer(): CreatedPlayer {
     nickname: '',
     hometown: 'Columbus',
     state: 'OH',
-    position: 'QB',
-    archetype: 'field_general',
-    heightIn: 75,
-    weight: 212,
-    bodyType: 'athletic',
+    position,
+    archetype: d.archetypes[0].id,
+    heightIn: d.defaultHeight,
+    weight: d.defaultWeight,
+    bodyType: (d.bodyTypes[1] ?? d.bodyTypes[0]).id,
     appearance: { skinTone: SKIN_TONES[2], face: 1, hair: 'short', hairColor: HAIR_COLORS[0], facialHair: 'none', eyeColor: EYE_COLORS[0] },
     build: {},
-    jersey: 7,
-    preferredJersey: 7,
+    jersey: d.defaultJersey,
+    preferredJersey: d.defaultJersey,
     gear: defaultGear(),
-    teamId: 'ohio_state',
+    teamId,
+    progress: {},
   };
 }
 
+/** Switch position: archetype, body, size, build and number reset to that position's defaults. */
+export function withPosition(p: CreatedPlayer, position: PositionId): CreatedPlayer {
+  if (p.position === position) return p;
+  const fresh = newPlayer(position, p.teamId);
+  return { ...p, position, archetype: fresh.archetype, bodyType: fresh.bodyType, heightIn: fresh.heightIn, weight: fresh.weight, build: {}, jersey: fresh.jersey, preferredJersey: fresh.preferredJersey, progress: {} };
+}
+
 export function archetypeOf(p: CreatedPlayer): ArchetypeDef {
-  return QB.archetypes.find((a) => a.id === p.archetype) ?? QB.archetypes[0];
+  const d = posDef(p);
+  return d.archetypes.find((a) => a.id === p.archetype) ?? d.archetypes[0];
 }
 
 export function bodyTypeOf(p: CreatedPlayer): BodyTypeDef {
-  return QB.bodyTypes.find((b) => b.id === p.bodyType) ?? QB.bodyTypes[1];
+  const d = posDef(p);
+  return d.bodyTypes.find((b) => b.id === p.bodyType) ?? d.bodyTypes[1] ?? d.bodyTypes[0];
 }
 
 /** Base ratings before build points: archetype + body type + height/weight. */
@@ -132,17 +161,17 @@ export function baseRatings(p: CreatedPlayer): Record<string, number> {
   const arch = archetypeOf(p);
   const body = bodyTypeOf(p);
   const out: Record<string, number> = {};
-  const hDelta = p.heightIn - 75; // inches over 6'3"
+  const hDelta = p.heightIn - posDef(p).defaultHeight; // inches over the position's typical height
   const [wLo, wHi] = body.weight;
   const wDelta = (p.weight - (wLo + wHi) / 2) / 10;
-  for (const a of QB.attributes) {
+  for (const a of posDef(p).attributes) {
     let v = arch.base[a.id] ?? 60;
     v += body.mods[a.id] ?? 0;
-    // Taller QBs see the field and throw over the line; shorter ones are quicker.
-    if (a.id === 'awareness' || a.id === 'underPressure') v += hDelta * 0.6;
+    // Taller: better vision / high-point catches; shorter: quicker.
+    if (a.id === 'awareness' || a.id === 'underPressure' || a.id === 'contested') v += hDelta * 0.6;
     if (a.id === 'agility' || a.id === 'acceleration') v -= hDelta * 0.8;
-    // Heavier within the body type: stronger, harder to sack, a bit slower.
-    if (a.id === 'strength' || a.id === 'breakSack') v += wDelta * 1.5;
+    // Heavier within the body type: stronger and harder to bring down, a bit slower.
+    if (a.id === 'strength' || a.id === 'breakSack' || a.id === 'breakTackle' || a.id === 'blocking') v += wDelta * 1.5;
     if (a.id === 'speed') v -= wDelta * 1.2;
     out[a.id] = Math.round(Math.max(35, Math.min(95, v)));
   }
@@ -152,7 +181,7 @@ export function baseRatings(p: CreatedPlayer): Record<string, number> {
 export function ratings(p: CreatedPlayer): Record<string, number> {
   const base = baseRatings(p);
   const out: Record<string, number> = {};
-  for (const a of QB.attributes) out[a.id] = Math.min(99, base[a.id] + (p.build[a.id] ?? 0));
+  for (const a of posDef(p).attributes) out[a.id] = Math.min(99, base[a.id] + (p.build[a.id] ?? 0) + Math.floor(p.progress?.[a.id] ?? 0));
   return out;
 }
 
@@ -160,10 +189,10 @@ export function pointsSpent(p: CreatedPlayer): number {
   return Object.values(p.build).reduce((s, v) => s + v, 0);
 }
 
-export function overall(r: Record<string, number>): number {
+export function overall(r: Record<string, number>, position: PositionId = 'QB'): number {
   let t = 0;
   let w = 0;
-  for (const [k, wt] of Object.entries(QB.weights)) {
+  for (const [k, wt] of Object.entries(posDef(position).weights)) {
     t += (r[k] ?? 60) * wt;
     w += wt;
   }
@@ -183,6 +212,11 @@ export function recruitRanks(ovr: number): { position: number; national: number 
 
 export function heightLabel(inches: number): string {
   return `${Math.floor(inches / 12)}'${inches % 12}"`;
+}
+
+/** Overall rating for a created player at his position. */
+export function playerOverall(p: CreatedPlayer): number {
+  return overall(ratings(p), p.position);
 }
 
 export function displayName(p: CreatedPlayer): string {
@@ -256,7 +290,7 @@ export function loadPlayer(): CreatedPlayer | null {
     const raw = localStorage.getItem(KEY);
     if (!raw) return null;
     const p = JSON.parse(raw) as CreatedPlayer;
-    return { ...newPlayer(), ...p, gear: { ...defaultGear(), ...p.gear }, appearance: { ...newPlayer().appearance, ...p.appearance } };
+    return { ...newPlayer(p.position ?? 'QB', p.teamId ?? 'ohio_state'), ...p, gear: { ...defaultGear(), ...p.gear }, appearance: { ...newPlayer().appearance, ...p.appearance }, progress: p.progress ?? {} };
   } catch {
     return null;
   }

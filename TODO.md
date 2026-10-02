@@ -75,3 +75,19 @@
 - [ ] Other positions for the created player (RB, WR, TE, defense) using the same controller
 - [ ] Career layer: recruiting, depth-chart battles, season schedule, stats/awards/NIL/portal (explicitly out of scope for Milestone 1)
 - [ ] Performance: instanced/merged player meshes and LOD for low-end GPUs; code-split three.js
+
+## Player Career — Milestone 2 (positions, schools, season life) ✅
+- [x] QB / RB / WR / TE with position-specific attributes, archetypes, body types
+- [x] Choose any of the 50 schools; team colors in uniforms, stadium, crowd, scorebug
+- [x] Real 12-game schedule; full games (your drives in 3D, opponent drives simulated); sim game
+- [x] Weekly calendar: class, practice, free time; energy / morale / grades / coach trust
+- [x] Phone: friends, teammates, coach, advisor, family; invites, plans, friendships
+- [x] Training → rating growth; eligibility; benching
+- [x] Run game, AI QB, AI ball carrier
+
+## Player Career — next
+- [ ] Multi-year career: offseason, class years, depth-chart battles, awards, NFL draft
+- [ ] Recruiting (pick your school from offers), NIL, transfer portal
+- [ ] Play defense in 3D (opponent possessions as real plays); defensive positions for the created player
+- [ ] Campus scenes / phone calls with voiced lines; relationships with story arcs
+- [ ] Kickoffs and punts as live plays
