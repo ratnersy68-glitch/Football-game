@@ -98,6 +98,7 @@ export interface GameResult {
 }
 
 export class GameSession {
+  static HEADLESS_DT = 1 / 24;
   readonly cfg: GameConfig;
   readonly g: GameState;
   readonly rng: RNG;
@@ -703,7 +704,7 @@ export class GameSession {
   simulateToEnd(maxSteps = 400000): GameResult {
     this.headless = true;
     if (this.phase === 'intro') this.nextPhase();
-    const dt = 1 / 30;
+    const dt = GameSession.HEADLESS_DT;
     let steps = 0;
     while (!this.isOver && steps < maxSteps) {
       this.update(dt);

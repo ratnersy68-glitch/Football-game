@@ -1067,10 +1067,11 @@ export class PlaySim {
       const gap = b.radius + d.radius + 0.05;
       const bx = d.x + toProt.x * gap;
       const by = d.y + toProt.y * gap;
-      b.vx = (bx - b.x) / Math.max(dt, 1e-3) * 0.3;
-      b.vy = (by - b.y) / Math.max(dt, 1e-3) * 0.3;
-      b.x += (bx - b.x) * 0.3;
-      b.y += (by - b.y) * 0.3;
+      const glue = 1 - Math.exp(-dt * 21);
+      b.vx = ((bx - b.x) * glue) / Math.max(dt, 1e-3);
+      b.vy = ((by - b.y) * glue) / Math.max(dt, 1e-3);
+      b.x += (bx - b.x) * glue;
+      b.y += (by - b.y) * glue;
       b.anim += dt * 2;
       d.anim += dt * 2;
       // Engagement breaks if separated (e.g., carrier passed)

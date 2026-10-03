@@ -176,7 +176,13 @@ export const ROSTER_TEMPLATE: Record<Position, number> = {
   QB: 3, RB: 4, WR: 6, TE: 3, OL: 9, DL: 7, LB: 6, CB: 5, S: 4, K: 1,
 };
 
-export function generateRoster(offTalent: number, defTalent: number, stTalent: number, rng: RNG): PlayerData[] {
+/** Program ratings (database scale) → player talent baseline. Compressed so every team can compete. */
+export const talentFromRating = (r: number) => 60 + (r - 65) * 0.65;
+
+export function generateRoster(offRating: number, defRating: number, stRating: number, rng: RNG): PlayerData[] {
+  const offTalent = talentFromRating(offRating);
+  const defTalent = talentFromRating(defRating);
+  const stTalent = talentFromRating(stRating);
   const used = new Set<number>();
   const roster: PlayerData[] = [];
   const grades: Grade[] = [9, 10, 11, 12];

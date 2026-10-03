@@ -604,23 +604,36 @@ export function cpuQbDecision(ctx: AiCtx, qb: Actor) {
 
 function steerCarrier(ctx: AiCtx, c: Actor, fwd: number, skill: number): Vec {
   const sim = ctx.sim;
+  const s = sim.setup;
   const opps = sim.actors.filter((a) => a.team !== c.team && !a.down && a.stunT <= 0.2);
   let best: Vec = { x: fwd, y: 0 };
   let bestS = -1e9;
   const spd = c.maxSpd;
-  const N = 15;
+  const N = 17;
+  const sp = Math.hypot(c.vx, c.vy);
+  const head = sp > 0.5 ? { x: c.vx / sp, y: c.vy / sp } : { x: fwd, y: 0 };
+  // Designed runs: hit the called hole first.
+  let aim: Vec | null = null;
+  if (s.kind === 'scrimmage' && c.team === 'O' && s.offPlay && sim.handedOff && c.x < s.los + 2.5 && sim.t < 2.2) {
+    const a = (s.offPlay.aim ?? 0) * (s.flip ? -1 : 1);
+    aim = { x: s.los + 3, y: s.ballY + a };
+  }
   for (let i = 0; i < N; i++) {
     const ang = (-85 + (170 * i) / (N - 1)) * (Math.PI / 180);
     const dir = { x: Math.cos(ang) * fwd, y: Math.sin(ang) };
-    let score = dir.x * fwd * 3;
-    for (const t of [0.35, 0.75, 1.2]) {
+    let score = dir.x * fwd * 5 + (dir.x * head.x + dir.y * head.y) * 0.9;
+    if (aim) {
+      const n = norm({ x: aim.x - c.x, y: aim.y - c.y });
+      score += (dir.x * n.x + dir.y * n.y) * 3;
+    }
+    for (const t of [0.3, 0.65, 1.0]) {
       const px = c.x + dir.x * spd * t;
       const py = c.y + dir.y * spd * t;
-      if (py < 0.8 || py > FIELD_W - 0.8) score -= 6 * t;
+      if (py < 0.8 || py > FIELD_W - 0.8) score -= 5 * t;
       for (const o of opps) {
         const blocked = o.engaged >= 0;
-        const reach = Math.hypot(o.x - px, o.y - py) - o.maxSpd * t * (blocked ? 0.25 : 0.85);
-        if (reach < 1.2) score -= (1.2 - reach) * (blocked ? 0.6 : 2.2) / (t + 0.2);
+        const reach = Math.hypot(o.x - px, o.y - py) - o.maxSpd * t * (blocked ? 0.2 : 0.7);
+        if (reach < 1.1) score -= ((1.1 - reach) * (blocked ? 0.5 : 1.8)) / (t + 0.35);
       }
     }
     // Low-skill runners "see" less

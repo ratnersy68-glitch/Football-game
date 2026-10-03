@@ -82,8 +82,8 @@ export interface GameState {
   newDrive: boolean;
 }
 
-export const RUNOFF = 22; // seconds between snaps when the clock keeps running
-export const HURRY_RUNOFF = 9;
+export const RUNOFF = 16; // seconds between snaps when the clock keeps running (compressed huddle + play clock)
+export const HURRY_RUNOFF = 7;
 
 export function newGameState(home: string, away: string, quarterLen: number, openingReceiver: Side): GameState {
   return {

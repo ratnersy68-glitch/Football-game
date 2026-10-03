@@ -8,6 +8,7 @@ import { addStats, emptyStats } from '../src/game/types';
 const N = Number(process.argv[2] ?? 10);
 const qlen = Number(process.argv[3] ?? 300);
 const rng = new RNG(42);
+if (process.env.DT) GameSession.HEADLESS_DT = 1 / Number(process.env.DT);
 const agg = { pts: 0, plays: 0, rushYds: 0, passYds: 0, to: 0, firstDowns: 0, ot: 0, sacks: 0 };
 const st = emptyStats();
 let t0 = Date.now();
