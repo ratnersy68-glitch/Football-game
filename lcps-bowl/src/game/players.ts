@@ -177,7 +177,7 @@ export const ROSTER_TEMPLATE: Record<Position, number> = {
 };
 
 /** Program ratings (database scale) → player talent baseline. Compressed so every team can compete. */
-export const talentFromRating = (r: number) => 60 + (r - 65) * 0.65;
+export const talentFromRating = (r: number) => 61 + (r - 65) * 0.5;
 
 export function generateRoster(offRating: number, defRating: number, stRating: number, rng: RNG): PlayerData[] {
   const offTalent = talentFromRating(offRating);

@@ -108,7 +108,7 @@ export function GameScreen({ config, atmosphere, intro, onExit, story }: Props) 
       for (const a of ui) {
         if (ph === 'presnap' && session.sim) {
           const role = session.sim.setup.userTeam;
-          if (a === 'snap' && (role === 'O' || (session.sim.setup.kind === 'kickoff' && role === 'D'))) session.snap();
+          if (a === 'snap' && (role === 'O' || (session.sim.setup.kind === 'kickoff' && role === 'D'))) { session.snap(); input.control(); }
           if ((a === 'switch' || a === 'prevPlayer') && role === 'D' && session.sim.setup.kind === 'scrimmage') {
             session.userDefPick = session.sim.cycleUserDefender(a === 'switch' ? 1 : -1);
           }

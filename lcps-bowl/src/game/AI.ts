@@ -239,8 +239,10 @@ function thinkQb(ctx: AiCtx, a: Actor) {
     return;
   }
   const rollY = play.rollout ? s.ballY + play.rollout * flip : s.ballY;
+  // Backed up: don't drop into your own end zone.
+  const safeDropX = Math.max(dropX, Math.min(a.startX, 0.8));
   if (sim.t < sim.dropTime() + 0.2) {
-    seek(a, dropX, rollY, play.rollout ? 0.9 : 0.75, 0.5);
+    seek(a, safeDropX, rollY, play.rollout ? 0.9 : 0.75, 0.5);
     return;
   }
   // In the pocket: slide away from pressure (CPU only — the human moves himself)
@@ -258,7 +260,7 @@ function thinkQb(ctx: AiCtx, a: Actor) {
     const n = norm({ x: push.x * 0.5 + 0.4, y: push.y });
     a.desire = { x: n.x * 0.7, y: n.y * 0.7 };
   } else {
-    seek(a, dropX + 1.2, rollY, 0.3, 1);
+    seek(a, safeDropX + 1.2, rollY, 0.3, 1);
   }
 }
 

@@ -77,8 +77,8 @@ export function offseasonGrowth(prog: Program, rng: RNG): { p: PlayerData; from:
     const from = ovr(p);
     const gap = Math.max(0, p.potential - from);
     const youth = p.grade <= 10 ? 1.25 : p.grade === 11 ? 1.0 : 0.8;
-    let growth = gap * 0.32 * youth + rng.normal(1.5, 1.6) + fac(prog, 'coaching') * 0.35;
-    if (rng.chance(0.06 + fac(prog, 'youth') * 0.005)) growth += rng.range(4, 8); // breakout
+    let growth = gap * 0.18 * youth + rng.normal(1.5, 1.5) + fac(prog, 'coaching') * 0.25;
+    if (rng.chance(0.06 + fac(prog, 'youth') * 0.005)) growth += rng.range(3, 6); // breakout
     if (rng.chance(0.05)) growth -= rng.range(1, 3); // plateau
     growth = Math.max(0, growth);
     const keys = POS_KEY_ATTRS[p.pos];
@@ -102,7 +102,7 @@ export function offseasonGrowth(prog: Program, rng: RNG): { p: PlayerData; from:
 export function pipelineTalent(prog: Program, baseRating: number): number {
   const recent = prog.history.slice(-3);
   const winPct = recent.length ? recent.reduce((a, s) => a + s.wins / Math.max(1, s.wins + s.losses), 0) / recent.length : 0.5;
-  return baseRating - 6 + prog.prestige * 1.6 + fac(prog, 'youth') * 1.6 + fac(prog, 'community') * 0.6 + (winPct - 0.5) * 6 + prog.championships.length * 0.4;
+  return baseRating + (prog.prestige - 3) * 0.8 + (fac(prog, 'youth') - 2) * 0.7 + (fac(prog, 'community') - 2) * 0.3 + (winPct - 0.5) * 3 + Math.min(5, prog.championships.length) * 0.2;
 }
 
 export function generateFreshmanClass(prog: Program, baseRating: number, rng: RNG): PlayerData[] {
@@ -119,7 +119,7 @@ export function generateFreshmanClass(prog: Program, baseRating: number, rng: RN
     for (let i = 0; i < need; i++) {
       // Some schools get a varsity-ready sophomore move-up instead of a freshman
       const grade: Grade = rng.chance(0.25) ? 10 : 9;
-      out.push(generatePlayer({ pos, grade, talent: talent + (grade === 10 ? 2 : 0), rng, usedNumbers: used, potentialBoost: fac(prog, 'youth') * 1.2 }));
+      out.push(generatePlayer({ pos, grade, talent: talent + (grade === 10 ? 2 : 0), rng, usedNumbers: used, potentialBoost: fac(prog, 'youth') * 0.6 - 1 }));
     }
   }
   return out;

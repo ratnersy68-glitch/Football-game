@@ -582,6 +582,34 @@ export class Renderer {
         ctx.fillRect(Math.round(tx) - 2, Math.round(ty) - 1, 5, 3);
       }
     }
+    // Pre-snap coverage preview for the human's defense
+    if (!sim.snapped && userTeam === 'D' && sim.setup.kind === 'scrimmage') {
+      for (const a of sim.actors) {
+        if (a.team !== 'D') continue;
+        const ax = this.sx(a.x);
+        const ay = this.sy(a.y);
+        if (a.role === 'zone' && a.zoneSpot) {
+          ctx.strokeStyle = a.zoneDeep ? 'rgba(90,209,255,0.45)' : 'rgba(255,216,74,0.45)';
+          ctx.beginPath();
+          ctx.ellipse(this.sx(a.zoneSpot.x), this.sy(a.zoneSpot.y), a.zoneDeep ? 34 : 26, a.zoneDeep ? 14 : 10, 0, 0, Math.PI * 2);
+          ctx.stroke();
+          ctx.beginPath();
+          ctx.moveTo(ax, ay);
+          ctx.lineTo(this.sx(a.zoneSpot.x), this.sy(a.zoneSpot.y));
+          ctx.stroke();
+        } else if (a.role === 'man' && a.manTarget != null) {
+          const t = sim.actors[a.manTarget];
+          ctx.fillStyle = 'rgba(255,120,120,0.6)';
+          const steps = 8;
+          for (let i = 0; i <= steps; i += 1) {
+            ctx.fillRect(Math.round(ax + ((this.sx(t.x) - ax) * i) / steps), Math.round(ay + ((this.sy(t.y) - ay) * i) / steps), 1, 1);
+          }
+        } else if (a.role === 'rush' && a.pos !== 'DL') {
+          ctx.fillStyle = 'rgba(255,90,90,0.8)';
+          ctx.fillRect(Math.round(ax) - 4, Math.round(ay) - 1, 3, 2);
+        }
+      }
+    }
     // Shadows first
     for (const a of order) drawShadow(ctx, this.sx(a.x), this.sy(a.y), a.pos === 'OL' || a.pos === 'DL' ? 9 : 7);
     // User marker under feet

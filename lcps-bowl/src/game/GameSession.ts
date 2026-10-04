@@ -337,7 +337,7 @@ export class GameSession {
     this.sim = new PlaySim(setup);
     this.phase = 'presnap';
     this.phaseT = 0;
-    this.presnapWait = userRole === 'O' ? 999 : 0.9 + this.rng.range(0, 0.4);
+    this.presnapWait = userRole === 'O' ? 999 : userRole === 'D' ? 2.2 + this.rng.range(0, 0.6) : 0.9 + this.rng.range(0, 0.4);
   }
 
   private setupKickoff() {

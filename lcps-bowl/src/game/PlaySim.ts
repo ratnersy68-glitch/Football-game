@@ -483,7 +483,8 @@ export class PlaySim {
     // Safety valve: no play lasts forever.
     if (this.t > 40) {
       const c = this.carrier;
-      this.endPlay({ type: 'tackle', spotX: c ? c.x : this.setup.los, team: c ? c.team : 'O', clockStops: false, desc: 'Whistle.' });
+      if (c) this.carrierDown(c, -1, 'dive');
+      else this.endPlay({ type: this.setup.kind === 'scrimmage' ? 'incomplete' : 'downed', spotX: this.setup.kind === 'scrimmage' ? this.setup.los : Math.min(99, this.ball.x), team: this.setup.kind === 'scrimmage' ? 'O' : 'D', clockStops: true, desc: 'Whistle — ball dead.' });
       return;
     }
     this.handleUserMeta(input);
@@ -617,8 +618,10 @@ export class PlaySim {
       if (input.spin && a.spinCd <= 0) this.doSpin(a);
       if (input.dive && a.diveT <= 0) this.doDive(a, mx, my);
     } else if (!isCarrier) {
-      // Defender / chaser actions
-      if ((input.dive || input.action) && a.diveT <= 0 && a.stunT <= 0) this.doDive(a, mx, my);
+      // Defender / chaser actions: only when the other team has (or is about to catch) the ball
+      const c = this.carrier;
+      const chasing = (c && c.team !== a.team) || (this.ball.state === 'air' && this.ball.kind === 'pass' && a.team === 'D');
+      if (chasing && (input.dive || input.action) && a.diveT <= 0 && a.stunT <= 0) this.doDive(a, mx, my);
     }
   }
 
@@ -994,7 +997,7 @@ export class PlaySim {
       for (const d of this.actors) {
         if (d.team === b.team || d.engaged >= 0 || d.down || this.carrier === d) continue;
         if (d.role === 'kicker' || d.diveT > 0) continue;
-        if (d.shedFrom === b.idx && d.shedCd > 0) continue;
+        if (d.shedCd > 0 && (d.shedFrom === b.idx || (passPro && d.shedCd > 0.35))) continue;
         // Coverage defenders only get blocked once the ball is past the line (runs/screens/returns)
         if ((d.role === 'man' || d.role === 'zone' || d.role === 'ballhawk') && passPro) continue;
         const dd = dist(b, d);
@@ -1025,7 +1028,7 @@ export class PlaySim {
       d.engageT += dt;
       const net = this.blockNet(b, d, passPro);
       // Shed?
-      const rate = (passPro ? 0.42 : 0.5) * Math.exp(net * 3.2) * (1 + d.engageT * 0.15);
+      const rate = (passPro ? 0.17 : 0.5) * Math.exp(net * 3.2) * (1 + d.engageT * (passPro ? 0.3 : 0.15)) * (passPro ? 1 + Math.max(0, this.t - 3) * 0.6 : 1);
       // A ball carrier running away from the block makes it harder to hold
       if (this.rng.chance(rate * dt) || (this.carrier && dist(d, this.carrier) < 1.4 && this.rng.chance(dt * 1.6))) {
         b.engaged = -1;
@@ -1049,7 +1052,7 @@ export class PlaySim {
       }
       // Movement of the pair: defender pushes toward its desire, blocker resists.
       const want = norm(d.desire);
-      const push = net * 3.2 + 0.2;
+      const push = net * 3.2 + (passPro ? 0.45 + d.engageT * 0.18 : 0.2);
       const lateralSlide = (d.p.attrs.agi - b.p.attrs.agi) * 0.012;
       const vx = want.x * push + -want.y * lateralSlide * Math.sign(want.y || 1) * 0.3;
       const vy = want.y * push * 0.6 + (this.carrier ? Math.sign(this.carrier.y - d.y) * lateralSlide * 0.4 : 0);
@@ -1106,6 +1109,8 @@ export class PlaySim {
         if (d2 >= r * r || d2 < 1e-6) continue;
         // Downed players and diving tacklers are not obstacles for long
         if (a.down || b.down) continue;
+        // A rusher who just beat his block slips past linemen for a moment
+        if (a.team !== b.team && ((a.shedCd > 0.25 && (b.role === 'pblock' || b.role === 'rblock')) || (b.shedCd > 0.25 && (a.role === 'pblock' || a.role === 'rblock')))) continue;
         // Ball carrier vs defender: handled as tackle attempt, but still collide lightly
         const d = Math.sqrt(d2);
         const overlap = r - d;

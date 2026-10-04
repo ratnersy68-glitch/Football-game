@@ -505,7 +505,7 @@ export function RecruitingPage({ d, onChange }: { d: Dynasty; onChange: () => vo
     const returning = prog.roster.filter((p) => p.pos === pos && p.grade < 12).length;
     return { pos, returning, need: Math.max(0, ROSTER_TEMPLATE[pos] - returning) };
   });
-  const grade = pipe >= 63 ? 'A' : pipe >= 59 ? 'B' : pipe >= 55 ? 'C' : pipe >= 51 ? 'D' : 'F';
+  const grade = pipe >= 68 ? 'A' : pipe >= 63 ? 'B' : pipe >= 58 ? 'C' : pipe >= 53 ? 'D' : 'F';
   return (
     <div className="page two-col">
       <Panel title="PROGRAM DEVELOPMENT">

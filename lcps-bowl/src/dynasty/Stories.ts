@@ -66,7 +66,8 @@ export function buildStory(s: GameSession, ctx: StoryContext = {}): { headline: 
   if (rb && rb.s.rushYds >= 40) lines.push(`${rb.p.pos === 'QB' ? 'QB' : 'RB'} ${rb.p.first} ${rb.p.last} ran for ${rb.s.rushYds} yards on ${rb.s.rushAtt} carries${rb.s.rushTD ? ` with ${num(rb.s.rushTD)} score${rb.s.rushTD > 1 ? 's' : ''}` : ''}.`);
   if (wr && wr.s.recYds >= 50) lines.push(`${wr.p.first} ${wr.p.last} caught ${num(wr.s.rec)} pass${wr.s.rec === 1 ? '' : 'es'} for ${wr.s.recYds} yards.`);
   if (df && (df.s.sacks >= 1 || df.s.ints >= 1 || df.s.tackles >= 6)) {
-    const bits = [df.s.tackles >= 1 ? `${Math.round(df.s.tackles)} tackles` : '', df.s.sacks ? `${df.s.sacks} sack${df.s.sacks > 1 ? 's' : ''}` : '', df.s.ints ? `${num(df.s.ints)} interception${df.s.ints > 1 ? 's' : ''}` : ''].filter(Boolean);
+    const tk = Math.round(df.s.tackles);
+    const bits = [tk >= 1 ? `${tk} tackle${tk === 1 ? '' : 's'}` : '', df.s.sacks ? `${df.s.sacks} sack${df.s.sacks > 1 ? 's' : ''}` : '', df.s.ints ? `${num(df.s.ints)} interception${df.s.ints > 1 ? 's' : ''}` : ''].filter(Boolean);
     lines.push(`On defense, ${df.p.pos} ${df.p.first} ${df.p.last} led the way with ${bits.join(', ')}.`);
   }
   if (lines.length) body.push(lines.join(' '));
