@@ -1,0 +1,44 @@
+# Builds LCPS Bowl (lcps-bowl/) and publishes it to the gh-pages branch.
+# One-time setup: Settings → Pages → Source: "Deploy from a branch" → gh-pages / (root).
+# Live at https://<owner>.github.io/<repo>/
+name: LCPS Bowl → GitHub Pages
+
+on:
+  push:
+    branches: [claude/lcps-bowl-game-i7fuzv]
+    paths: ['lcps-bowl/**', '.github/workflows/lcps-bowl-pages.yml']
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+concurrency:
+  group: lcps-bowl-pages
+  cancel-in-progress: true
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: lcps-bowl
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: npm
+          cache-dependency-path: lcps-bowl/package-lock.json
+      - run: npm ci
+      - run: npm run build
+      - name: Publish dist/ to gh-pages
+        run: |
+          cd dist
+          touch .nojekyll
+          git init -q
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git checkout -q -b gh-pages
+          git add -A
+          git commit -q -m "Deploy LCPS Bowl from ${GITHUB_SHA::7}"
+          git push -f "https://x-access-token:${{ secrets.GITHUB_TOKEN }}@github.com/${{ github.repository }}.git" gh-pages

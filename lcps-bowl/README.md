@@ -6,6 +6,10 @@ A pixel-art, arcade American football game about Loudoun County Public Schools h
 
 > Personal, non-commercial fan project. School names, mascots, colors and districts are real. Every player is fictional: names are random first/last combinations, never real students. Real logos are not bundled (see [Team logos](#team-logos)).
 
+## Play online
+
+Every push to `claude/lcps-bowl-game-i7fuzv` builds the game and publishes it to the `gh-pages` branch (`.github/workflows/lcps-bowl-pages.yml`). It is served at **https://ratnersy68-glitch.github.io/Football-game/** once Pages is set to *Deploy from a branch → gh-pages / (root)* in the repo settings.
+
 ## Run it
 
 ```bash
