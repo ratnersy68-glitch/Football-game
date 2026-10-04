@@ -1,4 +1,4 @@
-import { useEffect, useRef } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import type { PlayerData, Position, TeamInfo } from '../../game/types';
 import type { Pose } from '../../game/render/sprites';
 import { drawGearedPlayer } from '../sprite';
@@ -10,8 +10,8 @@ export function PlayerPreview({ p, team, gear, theme = 'none', scale = 9, pose =
   p: PlayerData; team: TeamInfo; gear?: PlayerGear; theme?: ThemeId; scale?: number; pose?: Pose; animate?: boolean; home?: boolean; facing?: 1 | -1; width?: number; height?: number; bg?: boolean;
 }) {
   const ref = useRef<HTMLCanvasElement>(null);
-  const W = width ?? scale * 16;
-  const H = height ?? scale * 27;
+  const W = width ?? scale * 20;
+  const H = height ?? scale * 33;
   useEffect(() => {
     const cv = ref.current!;
     const ctx = cv.getContext('2d')!;
@@ -44,7 +44,7 @@ export function PlayerPreview({ p, team, gear, theme = 'none', scale = 9, pose =
 }
 
 const FOCUS: Record<EquipmentCategory, 'head' | 'body' | 'legs' | 'full'> = {
-  helmet: 'head', finish: 'head', facemask: 'head', visor: 'head', mouthguard: 'head',
+  helmet: 'head', pads: 'body', finish: 'head', facemask: 'head', visor: 'head', mouthguard: 'head',
   gloves: 'body', sleeve: 'body', wristband: 'body', armband: 'body', handwarmer: 'body', towel: 'body', undershirt: 'body', accessory: 'full',
   cleats: 'legs', socks: 'legs', spats: 'legs', legsleeve: 'legs',
 };
@@ -55,7 +55,8 @@ export function mannequinGear(item: EquipmentItem): PlayerGear {
   const id = item.id;
   switch (item.category) {
     case 'helmet': g.helmet = id; break;
-    case 'finish': g.finish = id; g.helmet = 'helm-flex'; break;
+    case 'pads': g.pads = id; break;
+    case 'finish': g.finish = id; break;
     case 'facemask': g.facemask = id; break;
     case 'visor': g.visor = id; break;
     case 'mouthguard': g.mouthguard = id; g.facemask = 'mask-kicker'; break;
@@ -77,8 +78,28 @@ export function mannequinGear(item: EquipmentItem): PlayerGear {
 
 const MANNEQUIN_POS: Partial<Record<EquipmentCategory, Position>> = { helmet: 'LB', finish: 'LB' };
 
-/** Item thumbnail: the mannequin wearing the item, zoomed onto the relevant body region. */
+/**
+ * Exact supplied product artwork (helmets/pads). Shown unchanged: white panel, object-fit: contain,
+ * aspect ratio and every equipment edge preserved. A load failure shows an obvious MISSING ASSET label and logs an error.
+ */
+export function ProductImage({ item, width, height }: { item: EquipmentItem; width: number; height?: number }) {
+  const [bad, setBad] = useState(false);
+  const h = height ?? Math.round((width * 2) / 3);
+  if (bad) return <div className="product-panel missing-asset" style={{ width, height: h }}>MISSING ASSET<br /><code>{item.image}</code></div>;
+  return (
+    <div className="product-panel" style={{ width, height: h }}>
+      <img src={item.image} alt={item.name} draggable={false} onError={() => { console.error(`[assets] missing product image ${item.image} for ${item.id}`); setBad(true); }} />
+    </div>
+  );
+}
+
+/** Item thumbnail: supplied product art when the item has it, otherwise the mannequin wearing the item. */
 export function ItemThumb({ item, team, size = 150, animate = false }: { item: EquipmentItem; team: TeamInfo; size?: number; animate?: boolean }) {
+  if (item.image) return <ProductImage item={item} width={Math.round(size * 1.35)} height={Math.round(size * 0.9)} />;
+  return <MannequinThumb item={item} team={team} size={size} animate={animate} />;
+}
+
+function MannequinThumb({ item, team, size = 150, animate = false }: { item: EquipmentItem; team: TeamInfo; size?: number; animate?: boolean }) {
   const ref = useRef<HTMLCanvasElement>(null);
   const focus = FOCUS[item.category];
   useEffect(() => {
@@ -87,7 +108,7 @@ export function ItemThumb({ item, team, size = 150, animate = false }: { item: E
     ctx.imageSmoothingEnabled = false;
     const fake = { id: `mannequin-${item.category}`, pos: MANNEQUIN_POS[item.category] ?? 'WR', weight: 200, number: 7 } as PlayerData;
     const look = resolveLook(fake, team, true, 'none', mannequinGear(item));
-    const region = focus === 'head' ? { top: -24, bottom: -13, h: 11 } : focus === 'body' ? { top: -18, bottom: -4, h: 14 } : focus === 'legs' ? { top: -8, bottom: 1, h: 9 } : { top: -24, bottom: 1, h: 25 };
+    const region = focus === 'head' ? { top: -30, bottom: -19, h: 11 } : focus === 'body' ? { top: -22, bottom: -6, h: 16 } : focus === 'legs' ? { top: -12, bottom: 1, h: 13 } : { top: -31, bottom: 1, h: 32 };
     const sc = Math.max(2, Math.floor((size * 0.82) / region.h));
     let raf = 0;
     const t0 = performance.now();

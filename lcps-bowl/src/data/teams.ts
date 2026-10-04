@@ -8,7 +8,7 @@ import type { TeamInfo } from '../game/types';
  * Stadium names: only Riverside's is officially named (FACT Field); others play on-campus and are listed as
  * "<School> Stadium" (generic, on-campus) rather than inventing a name.
  *
- * Logos/helmets: drop real files at public/assets/teams/<id>/logo.png and helmet.png — the game uses them
+ * Logos: the supplied official school-site logos live at public/assets/teams/<id>/logo.png (see src/assets/registry.ts)
  * automatically. Until then a clean initials badge in school colors is shown.
  *
  * Ratings are game-design starting points (0-99 talent scale) informed by recent program success; they are

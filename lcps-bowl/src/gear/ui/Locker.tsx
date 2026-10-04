@@ -1,7 +1,7 @@
 import { useEffect, useMemo, useRef, useState } from 'react';
 import type { Dynasty } from '../../dynasty/types';
 import { getTeam, LCPS_TEAMS } from '../../data/teams';
-import { CATALOG, CATEGORY_LABEL, RARITY_COLOR, itemById } from '../catalog';
+import { CATALOG, CATEGORY_LABEL, RARITY_COLOR, itemById, inShop } from '../catalog';
 import type { EquipmentCategory, EquipmentItem, Rarity, ThemeId } from '../types';
 import { ACHIEVEMENTS, buyItem, buyTheme, ensureLocker, equippedCount, featuredItems, fmtBB, itemStatus, setTheme, THEME_PRICE, toggleFavorite, checkPassiveAchievements, gearIds } from '../economy';
 import { THEMES } from '../look';
@@ -13,16 +13,16 @@ import { drawGearedPlayer } from '../sprite';
 import { genericLook, resolveLook } from '../look';
 import type { PlayerData, Position } from '../../game/types';
 import { ovr } from '../../game/players';
-import { mannequinGear } from './Preview';
+import { mannequinGear, ProductImage } from './Preview';
 
 export function BBBadge({ bb, big }: { bb: number; big?: boolean }) {
   return <span className={`bb-badge ${big ? 'big' : ''}`}><span className="coin">🪙</span> {bb.toLocaleString('en-US')} BB</span>;
 }
 
 type Section = 'shop' | 'gear' | 'customize' | 'collection' | 'themes';
-type ShopTab = 'FEATURED' | 'HELMETS' | 'FACEMASKS' | 'VISORS' | 'MOUTHGUARDS' | 'GLOVES' | 'ARMS' | 'CLEATS' | 'SOCKS' | 'SPATS / TAPE' | 'TOWELS' | 'UNDERSHIRTS' | 'LEG SLEEVES' | 'ACCESSORIES' | 'SCHOOL COLLECTIONS';
+type ShopTab = 'FEATURED' | 'HELMETS' | 'SHOULDER PADS' | 'FINISHES' | 'FACEMASKS' | 'VISORS' | 'MOUTHGUARDS' | 'GLOVES' | 'ARMS' | 'CLEATS' | 'SOCKS' | 'SPATS / TAPE' | 'TOWELS' | 'UNDERSHIRTS' | 'LEG SLEEVES' | 'ACCESSORIES' | 'SCHOOL COLLECTIONS';
 const TAB_CATS: Record<ShopTab, EquipmentCategory[]> = {
-  FEATURED: [], HELMETS: ['helmet', 'finish'], FACEMASKS: ['facemask'], VISORS: ['visor'], MOUTHGUARDS: ['mouthguard'], GLOVES: ['gloves'],
+  FEATURED: [], HELMETS: ['helmet'], 'SHOULDER PADS': ['pads'], FINISHES: ['finish'], FACEMASKS: ['facemask'], VISORS: ['visor'], MOUTHGUARDS: ['mouthguard'], GLOVES: ['gloves'],
   ARMS: ['sleeve', 'wristband', 'armband', 'handwarmer'], CLEATS: ['cleats'], SOCKS: ['socks'], 'SPATS / TAPE': ['spats'], TOWELS: ['towel'],
   UNDERSHIRTS: ['undershirt'], 'LEG SLEEVES': ['legsleeve'], ACCESSORIES: ['accessory'], 'SCHOOL COLLECTIONS': [],
 };
@@ -137,7 +137,7 @@ function LockerRoom({ d }: { d: Dynasty }) {
       ctx.clip();
       for (let k = 0; k < 3; k++) {
         const hl = genericLook(team, true, `shelf-${k}`, 'WR');
-        drawGearedPlayer(ctx, Math.round(W * 0.3) + 10 + k * 20, 34 + 16 * 3, hl, 1, 'stand', 0, 3);
+        drawGearedPlayer(ctx, Math.round(W * 0.3) + 10 + k * 20, 34 + 20 * 3, hl, 1, 'stand', 0, 3);
       }
       ctx.restore();
       // Cleats on floor
@@ -166,7 +166,7 @@ function Shop({ d, onChange }: { d: Dynasty; onChange: () => void }) {
   const [detail, setDetail] = useState<EquipmentItem | null>(null);
   const L = d.locker!;
   const featured = featuredItems(d);
-  let items: EquipmentItem[] = tab === 'FEATURED' ? featured : tab === 'SCHOOL COLLECTIONS' ? CATALOG.filter((i) => i.collection === school) : CATALOG.filter((i) => TAB_CATS[tab].includes(i.category) && (!i.collection || i.collection === 'championship'));
+  let items: EquipmentItem[] = tab === 'FEATURED' ? featured : tab === 'SCHOOL COLLECTIONS' ? CATALOG.filter((i) => i.collection === school) : CATALOG.filter((i) => inShop(i) && TAB_CATS[tab].includes(i.category) && (!i.collection || i.collection === 'championship'));
   items = items.filter((i) => {
     const st = itemStatus(d, i);
     if (filter === 'OWNED') return st === 'owned';
@@ -265,6 +265,7 @@ export function ItemDetail({ d, item, onClose, onChange }: { d: Dynasty; item: E
     onChange();
     f((x) => x + 1);
   };
+  const wears = (pid: string) => gearIds(roster.find((x) => x.id === pid)?.gear).includes(item.id);
   const unequipAll = () => {
     for (const p of roster) if (p.gear) { unequipItem(p.gear, item); p.gear = { ...p.gear }; }
     setMsg('UNEQUIPPED FROM ALL PLAYERS');
@@ -282,7 +283,8 @@ export function ItemDetail({ d, item, onClose, onChange }: { d: Dynasty; item: E
       <div className={`item-detail panel r-${item.rarity}`} onClick={(e) => e.stopPropagation()} style={{ ['--rc' as string]: RARITY_COLOR[item.rarity] }}>
         <button className="close" onClick={onClose}>✕</button>
         <div className="id-left">
-          <ItemThumb item={item} team={team} size={260} animate />
+          {item.image ? <ProductImage item={item} width={420} height={280} /> : <ItemThumb item={item} team={team} size={260} animate />}
+          {item.image && <div className="dim tiny">SHOP ART: SUPPLIED PRODUCT IMAGE · IN-GAME: LOW-RES {item.category === 'pads' ? 'SHOULDER PROFILE UNDER THE JERSEY' : 'SHELL IN YOUR SCHOOL COLORS'}</div>}
           <PlayerPreview p={fake} team={team} gear={mannequinGear(item)} scale={6} pose="run" />
         </div>
         <div className="id-right">
@@ -302,6 +304,7 @@ export function ItemDetail({ d, item, onClose, onChange }: { d: Dynasty; item: E
                   {roster.map((p) => <option key={p.id} value={p.id}>{p.pos} · #{p.number} {p.first[0]}. {p.last}</option>)}
                 </select>
                 <Btn small disabled={!target} onClick={() => equipOn(target)}>EQUIP</Btn>
+                {target && <span className={`id-eq-state pixel ${wears(target) ? 'on' : ''}`}>{wears(target) ? 'EQUIPPED ON THIS PLAYER' : 'NOT EQUIPPED ON THIS PLAYER'}</span>}
                 <Btn small variant="ghost" onClick={unequipAll}>UNEQUIP</Btn>
               </div>
             </div>
@@ -328,7 +331,9 @@ export function equipItem(g: NonNullable<PlayerData['gear']>, item: EquipmentIte
 export function unequipItem(g: NonNullable<PlayerData['gear']>, item: EquipmentItem) {
   for (const k of Object.keys(g) as (keyof typeof g)[]) {
     const v = g[k];
-    if (v === item.id && !['helmet', 'finish', 'facemask', 'socks', 'cleats'].includes(k)) (g as Record<string, unknown>)[k] = undefined;
+    if (v === item.id && k === 'helmet') g.helmet = 'helm-standard';
+    else if (v === item.id && k === 'pads') g.pads = 'pads-standard';
+    else if (v === item.id && !['finish', 'facemask', 'socks', 'cleats'].includes(k)) (g as Record<string, unknown>)[k] = undefined;
     if (Array.isArray(v)) (g as Record<string, unknown>)[k] = v.filter((x) => x !== item.id);
   }
 }

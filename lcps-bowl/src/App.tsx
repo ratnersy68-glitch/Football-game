@@ -6,6 +6,7 @@ import { SettingsScreen } from './screens/Settings';
 import { TeamDatabase } from './screens/TeamDatabase';
 import { DynastyApp } from './dynasty/DynastyApp';
 import { RecordBookScreen } from './screens/RecordBook';
+import { AnimationLab } from './screens/AnimationLab';
 import type { GameConfig } from './game/GameSession';
 import type { Atmosphere } from './game/render/Renderer';
 import { generateRoster } from './game/players';
@@ -23,6 +24,7 @@ type Screen =
   | { id: 'settings' }
   | { id: 'teams' }
   | { id: 'records' }
+  | { id: 'anim' }
   | { id: 'dynasty'; mode: 'new' | 'continue' | 'play' | 'locker' };
 
 function seedOf(id: string) {
@@ -76,6 +78,7 @@ export function App() {
             else if (to === 'settings') setScreen({ id: 'settings' });
             else if (to === 'teams') setScreen({ id: 'teams' });
             else if (to === 'records') setScreen({ id: 'records' });
+            else if (to === 'anim') setScreen({ id: 'anim' });
             else if (to === 'new') setScreen({ id: 'dynasty', mode: 'new' });
             else if (to === 'continue') setScreen({ id: 'dynasty', mode: 'continue' });
             else if (to === 'locker') setScreen({ id: 'dynasty', mode: 'locker' });
@@ -99,6 +102,8 @@ export function App() {
       return <SettingsScreen onBack={() => setScreen({ id: 'menu' })} />;
     case 'teams':
       return <TeamDatabase onBack={() => setScreen({ id: 'menu' })} />;
+    case 'anim':
+      return <AnimationLab onBack={() => setScreen({ id: 'menu' })} />;
     case 'records':
       return <RecordBookScreen onBack={() => setScreen({ id: 'menu' })} />;
     case 'dynasty':

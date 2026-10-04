@@ -167,7 +167,7 @@ h4 { font-family: var(--pixel); font-size: 10px; color: var(--gold); margin: 10p
   border: 0.3cqw solid #000; box-shadow: 0 0.5cqw 0 rgba(0, 0, 0, 0.5); background: #0b0e1d; white-space: nowrap;
 }
 .sb-team { display: flex; align-items: center; gap: 0.7cqw; padding: 0.5cqw 0.9cqw; text-shadow: 0.15cqw 0.15cqw 0 #000; position: relative; }
-.sb-team .logo-badge, .sb-team img { width: 2.6cqw !important; height: 2.6cqw !important; font-size: 0.9cqw !important; border-width: 0.2cqw; }
+.sb-team .logo-none, .sb-team .logo-missing, .sb-team img { width: 2.6cqw !important; height: 2.6cqw !important; font-size: 0.9cqw !important; border-width: 0.2cqw; }
 .sb-score { font-size: 2.1cqw; min-width: 3.2cqw; text-align: right; }
 .sb-poss { color: var(--gold); font-size: 1.1cqw; }
 .to-dots { display: flex; flex-direction: column; gap: 0.2cqw; margin-left: 0.3cqw; }
@@ -199,7 +199,7 @@ h4 { font-family: var(--pixel); font-size: 10px; color: var(--gold); margin: 10p
 .intro-tag { background: #c8102e; color: #fff; padding: 0.6cqw 1.2cqw; font-size: 1.2cqw; animation: pulse 1s infinite; }
 .intro-teams { display: flex; align-items: center; gap: 4cqw; margin: 1cqw 0; }
 .intro-team { display: flex; flex-direction: column; align-items: center; gap: 0.8cqw; }
-.intro-team .logo-badge, .intro-team img { width: 11cqw !important; height: 11cqw !important; font-size: 3cqw !important; }
+.intro-team .logo-none, .intro-team .logo-missing, .intro-team img { width: 11cqw !important; height: 11cqw !important; font-size: 3cqw !important; }
 .intro-team .name { font-size: 1.8cqw; }
 .intro-team .mascot { font-size: 1.4cqw; color: #cfd6ee; font-weight: 600; }
 .intro-vs { font-size: 3cqw; color: #fff; }
@@ -517,7 +517,7 @@ tr.me td { background: rgba(255, 216, 74, 0.08); }
 .item-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(190px, 1fr)); gap: 12px; }
 .item-grid.featured { grid-template-columns: repeat(auto-fill, minmax(230px, 1fr)); }
 .item-card { position: relative; display: flex; flex-direction: column; align-items: center; gap: 5px; padding: 10px 10px 12px; background: linear-gradient(180deg, #1a2150, #0d1230); border: 2px solid color-mix(in srgb, var(--rc) 55%, transparent); border-radius: 10px; cursor: pointer; transition: transform 0.12s, box-shadow 0.12s; text-align: center; }
-.item-card:hover { transform: translateY(-4px) rotate(-0.4deg); box-shadow: 0 8px 24px color-mix(in srgb, var(--rc) 35%, transparent); }
+.item-card:hover { transform: translateY(-4px); box-shadow: 0 8px 24px color-mix(in srgb, var(--rc) 35%, transparent); }
 .item-card.r-legendary { background: linear-gradient(180deg, #3a2a0c, #0d1230 70%); box-shadow: 0 0 18px rgba(255, 176, 0, 0.18); }
 .item-card.r-epic { background: linear-gradient(180deg, #2a1550, #0d1230 70%); }
 .item-card.st-locked { filter: grayscale(0.7) brightness(0.75); }
@@ -615,3 +615,25 @@ tr.me td { background: rgba(255, 216, 74, 0.08); }
   .locker-room { width: 100%; height: auto; }
   .customize, .gd-body, .ge-body, .item-detail, .pc-gear { grid-template-columns: 1fr; }
 }
+
+/* Exact supplied product art: unchanged image on a white panel, contained (no crop/stretch/recolor) */
+.product-panel { background: #ffffff; border-radius: 8px; display: flex; align-items: center; justify-content: center; overflow: hidden; padding: 6px; box-sizing: border-box; }
+.product-panel img { width: 100%; height: 100%; object-fit: contain; image-rendering: auto; display: block; }
+.missing-asset { background: repeating-linear-gradient(45deg, #3a0000, #3a0000 10px, #5a0000 10px, #5a0000 20px); color: #ffb3b3; font: 10px var(--pixel); text-align: center; border: 2px dashed #ff4d4d; flex-direction: column; }
+.missing-asset code { font-size: 9px; color: #fff; word-break: break-all; }
+.id-eq-state { font-size: 9px; color: #9aa4b2; align-self: center; }
+.id-eq-state.on { color: #9be15d; }
+
+/* Team logos: supplied official files only. No generated badges. */
+.team-logo { display: inline-block; vertical-align: middle; flex: none; }
+.logo-none { display: inline-flex; align-items: center; justify-content: center; flex: none; box-sizing: border-box; border: 1px dashed #5d6688; border-radius: 4px; color: #8b93b0; font-family: var(--pixel); letter-spacing: 0; overflow: hidden; vertical-align: middle; }
+.logo-missing { display: inline-flex; align-items: center; justify-content: center; text-align: center; flex: none; box-sizing: border-box; background: #4a0000; border: 2px dashed #ff4d4d; color: #ffb3b3; font-family: var(--pixel); line-height: 1.1; vertical-align: middle; }
+
+/* Animation lab (development preview of the full schedule) */
+.lab-screen { overflow: auto; background: #4a8a2a; padding: 10px; }
+.lab-bar { position: sticky; top: 0; z-index: 2; display: flex; gap: 8px; align-items: center; flex-wrap: wrap; padding: 8px; background: #0d1230; border-radius: 8px; color: #fff; }
+.lab-rows { display: flex; flex-direction: column; gap: 6px; margin-top: 10px; }
+.lab-row { display: flex; gap: 6px; align-items: flex-end; background: rgba(0,0,0,0.18); padding: 4px 6px; border-radius: 6px; }
+.lab-meta { width: 150px; display: flex; flex-direction: column; font: 10px var(--pixel); color: #fff; gap: 3px; align-self: center; }
+.lab-frame { display: flex; flex-direction: column; align-items: center; font: 8px monospace; color: #eaffd8; }
+.lab-cell { image-rendering: pixelated; background: rgba(255,255,255,0.06); }

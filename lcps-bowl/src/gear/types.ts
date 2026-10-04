@@ -7,7 +7,7 @@ export type Rarity = 'common' | 'rare' | 'epic' | 'legendary';
 export const RARITIES: Rarity[] = ['common', 'rare', 'epic', 'legendary'];
 
 export type EquipmentCategory =
-  | 'helmet' | 'finish' | 'facemask' | 'visor' | 'mouthguard' | 'gloves' | 'sleeve' | 'wristband' | 'armband'
+  | 'helmet' | 'pads' | 'finish' | 'facemask' | 'visor' | 'mouthguard' | 'gloves' | 'sleeve' | 'wristband' | 'armband'
   | 'handwarmer' | 'towel' | 'cleats' | 'socks' | 'spats' | 'undershirt' | 'legsleeve' | 'accessory';
 
 /** Color tokens: 'primary' | 'secondary' (resolved per school) or a hex like '#ffffff'. */
@@ -34,6 +34,12 @@ export interface EquipmentItem {
   unlock?: UnlockRequirement;
   collection?: string; // school id for school collections, or 'championship'
   icon?: string;
+  /** Shop artwork: an exact supplied product image (public path). */
+  image?: string;
+  /** Exact supplied product: price/rarity set by the owner (exempt from the rarity price bands). */
+  exact?: boolean;
+  /** Team-issued default: owned by everyone, not sold. */
+  issued?: boolean;
 }
 
 export type GloveSide = 'both' | 'left' | 'right';
@@ -45,6 +51,7 @@ export const PLAYER_STYLES: PlayerStyle[] = ['TRADITIONAL', 'CLEAN', 'FLASHY', '
 
 export interface PlayerGear {
   helmet?: string;
+  pads?: string;
   finish?: string;
   shellColor?: ShellColor;
   stripe?: boolean;
@@ -99,6 +106,12 @@ export interface Locker {
   newItems: string[];
   /** Schools beaten (their collections become purchasable). */
   beaten?: string[];
+  /** Gear schema version (see economy.GEAR_SCHEMA). Missing = 1. */
+  gearSchema?: number;
+  /** Completed-game keys already paid (rewards are paid once per game, even across reloads). */
+  rewardedGames?: string[];
+  /** Items from older saves that no longer exist in the shop and have no clear replacement. Kept, not sold. */
+  legacy?: { id: string; name: string; note: string }[];
 }
 
 export interface RewardLine {
@@ -114,6 +127,8 @@ export interface GameRewards {
   drop?: { item: string; rarity: Rarity } | null;
   simmed: boolean;
   unlockedCollection?: string;
+  /** True when this game had already been paid (no BB awarded again). */
+  alreadyPaid?: boolean;
 }
 
 /** Fully-resolved visual description used by the sprite renderer. */
@@ -126,6 +141,12 @@ export interface Look {
   pantsShade: string;
   torso: number; // shoulder width in px (6..9)
   helmet: { model: string; shell: string; shade: string; hi: string; stripe?: string; logo?: string; finish: string };
+  /** Shoulder-pad profile key (rig/helmets.ts PAD_PROFILE); pads sit under the jersey. */
+  pads?: string;
+  teamId?: string;
+  /** Rig build from position: skill (QB/WR/DB/K), hybrid (RB/LB/TE), lineman (OL/DL). */
+  build?: 'skill' | 'hybrid' | 'lineman';
+  number?: number;
   mask: { style: string; color: string };
   visor?: string[];
   mouthguard?: { color: string; style: string; hang: boolean };

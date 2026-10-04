@@ -1,13 +1,9 @@
-# Team assets
+# Team logos
 
-Drop real school artwork here — the game picks it up automatically (no code changes):
+`<team-id>/logo.png` holds the supplied official logo for each of the 17 LCPS schools, downloaded from that school's LCPS website header. Sources, URLs and download dates are in `src/data/logo-manifest.json`. `tests/assets.test.ts` checks every file byte-for-byte against the correction pack's SHA-256 list.
 
-```
-public/assets/teams/<team-id>/logo.png     # square-ish logo, transparent PNG recommended (256x256+)
-public/assets/teams/<team-id>/helmet.png   # optional side-view helmet art
-```
+These are school logos and lockups, not verified football helmet decals. The game shows the full logo, unchanged, in menus and on scoreboards. The tiny in-game helmet mark is a downsampled derivative of it.
 
-Team ids: briar-woods, broad-run, dominion, freedom, heritage, independence, john-champe, lightridge,
-loudoun-county, loudoun-valley, park-view, potomac-falls, riverside, rock-ridge, stone-bridge, tuscarora, woodgrove.
+There is no generated fallback. If a file fails to load, the UI shows **MISSING LOGO** and logs an error.
 
-Until a file exists the game shows a clean badge with the school's initials in its colors (never a fake logo).
+The logos belong to their schools. This personal project is not endorsed by LCPS or any school.

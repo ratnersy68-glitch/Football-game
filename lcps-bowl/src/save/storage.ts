@@ -186,3 +186,14 @@ export async function deleteSlot(slot: Slot) {
 export async function exportSlot(slot: Slot): Promise<string | null> {
   return (await idbGet(lsKey(slot))) ?? (() => { try { return localStorage.getItem(lsKey(slot)); } catch { return null; } })();
 }
+
+/** Copy the raw saved bytes of a slot to a backup key before a schema migration (never overwritten once written). */
+export async function backupSlot(slot: Slot, tag: string): Promise<boolean> {
+  const raw = await exportSlot(slot);
+  if (!raw) return false;
+  const key = `lcps-bowl:backup:${slot}:${tag}`;
+  if (await idbGet(key)) return true;
+  let ok = await idbPut(key, raw);
+  if (!ok) { try { localStorage.setItem(key, raw); ok = true; } catch { ok = false; } }
+  return ok;
+}

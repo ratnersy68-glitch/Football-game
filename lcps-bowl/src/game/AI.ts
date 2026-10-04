@@ -662,6 +662,7 @@ export function cpuCarrierMoves(ctx: AiCtx, c: Actor) {
     ctx.nextMove = sim.t + 0.35;
     if (c.jukeCd <= 0 && ctx.rng.chance(0.12 + skill * 0.18)) sim.doJuke(c, threat.y > c.y ? -1 : 1);
     else if (c.spinCd <= 0 && ctx.rng.chance(0.04 + skill * 0.06)) sim.doSpin(c);
+    else if (c.stiffCd <= 0 && (threat.x - c.x) * fwd > 0 && ctx.rng.chance(0.04 + skill * 0.06)) sim.doStiffArm(c);
   }
   // Dive for the goal line / first down
   const firstDownX = s.firstDownX ?? 999;

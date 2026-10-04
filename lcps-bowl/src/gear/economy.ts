@@ -8,7 +8,7 @@ import type { GameResult } from '../game/GameSession';
 import type { PlayerData } from '../game/types';
 import { RNG } from '../game/rng';
 import { getTeam, isLcps } from '../data/teams';
-import { CATALOG, STARTER_ITEMS, itemById, isPurchasable } from './catalog';
+import { CATALOG, STARTER_ITEMS, itemById, isPurchasable, LEGACY_ITEM_MAP, LEGACY_UNMAPPED } from './catalog';
 import { autoGear } from './look';
 import type { EquipmentItem, GameRewards, Locker, PlayerGear, Rarity, ThemeId } from './types';
 import { RARITIES } from './types';
@@ -19,7 +19,39 @@ export function newLocker(): Locker {
   return {
     bb: START_BB, lifetimeBB: START_BB, owned: [...STARTER_ITEMS], favorites: [], achievements: {}, drops: [],
     theme: 'none', themesUnlocked: ['none', 'blackout', 'whiteout'], rivalryWins: 0, gamesPlayed: 0, newItems: [],
+    gearSchema: GEAR_SCHEMA, rewardedGames: [],
   };
+}
+
+/** Gear schema: 1 = invented helmet catalog, 2 = exact supplied helmets + shoulder pads. */
+export const GEAR_SCHEMA = 2;
+const LEGACY_NAMES: Record<string, string> = { 'helm-classic': 'Classic Shell', 'helm-retro': 'Retro Shell', 'helm-oldschool': 'Old School Shell', 'helm-speed': 'Speed Shell' };
+
+export const needsGearMigration = (d: Dynasty) => !!d.locker && (d.locker.gearSchema ?? 1) < GEAR_SCHEMA;
+
+/**
+ * v1 → v2: map earlier invented helmets to the exact supplied models only where there is a clear correspondence,
+ * keep the rest as legacy records (not sold, not presented as one of the eight products), give everyone issued pads.
+ * Balance, season, stats and rosters are untouched.
+ */
+export function migrateGear(d: Dynasty) {
+  const L = d.locker!;
+  const mapId = (id: string) => LEGACY_ITEM_MAP[id] ?? id;
+  L.legacy = L.legacy ?? [];
+  for (const id of L.owned) if (LEGACY_UNMAPPED.includes(id) && !L.legacy.some((x) => x.id === id)) L.legacy.push({ id, name: LEGACY_NAMES[id] ?? id, note: 'Retired invented helmet from an older save. No exact equivalent; kept as a record.' });
+  L.owned = [...new Set(L.owned.filter((id) => !LEGACY_UNMAPPED.includes(id)).map(mapId))];
+  L.favorites = [...new Set(L.favorites.filter((id) => !LEGACY_UNMAPPED.includes(id)).map(mapId))];
+  L.newItems = L.newItems.filter((id) => !LEGACY_UNMAPPED.includes(id)).map(mapId);
+  for (const dr of L.drops) dr.item = mapId(dr.item);
+  for (const prog of Object.values(d.programs)) for (const p of prog.roster) {
+    const g = p.gear;
+    if (!g) continue;
+    if (g.helmet === 'helm-threepeat' || g.helmet === 'helm-goat') { g.finish = LEGACY_ITEM_MAP[g.helmet]; g.helmet = 'helm-standard'; }
+    else if (g.helmet && LEGACY_ITEM_MAP[g.helmet]) g.helmet = LEGACY_ITEM_MAP[g.helmet];
+    else if (g.helmet && !itemById(g.helmet)) g.helmet = 'helm-standard';
+    if (!g.pads) g.pads = 'pads-standard';
+  }
+  L.gearSchema = GEAR_SCHEMA;
 }
 
 /** Migration-safe access: creates the locker and starter fits for older saves. */
@@ -28,7 +60,9 @@ export function ensureLocker(d: Dynasty): Locker {
     d.locker = newLocker();
   }
   const L = d.locker;
+  if ((L.gearSchema ?? 1) < GEAR_SCHEMA) migrateGear(d);
   L.beaten = L.beaten ?? [];
+  L.rewardedGames = L.rewardedGames ?? [];
   for (const id of STARTER_ITEMS) if (!L.owned.includes(id)) L.owned.push(id);
   for (const p of d.programs[d.userTeam].roster) ensurePlayerGear(d, p);
   return L;
@@ -165,6 +199,8 @@ const fmt = (n: number) => n.toLocaleString('en-US');
  * Computes and applies Bowl Bucks for a user game. Simulated games pay only the
  * participation/win/rivalry/playoff portion (no stat bonuses, achievements or drops).
  */
+export const rewardKey = (d: Dynasty, g: GameRecord) => `${d.year}:${g.id}`;
+
 export function gameRewards(d: Dynasty, g: GameRecord, r: GameResult, ctx: { simmed: boolean; preRankUs: number; preRankThem: number }): GameRewards {
   const L = ensureLocker(d);
   const us = g.home === d.userTeam ? 'home' : 'away';
@@ -173,6 +209,10 @@ export function gameRewards(d: Dynasty, g: GameRecord, r: GameResult, ctx: { sim
   const theirScore = us === 'home' ? r.awayScore : r.homeScore;
   const won = ourScore > theirScore;
   const out: GameRewards = { lines: [], total: 0, achievements: [], unlocked: [], drop: null, simmed: ctx.simmed };
+  // Pay each completed game exactly once (reloads / revisiting results never pay again).
+  const key = rewardKey(d, g);
+  if (L.rewardedGames!.includes(key)) { out.alreadyPaid = true; return out; }
+  L.rewardedGames!.push(key);
   const line = (label: string, bb: number) => { out.lines.push({ label, bb }); out.total += bb; };
   const opp = g.home === d.userTeam ? g.away : g.home;
   const playoff = g.week > 10;
@@ -269,6 +309,9 @@ function seasonAchievements(d: Dynasty, out: GameRewards, week: number) {
 export function seasonEndRewards(d: Dynasty): GameRewards {
   const out: GameRewards = { lines: [], total: 0, achievements: [], unlocked: [], simmed: false };
   const L = ensureLocker(d);
+  const sk = `season:${d.year}`;
+  if (L.rewardedGames!.includes(sk)) { out.alreadyPaid = true; return out; }
+  L.rewardedGames!.push(sk);
   const prog = d.programs[d.userTeam];
   const last = prog.history[prog.history.length - 1];
   if (last?.champion) {

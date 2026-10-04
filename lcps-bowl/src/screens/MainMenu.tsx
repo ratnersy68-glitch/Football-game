@@ -59,7 +59,7 @@ export function StadiumBackdrop({ dim = 0.45 }: { dim?: number }) {
   );
 }
 
-export function MainMenu({ hasSave, bb, onNav }: { hasSave: boolean; bb?: number | null; onNav: (to: 'play' | 'continue' | 'new' | 'exhibition' | 'settings' | 'teams' | 'records' | 'locker') => void }) {
+export function MainMenu({ hasSave, bb, onNav }: { hasSave: boolean; bb?: number | null; onNav: (to: 'play' | 'continue' | 'new' | 'exhibition' | 'settings' | 'teams' | 'records' | 'locker' | 'anim') => void }) {
   const items = useMemo(() => [
     { id: 'play' as const, label: 'PLAY', primary: true },
     { id: 'continue' as const, label: 'CONTINUE DYNASTY', disabled: !hasSave },
@@ -95,6 +95,7 @@ export function MainMenu({ hasSave, bb, onNav }: { hasSave: boolean; bb?: number
         <div className="menu-foot">
           <span>A personal, non-commercial fan project. Players are fictional.</span>
           <Btn small variant="ghost" onClick={() => onNav('records')}>RECORD BOOK</Btn>
+          <Btn small variant="ghost" onClick={() => onNav('anim')}>ANIMATION LAB</Btn>
         </div>
       </div>
     </div>

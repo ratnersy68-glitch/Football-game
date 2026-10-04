@@ -1,0 +1,226 @@
+[
+  {
+    "id": "briar-woods",
+    "school": "Briar Woods",
+    "mascot": "Falcons",
+    "schoolPage": "https://www.lcps.org/o/bwh/",
+    "logoSourceUrl": "https://cmsv2-assets.apptegy.net/uploads/22061/logo/24874/Briar_Woods_HS_Logo.png",
+    "localFile": "logos/briar-woods.png",
+    "athleticsLinks": [
+      "https://bwhsfalcons.com/"
+    ],
+    "sourceType": "official LCPS school website header",
+    "downloaded": "2026-10-04"
+  },
+  {
+    "id": "broad-run",
+    "school": "Broad Run",
+    "mascot": "Spartans",
+    "schoolPage": "https://www.lcps.org/o/brh/",
+    "logoSourceUrl": "https://cmsv2-assets.apptegy.net/uploads/22062/logo/24875/spartan_helmet1.png",
+    "localFile": "logos/broad-run.png",
+    "athleticsLinks": [
+      "https://broadrunathletics.com/"
+    ],
+    "sourceType": "official LCPS school website header",
+    "downloaded": "2026-10-04"
+  },
+  {
+    "id": "dominion",
+    "school": "Dominion",
+    "mascot": "Titans",
+    "schoolPage": "https://www.lcps.org/o/dmh/",
+    "logoSourceUrl": "https://cmsv2-assets.apptegy.net/uploads/22071/logo/24884/logo_template_300.png",
+    "localFile": "logos/dominion.png",
+    "athleticsLinks": [
+      "https://dominiontitansathletics.org/"
+    ],
+    "sourceType": "official LCPS school website header",
+    "downloaded": "2026-10-04"
+  },
+  {
+    "id": "freedom",
+    "school": "Freedom",
+    "mascot": "Eagles",
+    "schoolPage": "https://www.lcps.org/o/fhs/",
+    "logoSourceUrl": "https://cmsv2-assets.apptegy.net/uploads/22081/logo/24894/logo_template_300.png",
+    "localFile": "logos/freedom.png",
+    "athleticsLinks": [
+      "https://freedomeaglesathletics.com/",
+      "https://calendar.google.com/calendar/embed?src=fhs.eaglesathletics%40gmail.com&ctz=America%2FNew_York",
+      "https://www.cedarrundistrictva.org/public/genie/362/school/3041/"
+    ],
+    "sourceType": "official LCPS school website header",
+    "downloaded": "2026-10-04"
+  },
+  {
+    "id": "heritage",
+    "school": "Heritage",
+    "mascot": "Pride",
+    "schoolPage": "https://www.lcps.org/o/hth/",
+    "logoSourceUrl": "https://cmsv2-assets.apptegy.net/uploads/22088/logo/24901/Heritage_HIGH_LOCKUP.png",
+    "localFile": "logos/heritage.png",
+    "athleticsLinks": [
+      "https://heritagepride.org/"
+    ],
+    "sourceType": "official LCPS school website header",
+    "downloaded": "2026-10-04"
+  },
+  {
+    "id": "independence",
+    "school": "Independence",
+    "mascot": "Tigers",
+    "schoolPage": "https://www.lcps.org/o/ihs/",
+    "logoSourceUrl": "https://cmsv2-assets.apptegy.net/uploads/22094/logo/24907/Independence_HIGH_LOCKUP.png",
+    "localFile": "logos/independence.png",
+    "athleticsLinks": [
+      "/o/ihs/page/athletics"
+    ],
+    "sourceType": "official LCPS school website header",
+    "downloaded": "2026-10-04"
+  },
+  {
+    "id": "john-champe",
+    "school": "John Champe",
+    "mascot": "Knights",
+    "schoolPage": "https://www.lcps.org/o/jch/",
+    "logoSourceUrl": "https://cmsv2-assets.apptegy.net/uploads/22097/logo/24910/John_Champe_HIGH_LOCKUP.png",
+    "localFile": "logos/john-champe.png",
+    "athleticsLinks": [
+      "https://johnchampesports.org/"
+    ],
+    "sourceType": "official LCPS school website header",
+    "downloaded": "2026-10-04"
+  },
+  {
+    "id": "lightridge",
+    "school": "Lightridge",
+    "mascot": "Lightning",
+    "schoolPage": "https://www.lcps.org/o/lrh/",
+    "logoSourceUrl": "https://cmsv2-assets.apptegy.net/uploads/22103/logo/24916/Lightridge_HIGH_LOCKUP.png",
+    "localFile": "logos/lightridge.png",
+    "athleticsLinks": [
+      "https://boltathletics.org/"
+    ],
+    "sourceType": "official LCPS school website header",
+    "downloaded": "2026-10-04"
+  },
+  {
+    "id": "loudoun-county",
+    "school": "Loudoun County",
+    "mascot": "Captains",
+    "schoolPage": "https://www.lcps.org/o/lch/",
+    "logoSourceUrl": "https://cmsv2-assets.apptegy.net/uploads/22106/logo/24919/Loudoun-County.png",
+    "localFile": "logos/loudoun-county.png",
+    "athleticsLinks": [
+      "https://countysports.info/"
+    ],
+    "sourceType": "official LCPS school website header",
+    "downloaded": "2026-10-04"
+  },
+  {
+    "id": "loudoun-valley",
+    "school": "Loudoun Valley",
+    "mascot": "Vikings",
+    "schoolPage": "https://www.lcps.org/o/lvh/",
+    "logoSourceUrl": "https://cmsv2-assets.apptegy.net/uploads/22107/logo/24920/Loudoun-Valley.png",
+    "localFile": "logos/loudoun-valley.png",
+    "athleticsLinks": [
+      "https://valleyvikingsport.org/"
+    ],
+    "sourceType": "official LCPS school website header",
+    "downloaded": "2026-10-04"
+  },
+  {
+    "id": "park-view",
+    "school": "Park View",
+    "mascot": "Patriots",
+    "schoolPage": "https://www.lcps.org/o/pvh/",
+    "logoSourceUrl": "https://cmsv2-assets.apptegy.net/uploads/22119/logo/24932/Park-View.png",
+    "localFile": "logos/park-view.png",
+    "athleticsLinks": [
+      "https://parkviewpatriots.org/"
+    ],
+    "sourceType": "official LCPS school website header",
+    "downloaded": "2026-10-04"
+  },
+  {
+    "id": "potomac-falls",
+    "school": "Potomac Falls",
+    "mascot": "Panthers",
+    "schoolPage": "https://www.lcps.org/o/pfh/",
+    "logoSourceUrl": "https://cmsv2-assets.apptegy.net/uploads/22121/logo/24934/Potomac-Falls.png",
+    "localFile": "logos/potomac-falls.png",
+    "athleticsLinks": [
+      "https://pfhsathletics.com/"
+    ],
+    "sourceType": "official LCPS school website header",
+    "downloaded": "2026-10-04"
+  },
+  {
+    "id": "riverside",
+    "school": "Riverside",
+    "mascot": "Rams",
+    "schoolPage": "https://www.lcps.org/o/rvh/",
+    "logoSourceUrl": "https://cmsv2-assets.apptegy.net/uploads/22124/logo/24937/Riverside.png",
+    "localFile": "logos/riverside.png",
+    "athleticsLinks": [
+      "https://www.riversiderams.net/"
+    ],
+    "sourceType": "official LCPS school website header",
+    "downloaded": "2026-10-04"
+  },
+  {
+    "id": "rock-ridge",
+    "school": "Rock Ridge",
+    "mascot": "Phoenix",
+    "schoolPage": "https://www.lcps.org/o/rrh/",
+    "logoSourceUrl": "https://cmsv2-assets.apptegy.net/uploads/22125/logo/24938/Rock_Ridge_HS_logo.png",
+    "localFile": "logos/rock-ridge.png",
+    "athleticsLinks": [
+      "https://docs.google.com/document/d/1TYscdwkkyzEXd8LCFSXa09TWLUiCr4VoEW1EWq_XmA4/edit?tab=t.0",
+      "https://docs.google.com/document/d/1TYscdwkkyzEXd8LCFSXa09TWLUiCr4VoEW1EWq_XmA4/edit?usp=sharing"
+    ],
+    "sourceType": "official LCPS school website header",
+    "downloaded": "2026-10-04"
+  },
+  {
+    "id": "stone-bridge",
+    "school": "Stone Bridge",
+    "mascot": "Bulldogs",
+    "schoolPage": "https://www.lcps.org/o/sbh/",
+    "logoSourceUrl": "https://cmsv2-assets.apptegy.net/uploads/22139/logo/24952/Stone_Bridge_HS_logo.png",
+    "localFile": "logos/stone-bridge.png",
+    "athleticsLinks": [
+      "https://sites.google.com/lcps.org/stonebridgeathletics/general-athletic-information"
+    ],
+    "sourceType": "official LCPS school website header",
+    "downloaded": "2026-10-04"
+  },
+  {
+    "id": "tuscarora",
+    "school": "Tuscarora",
+    "mascot": "Huskies",
+    "schoolPage": "https://www.lcps.org/o/ths/",
+    "logoSourceUrl": "https://cmsv2-assets.apptegy.net/uploads/22148/logo/24961/Tuscarora_HS_Logo.png",
+    "localFile": "logos/tuscarora.png",
+    "athleticsLinks": [
+      "https://gohuskiesathletics.com/"
+    ],
+    "sourceType": "official LCPS school website header",
+    "downloaded": "2026-10-04"
+  },
+  {
+    "id": "woodgrove",
+    "school": "Woodgrove",
+    "mascot": "Wolverines",
+    "schoolPage": "https://www.lcps.org/o/whs/",
+    "logoSourceUrl": "https://cmsv2-assets.apptegy.net/uploads/22156/logo/24969/Woodgrove_High_School_Logo.png",
+    "localFile": "logos/woodgrove.png",
+    "athleticsLinks": [
+      "https://woodgroveathletics.com/"
+    ],
+    "sourceType": "official LCPS school website header",
+    "downloaded": "2026-10-04"
+  }
+]

@@ -279,13 +279,13 @@ function Hints({ s }: { s: GameSession }) {
     if (sim.setup.kind === 'kickoff') text = role === 'D' ? 'RECEIVING — SPACE TO START · ARROWS MOVE · SHIFT SPRINT' : 'KICKING OFF…';
     else if (role === 'O') {
       const p = sim.setup.offPlay!;
-      text = p.kind === 'pass' ? 'SPACE SNAP · 1-5 THROW · T THROW AWAY · WASD SCRAMBLE' : p.kind === 'option' ? 'SPACE SNAP · 1 = GIVE TO RB · OR KEEP IT' : p.kind === 'punt' ? 'SPACE TO PUNT' : 'SPACE SNAP · WASD RUN · SHIFT SPRINT · Q/E JUKE · F SPIN';
+      text = p.kind === 'pass' ? 'SPACE SNAP · 1-5 THROW · T THROW AWAY · WASD SCRAMBLE' : p.kind === 'option' ? 'SPACE SNAP · 1 = GIVE TO RB · OR KEEP IT' : p.kind === 'punt' ? 'SPACE TO PUNT' : 'SPACE SNAP · WASD RUN · SHIFT SPRINT · Q/E JUKE · F SPIN · R STIFF ARM';
     } else if (role === 'D') text = 'TAB SWITCH DEFENDER · WASD MOVE · SPACE DIVE/JUMP';
     else text = 'AUTO DEFENSE…';
   } else {
     const qbHolding = role === 'O' && sim.setup.offPlay?.kind === 'pass' && !sim.passThrown && !sim.pastLos && sim.carrier === sim.user && sim.user?.idx === sim.qbIdx;
     if (qbHolding) text = 'PRESS 1-5 TO THROW · T THROW AWAY · WASD SCRAMBLE';
-    else if (sim.carrier && sim.carrier === sim.user) text = 'SHIFT SPRINT · Q/E JUKE · F SPIN · SPACE DIVE';
+    else if (sim.carrier && sim.carrier === sim.user) text = 'SHIFT SPRINT · Q/E JUKE · F SPIN · R STIFF ARM · SPACE DIVE';
     else if (sim.setup.kind === 'punt' && role === 'D' && sim.ball.state === 'air') text = 'SPACE = FAIR CATCH';
     else if (sim.carrier && sim.user && sim.carrier.team !== sim.user.team) text = 'TAB SWITCH · SPACE DIVE · GET TO THE BALL';
     else if (sim.ball.state === 'air' && role === 'D') text = 'SPACE = JUMP FOR THE BALL';

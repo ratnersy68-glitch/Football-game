@@ -1,32 +1,34 @@
-import { useEffect, useState, type CSSProperties, type ReactNode } from 'react';
+import { useState, type CSSProperties, type ReactNode } from 'react';
 import type { TeamInfo } from '../game/types';
-import { onTeamImage, teamImageStatus, initials } from '../game/render/assets';
-import { contrastText } from '../game/render/Renderer';
+import { logoPath } from '../game/render/assets';
 import { FORMATIONS, ROUTES, type OffPlay } from '../game/Plays';
 import { Sound } from '../game/audio/Sound';
 
-/** Real logo if present in public/assets/teams/<id>/logo.png, otherwise a clean initials badge. */
+/**
+ * The one team-logo component used on every screen. LCPS schools show their supplied official logo, unchanged
+ * (aspect ratio kept with object-fit: contain, native colors, never tinted). A load failure shows MISSING LOGO.
+ * Out-of-county filler opponents have no supplied logo: they get a plain dashed name tag, not a fake logo.
+ */
 export function TeamLogo({ team, size = 48, style }: { team: TeamInfo; size?: number; style?: CSSProperties }) {
-  const [ok, setOk] = useState<boolean | null>(() => teamImageStatus(team.id));
-  useEffect(() => {
-    setOk(teamImageStatus(team.id));
-    return onTeamImage(team.id, 'logo', () => setOk(teamImageStatus(team.id)));
-  }, [team.id]);
-  if (ok) {
-    return <img src={team.logo} alt={`${team.shortName} logo`} width={size} height={size} style={{ objectFit: 'contain', imageRendering: 'auto', ...style }} />;
+  const path = logoPath(team.id);
+  const [bad, setBad] = useState(false);
+  if (!path) {
+    return <span className="logo-none" title={`${team.shortName}: no supplied logo (out-of-county opponent)`} style={{ width: size, height: size, fontSize: Math.max(7, size / 4.2), ...style }}>{team.shortName.split(' ')[0].toUpperCase()}</span>;
   }
-  const label = initials(team.shortName, team.abbreviation);
+  if (bad) {
+    return <span className="logo-missing" title={`MISSING ${path}`} style={{ width: size, height: size, fontSize: Math.max(6, size / 6), ...style }}>MISSING LOGO</span>;
+  }
   return (
-    <div
-      className="logo-badge"
-      title={`${team.shortName} — add public/assets/teams/${team.id}/logo.png to show the real logo`}
-      style={{
-        width: size, height: size, background: team.colors.primary, color: contrastText(team.colors.primary),
-        borderColor: team.colors.secondary, fontSize: Math.max(8, size / (label.length > 2 ? 3.6 : 2.8)), ...style,
-      }}
-    >
-      {label}
-    </div>
+    <img
+      src={path}
+      alt={`${team.shortName} ${team.mascot} logo`}
+      width={size}
+      height={size}
+      draggable={false}
+      className="team-logo"
+      onError={() => { console.error(`[assets] MISSING team logo for ${team.id}: ${path}`); setBad(true); }}
+      style={{ objectFit: 'contain', imageRendering: 'auto', ...style }}
+    />
   );
 }
 

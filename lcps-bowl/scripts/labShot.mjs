@@ -1,0 +1,20 @@
+// Screenshot the Animation Lab: node scripts/labShot.mjs out.png build dir [team] [helmet] [pads] [scale] [action]
+import { chromium } from 'playwright';
+const [out = 'e2e-output/lab.png', build = 'hybrid', dir = 'right', team = 'demo', helmet = 'helm-standard', pads = 'pads-standard', scale = '3', action = 'all', anchors = '0'] = process.argv.slice(2);
+const URL = process.env.LAB_URL ?? 'http://127.0.0.1:5199/';
+const b = await chromium.launch({ executablePath: process.env.CHROME_PATH ?? '/opt/pw-browsers/chromium' });
+const p = await b.newPage({ viewport: { width: 1500, height: 1000 } });
+const errs = [];
+p.on('pageerror', (e) => errs.push(String(e)));
+p.on('console', (m) => { if (m.type() === 'error') errs.push(m.text()); });
+await p.goto(URL);
+await p.click('text=ANIMATION LAB');
+await p.waitForSelector('.lab-bar');
+const sels = await p.$$('.lab-bar select');
+await sels[0].selectOption(build); await sels[1].selectOption(dir); await sels[2].selectOption(team);
+await sels[3].selectOption(helmet); await sels[4].selectOption(pads); await sels[5].selectOption(scale); await sels[6].selectOption(action);
+if (anchors === '1') await p.check('.lab-bar input[type=checkbox]');
+await p.waitForTimeout(500);
+await p.locator('.lab-rows').screenshot({ path: out });
+if (errs.length) console.log('errors:', errs.slice(0, 5));
+await b.close();

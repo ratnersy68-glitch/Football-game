@@ -86,6 +86,7 @@ export class InputState {
       sprint: this.down('ShiftLeft', 'ShiftRight'),
       juke,
       spin: this.was('KeyF'),
+      stiff: this.was('KeyR'),
       dive: this.was('Space'),
       throwTo,
       throwAway: this.was('KeyT'),

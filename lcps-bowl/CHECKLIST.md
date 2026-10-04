@@ -70,6 +70,18 @@ Status: ✅ done · 🟡 partial / simplified · ⬜ not yet
 - ✅ Achievements, trophy gear, rare drops, championship collection, team themes, game day fit
 - ✅ CPU auto drip by position and style personality; cosmetic only
 
+## Correction pack (exact gear, real logos, character motion)
+- ✅ 8 supplied gear images + 17 supplied school logos copied locally, hash-verified (tests + docs/ASSET_AUDIT.md)
+- ✅ Shop Helmets / Shoulder Pads = exactly the 8 supplied products with their unchanged images; invented helmets removed
+- ✅ Team logo registry used on every screen and the scoreboard/midfield; no generated initials; MISSING LOGO label on failure
+- ✅ Helmet school mark = downsampled official logo (not claimed as a verified decal)
+- ✅ Layered rig: 3 builds, 4 directions, 31 actions per techpack, per-frame anchors, gear attached in every frame
+- ✅ Gameplay state machine driven by engine events; one football entity; stiff arm added (R)
+- ✅ Atlas + manifest export; Animation Lab dev preview
+- ✅ Versioned save migration with raw backup; rewards paid once per game
+- ⬜ Per-player handedness / kicking foot attributes (rig supports left-handed variants; roster data has none yet, so everyone is right-handed)
+- ⬜ Hand-drawn per-frame polish beyond the procedural key poses
+
 ## Testing
 - ✅ Unit and integration tests (Vitest) for every rule listed in the spec plus full games and a dynasty season
 - ✅ Headless balance audits (CPU vs CPU, scripted-human bot vs CPU at each difficulty)

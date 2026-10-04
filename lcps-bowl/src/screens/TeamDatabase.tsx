@@ -2,6 +2,8 @@ import { useState } from 'react';
 import { LCPS_TEAMS, programExpectation, getTeam, rivalryName } from '../data/teams';
 import { TeamLogo, Btn, RatingBar, Stars } from '../components/common';
 import { teamImageStatus } from '../game/render/assets';
+import { logoAsset } from '../assets/registry';
+import manifest from '../data/logo-manifest.json';
 import { drawPlayer, skinFor } from '../game/render/sprites';
 import { kitFor } from '../game/render/Renderer';
 import type { TeamInfo } from '../game/types';
@@ -62,7 +64,8 @@ export function TeamDatabase({ onBack }: { onBack: () => void }) {
               <div className="kv"><span>STADIUM</span><span>{sel.stadium}</span></div>
               <div className="kv"><span>UNIFORMS</span><UniformPreview team={sel} /></div>
               <div className="kv"><span>RIVALS</span><span>{sel.rivals.map((r) => `${getTeam(r).shortName} (${rivalryName(sel.id, r)})`).join(', ') || '—'}</span></div>
-              <div className="kv"><span>LOGO FILE</span><span className="small">{teamImageStatus(sel.id) ? '✔ loaded' : `add public/${sel.logo}`}</span></div>
+              <div className="kv"><span>LOGO FILE</span><span className="small">{teamImageStatus(sel.id) === false ? `❌ MISSING public/${sel.logo}` : `public/${sel.logo}`}</span></div>
+              {logoAsset(sel.id) && <div className="kv"><span>LOGO SOURCE</span><span className="small">Official school site · <a href={manifest.find((m) => m.id === sel.id)?.schoolPage} target="_blank" rel="noreferrer">{manifest.find((m) => m.id === sel.id)?.schoolPage}</a></span></div>}
             </div>
           </div>
         </div>

@@ -3,13 +3,14 @@
  * (scaled up with nearest-neighbor for the 16-bit look). Pure presentation: reads state, never mutates it.
  */
 import type { GameSession } from '../GameSession';
-import type { Actor } from '../Actor';
 import type { TeamInfo, Weather, TimeOfDay } from '../types';
 import { FIELD_W, CENTER_Y } from '../math';
 import { drawShadow, drawBall, drawCheerleader, drawRef, shade, skinFor, type Kit, type Pose } from './sprites';
-import { teamImage, initials } from './assets';
+import { teamImage, teamImageStatus, fitRect, logoPath } from './assets';
 import { RNG } from '../rng';
 import { drawGearedPlayer } from '../../gear/sprite';
+import { drawRig, anchorToScreen } from '../../gear/rig/draw';
+import { AnimDirector } from './anim';
 import { resolveLook, genericLook } from '../../gear/look';
 import { other, type Side } from '../Rules';
 
@@ -57,6 +58,11 @@ export class Renderer {
   excitement = 0;
   private lastPhase = '';
   private time = 0;
+  /** Visual-only animation state machine (reads PlaySim + its events). */
+  readonly anim = new AnimDirector();
+  /** Last drawn anchors per actor (tests / debugging). */
+  readonly lastAnchors = new Map<number, import('../../gear/rig/raster').Anchors>();
+  private frameDt = 1 / 60;
 
   constructor(private atmo: Atmosphere) {
     for (let i = 0; i < 160; i++) this.drops.push({ x: Math.random() * VIEW_W, y: Math.random() * VIEW_H, s: 0.6 + Math.random() * 0.8 });
@@ -167,6 +173,7 @@ export class Renderer {
 
   draw(ctx: CanvasRenderingContext2D, s: GameSession, dt: number) {
     this.time += dt;
+    this.frameDt = dt;
     const home = s.cfg.home.info;
     const away = s.cfg.away.info;
     this.buildCrowd(home, away);
@@ -376,20 +383,15 @@ export class Renderer {
       const img = teamImage(home.id);
       const cy = this.sy(CENTER_Y);
       if (img) {
+        // Full supplied logo, aspect ratio preserved (wide lockups stay wide), native colors
+        const r = fitRect(img, mx - 30, cy - 16, 60, 32);
         ctx.globalAlpha = 0.85;
-        ctx.drawImage(img, Math.round(mx - 24), Math.round(cy - 14), 48, 28);
+        ctx.drawImage(img, Math.round(r.x), Math.round(r.y), Math.round(r.w), Math.round(r.h));
         ctx.globalAlpha = 1;
-      } else {
-        ctx.fillStyle = home.colors.primary;
-        ctx.beginPath();
-        ctx.ellipse(mx, cy, 22, 11, 0, 0, Math.PI * 2);
-        ctx.fill();
-        ctx.strokeStyle = home.colors.secondary;
-        ctx.lineWidth = 2;
-        ctx.stroke();
-        ctx.font = `10px ${FONT}`;
-        ctx.fillStyle = contrastText(home.colors.primary);
-        ctx.fillText(initials(home.shortName, home.abbreviation), Math.round(mx), Math.round(cy + 1));
+      } else if (logoPath(home.id) && teamImageStatus(home.id) === false) {
+        ctx.fillStyle = '#ff4d4d';
+        ctx.font = `8px ${FONT}`;
+        ctx.fillText('MISSING LOGO', Math.round(mx), Math.round(cy));
       }
     }
     ctx.textAlign = 'left';
@@ -533,17 +535,6 @@ export class Renderer {
     });
   }
 
-  private poseFor(a: Actor, s: GameSession): Pose {
-    const sim = s.sim!;
-    if (a.down) return 'down';
-    if (a.diveT > 0) return 'dive';
-    if (!sim.snapped) return (a.pos === 'OL' || a.pos === 'DL' || (a.team === 'O' && a.slot === 'TE')) ? 'stance' : 'stand';
-    if (sim.done && sim.outcome?.type === 'td' && ((sim.outcome.scoringTeam === a.team))) return 'celebrate';
-    if (a.engaged >= 0) return 'block';
-    if (a.idx === sim.qbIdx && sim.passThrown && sim.t - (sim.ball.t > 0 ? 0 : 0) < 99 && sim.ball.state === 'air' && sim.ball.t < 0.25) return 'throw';
-    return Math.hypot(a.vx, a.vy) > 0.6 ? 'run' : 'stand';
-  }
-
   private drawActors(ctx: CanvasRenderingContext2D, s: GameSession) {
     const sim = s.sim;
     if (!sim) return;
@@ -618,28 +609,32 @@ export class Renderer {
       ctx.ellipse(Math.round(this.sx(user.x)), Math.round(this.sy(user.y)), 6, 2.5, 0, 0, Math.PI * 2);
       ctx.stroke();
     }
-    const carrier = sim.carrier;
+    // One football entity: attached to its holder's grip anchor while possessed, drawn on its own in flight.
+    this.anim.update(s, this.frameDt);
+    const b = sim.ball;
+    const holder = b.state === 'held' && b.holder >= 0 ? b.holder : -1;
     for (const a of order) {
       const x = this.sx(a.x);
-      if (x < -20 || x > VIEW_W + 20) continue;
+      if (x < -30 || x > VIEW_W + 30) continue;
       const y = this.sy(a.y);
       const side = sideOf[a.team];
       const tg = s.team(side);
       const look = resolveLook(a.p, tg.info, side === 'home', tg.theme ?? 'none');
-      const pose = this.poseFor(a, s);
-      const facing: 1 | -1 = !sim.snapped ? (a.team === 'O' ? 1 : -1) : a.facing;
-      drawGearedPlayer(ctx, x, y, look, facing, pose, a.anim, 1, { presnap: !sim.snapped });
-      if (a === carrier) {
-        drawBall(ctx, x + facing * 3, y - 8, 0);
+      const pk = this.anim.pick(a);
+      const fr = drawRig(ctx, Math.round(x), Math.round(y), look, pk.build, pk.dir, pk.action, pk.frame, { presnap: !sim.snapped, number: a.p.number });
+      this.lastAnchors.set(a.idx, fr.anchors);
+      if (a.idx === holder) {
+        const g = fr.anchors.ball ?? { x: fr.anchors.waist.x + (pk.dir === 'left' ? -3 : 3), y: fr.anchors.waist.y - 2 };
+        const p = anchorToScreen(g, Math.round(x), Math.round(y));
+        drawBall(ctx, p.x, p.y, 0);
       }
     }
-    // Ball in the air
-    const b = sim.ball;
-    if (b.state === 'air' || (b.state === 'dead' && sim.setup.kind !== 'scrimmage' && !sim.snapped)) {
+    // Ball in flight (pass, pitch, snap, kick), loose ball, or spotted before the snap
+    if (b.state === 'air' || b.state === 'loose' || (b.state === 'dead' && sim.setup.kind !== 'scrimmage' && !sim.snapped)) {
       const bx = this.sx(b.x);
       const by = this.sy(b.y);
       drawShadow(ctx, bx, by, 4, 0.4);
-      drawBall(ctx, bx, by - b.z * ZPX, this.time * 14);
+      drawBall(ctx, bx, by - b.z * ZPX, b.state === 'loose' ? 0 : this.time * 14);
       // Landing marker for kicks
       if (b.state === 'air' && (b.kind === 'kick' || b.kind === 'punt')) {
         ctx.strokeStyle = 'rgba(255,255,255,0.5)';
@@ -647,15 +642,8 @@ export class Renderer {
         ctx.ellipse(this.sx(b.tx), this.sy(b.ty), 5, 2, 0, 0, Math.PI * 2);
         ctx.stroke();
       }
-    } else if (b.state === 'held' && b.holder >= 0 && !carrier) {
-      // (QB holding) drawn with actor above
     } else if (!sim.snapped && sim.setup.kind === 'scrimmage') {
       drawBall(ctx, this.sx(sim.setup.los - 0.2), this.sy(sim.setup.ballY) - 1, 0);
-    }
-    // QB ball in hand (when QB is holder but not "carrier" role)
-    if (b.state === 'held' && b.holder >= 0) {
-      const h = sim.actors[b.holder];
-      if (h !== carrier) drawBall(ctx, this.sx(h.x) + h.facing * 3, this.sy(h.y) - 8, 0);
     }
     // Receiver icons (human offense, pass play, before the throw)
     const play = sim.setup.offPlay;
@@ -667,7 +655,7 @@ export class Renderer {
         for (const d of sim.actors) if (d.team === 'D') near = Math.min(near, Math.hypot(d.x - a.x, d.y - a.y));
         const col = near > 3.2 ? '#38d86b' : near > 1.6 ? '#f2c94c' : '#eb5757';
         const x = Math.round(this.sx(a.x));
-        const y = Math.round(this.sy(a.y)) - 32;
+        const y = Math.round(this.sy(a.y)) - 41;
         ctx.fillStyle = '#111';
         ctx.fillRect(x - 5, y - 5, 11, 11);
         ctx.fillStyle = col;
@@ -685,13 +673,13 @@ export class Renderer {
     // Arrow over user
     if (user && userTeam) {
       const x = Math.round(this.sx(user.x));
-      const y = Math.round(this.sy(user.y)) - 27;
+      const y = Math.round(this.sy(user.y)) - 36;
       ctx.fillStyle = '#ffe44a';
       ctx.fillRect(x - 2, y, 5, 1);
       ctx.fillRect(x - 1, y + 1, 3, 1);
       ctx.fillRect(x, y + 2, 1, 1);
       // Stamina bar for the human ball carrier
-      if (carrier === user) {
+      if (sim.carrier === user) {
         ctx.fillStyle = '#111';
         ctx.fillRect(x - 6, y - 4, 13, 3);
         ctx.fillStyle = user.stamina > 0.3 ? '#4cd964' : '#ff9500';
@@ -712,11 +700,13 @@ export class Renderer {
       const hx = this.sx(spotX);
       const hy = this.sy(CENTER_Y);
       drawShadow(ctx, hx, hy, 8);
-      drawGearedPlayer(ctx, hx - 2, hy, kl('h'), 1, 'stance', 0, 1);
-      const kicked = ka && ka.t > 0.15;
-      drawGearedPlayer(ctx, this.sx(spotX - (kicked ? 0.5 : 2)), hy + 4, kl('k'), 1, kicked ? 'run' : 'stand', ka ? ka.t * 8 : 0, 1);
+      // Holder kneels; kicker runs the kick action so the strike frame lines up with the ball launch (t = 0.15 s)
+      drawRig(ctx, Math.round(hx - 2), Math.round(hy), kl('h'), 'skill', 'right', 'kneel', 3);
+      const kt0 = ka ? ka.t - 0.15 + 3 / 12 : 0;
+      const kf = ka ? Math.max(0, Math.min(5, Math.floor(kt0 * 12))) : 1;
+      drawRig(ctx, Math.round(this.sx(spotX - (ka && ka.t > 0.15 ? 0.5 : 2))), Math.round(hy + 4), kl('k'), 'skill', 'right', 'kick', kf);
       for (let i = -3; i <= 3; i++) {
-        drawGearedPlayer(ctx, this.sx(spotX + 7), this.sy(CENTER_Y + i * 1.3), kl('ol' + i), 1, 'stance', 0, 1);
+        drawRig(ctx, Math.round(this.sx(spotX + 7)), Math.round(this.sy(CENTER_Y + i * 1.3)), kl('ol' + i), 'lineman', 'right', 'block', 3);
       }
       if (ka) {
         const f = Math.min(1, ka.t / ka.dur);
@@ -809,7 +799,7 @@ export class Renderer {
     if (!sim || sim.messageT <= 0 || !sim.message) return;
     const carrier = sim.carrier ?? sim.user;
     const x = carrier ? this.sx(carrier.x) : VIEW_W / 2;
-    const y = carrier ? this.sy(carrier.y) - 38 : 120;
+    const y = carrier ? this.sy(carrier.y) - 46 : 120;
     ctx.font = `8px ${FONT}`;
     ctx.textAlign = 'center';
     ctx.fillStyle = '#000';
@@ -822,4 +812,3 @@ export class Renderer {
 
 const s_pad = '#2f3a8c';
 void shade;
-void initials;

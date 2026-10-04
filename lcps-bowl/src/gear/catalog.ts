@@ -1,7 +1,9 @@
 /**
  * Equipment catalog — every piece of cosmetic gear in LCPS Bowl.
- * All designs are original; names describe eras/shapes, not real brands.
- * Prices follow the rarity bands: common 100–300, rare 300–700, epic 700–1,500, legendary 1,500–4,000.
+ * Helmets and shoulder pads are the eight EXACT supplied products (registry: src/assets/registry.ts).
+ * Every other design is original.
+ * Prices follow the rarity bands: common 100–300, rare 300–700, epic 700–1,500, legendary 1,500–4,000,
+ * except the eight supplied products, which use the owner's exact prices (exact: true).
  */
 import type { EquipmentCategory, EquipmentItem, Rarity, UnlockRequirement } from './types';
 import { LCPS_TEAMS } from '../data/teams';
@@ -27,7 +29,7 @@ export const P = {
 };
 
 export const CATEGORY_LABEL: Record<EquipmentCategory, string> = {
-  helmet: 'Helmets', finish: 'Helmet Finishes', facemask: 'Facemasks', visor: 'Visors', mouthguard: 'Mouthguards',
+  helmet: 'Helmets', pads: 'Shoulder Pads', finish: 'Helmet Finishes', facemask: 'Facemasks', visor: 'Visors', mouthguard: 'Mouthguards',
   gloves: 'Gloves', sleeve: 'Arm Sleeves', wristband: 'Wristbands', armband: 'Arm Bands', handwarmer: 'Hand Warmers',
   towel: 'Towels', cleats: 'Cleats', socks: 'Socks', spats: 'Spats / Tape', undershirt: 'Undershirts',
   legsleeve: 'Leg Sleeves', accessory: 'Accessories',
@@ -41,18 +43,21 @@ function add(category: EquipmentCategory, id: string, name: string, rarity: Rari
 }
 const unlock = (u: UnlockRequirement) => ({ unlock: u, price: 0 });
 
-// ---------------------------------------------------------------- helmets (shell models)
-add('helmet', 'helm-standard', 'Standard Shell', 'common', 0, [], 'The everyday varsity helmet. Round, reliable, Friday-night ready.', { style: 'classic' });
-add('helmet', 'helm-classic', 'Classic Shell', 'common', 250, [], 'Clean rounded shell with a slim stripe channel.', { style: 'classic2' });
-add('helmet', 'helm-retro', 'Retro Shell', 'rare', 400, [], 'Small, low-profile shell straight out of the 1970s yearbook.', { style: 'retro' });
-add('helmet', 'helm-oldschool', 'Old School Shell', 'rare', 450, [], 'Tall dome, tiny ear holes. Grandpa approves.', { style: 'oldschool' });
-add('helmet', 'helm-speed', 'Speed Shell', 'rare', 650, [], 'Swept-back profile with an extended jaw bumper.', { style: 'speed' });
-add('helmet', 'helm-flex', 'Flex Panel Shell', 'epic', 1300, [], 'Modern shell with a flexible top panel cut into the crown. Speed-Flex era look.', { style: 'flex' });
-add('helmet', 'helm-facet', 'Faceted Shell', 'epic', 1200, [], 'Angular, flat-topped shell with faceted side panels. F-series era look.', { style: 'facet' });
-add('helmet', 'helm-minimal', 'Smooth Zero Shell', 'epic', 1400, [], 'Seamless, rounded modern shell. Nothing extra.', { style: 'minimal' });
-add('helmet', 'helm-aggressive', 'Trench Shell', 'legendary', 1900, [], 'Bulky ridged shell built for the trenches. Intimidation included.', { style: 'aggressive' });
-add('helmet', 'helm-threepeat', 'Three-Peat Helmet', 'legendary', 0, [P.goldRush[0]], 'Awarded for three straight LCPS Bowl titles. Gold-trimmed dynasty shell.', { style: 'aggressive', ...unlock({ kind: 'threepeat', text: 'Win three consecutive LCPS Bowls' }), collection: 'championship' });
-add('helmet', 'helm-goat', 'GOAT Helmet', 'legendary', 0, [C.goldHi], 'Five championships. You are the GOAT of Loudoun County.', { style: 'flex', ...unlock({ kind: 'titles', count: 5, text: 'Win 5 LCPS Bowl championships' }), collection: 'championship' });
+// ---------------------------------------------------------------- helmets
+// The four shop helmets are the EXACT supplied products (shop art = the supplied image, unchanged; see src/assets/registry.ts).
+// Names/prices/rarities are the owner's catalog labels. In-game they become low-res, team-colored shell layers (sprite.ts).
+add('helmet', 'helm-standard', 'Standard Issue Helmet', 'common', 0, [], 'Team-issued helmet every player starts with. Not sold in the shop.', { style: 'standard', issued: true });
+add('helmet', 'speedflex', 'SPEEDFLEX', 'epic', 1500, [], 'Red shell, dark visor, black facemask, flex shell panels and white chinstrap in the shop art. Plays in your school colors.', { style: 'speedflex', image: 'assets/gear/speedflex.jpeg', exact: true });
+add('helmet', 'f7', 'F7', 'rare', 1000, [], 'Black angular shell with an angular black facemask. Plays in your school colors.', { style: 'f7', image: 'assets/gear/f7.jpeg', exact: true });
+add('helmet', 'vicis-zero2', 'VICIS ZERO2', 'legendary', 2000, [], 'White shell, white facemask, dark face opening and forehead mark. Plays in your school colors.', { style: 'zero2', image: 'assets/gear/vicis-zero2.jpeg', exact: true });
+add('helmet', 'vicis-zero2-trench', 'VICIS ZERO2 TRENCH', 'legendary', 2250, [], 'Black shell, black lineman facemask, dark visor and forehead mark. Plays in your school colors.', { style: 'zero2trench', image: 'assets/gear/vicis-zero2-trench.jpeg', exact: true });
+
+// ---------------------------------------------------------------- shoulder pads (worn UNDER the jersey: they change the shoulder silhouette)
+add('pads', 'pads-standard', 'Standard Issue Pads', 'common', 0, [], 'Team-issued shoulder pads. Not sold in the shop.', { style: 'standard', issued: true });
+add('pads', 'x-flex-pads', 'X-FLEX PADS', 'epic', 1250, [], 'Gray/black segmented shoulders with lime accents.', { style: 'xflex', image: 'assets/gear/x-flex-pads.jpeg', exact: true });
+add('pads', 'vicis-elite-pads', 'VICIS ELITE PADS', 'legendary', 2000, [], 'Charcoal/black pads, gold fasteners and an attached lower plate.', { style: 'elite', image: 'assets/gear/vicis-elite-pads.jpeg', exact: true });
+add('pads', 'battle-pads', 'BATTLE PADS', 'rare', 750, [], 'White/black pads with BATTLE / DEFENDER marks.', { style: 'battle', image: 'assets/gear/battle-pads.jpeg', exact: true });
+add('pads', '2-in-1-pads', '2-IN-1 PADS', 'common', 400, [], 'Black pads with striped gray shoulder and chest sections.', { style: 'twoinone', image: 'assets/gear/2-in-1-pads.jpeg', exact: true });
 
 // ---------------------------------------------------------------- finishes
 add('finish', 'finish-gloss', 'Gloss Finish', 'common', 0, [], 'Classic shine.', { style: 'gloss' });
@@ -60,6 +65,8 @@ add('finish', 'finish-matte', 'Matte Finish', 'rare', 350, [], 'Flat, no glare. 
 add('finish', 'finish-metallic', 'Metallic Finish', 'epic', 800, [], 'Flake-metal shell that catches the stadium lights.', { style: 'metallic' });
 add('finish', 'finish-pearl', 'Pearl Finish', 'epic', 900, [], 'Soft pearlescent glow.', { style: 'pearl' });
 add('finish', 'finish-chrome', 'Chrome Finish', 'legendary', 2200, [], 'Mirror-chrome shell. Everyone in the bleachers sees it.', { style: 'chrome' });
+add('finish', 'finish-threepeat', 'Three-Peat Gold Trim', 'legendary', 0, [P.goldRush[0]], 'Awarded for three straight LCPS Bowl titles. Gold stripe and trim on any helmet.', { style: 'threepeat', ...unlock({ kind: 'threepeat', text: 'Win three consecutive LCPS Bowls' }), collection: 'championship' });
+add('finish', 'finish-goat', 'GOAT Gold Finish', 'legendary', 0, [C.goldHi], 'Five championships. A solid-gold finish for any helmet.', { style: 'goat', ...unlock({ kind: 'titles', count: 5, text: 'Win 5 LCPS Bowl championships' }), collection: 'championship' });
 
 // ---------------------------------------------------------------- facemasks
 for (const [id, name, rarity, price, style, desc] of [
@@ -259,4 +266,20 @@ export const CATALOG: EquipmentItem[] = items;
 const BY_ID = new Map(items.map((i) => [i.id, i]));
 export const itemById = (id?: string) => (id ? BY_ID.get(id) : undefined);
 export const STARTER_ITEMS = items.filter((i) => i.price === 0 && !i.unlock).map((i) => i.id);
+/** Shown in the shop (team-issued defaults are owned by everyone and never sold). */
+export const inShop = (i: EquipmentItem) => !i.issued;
+
+/**
+ * Save migration for helmets from the earlier invented catalog. Only clear correspondences are mapped;
+ * everything else is kept in locker.legacy (never offered as one of the eight exact products).
+ */
+export const LEGACY_ITEM_MAP: Record<string, string> = {
+  'helm-flex': 'speedflex', // was "Flex Panel Shell — Speed-Flex era look"
+  'helm-facet': 'f7', // was "Faceted Shell — F-series era look"
+  'helm-minimal': 'vicis-zero2', // was "Smooth Zero Shell"
+  'helm-aggressive': 'vicis-zero2-trench', // was "Trench Shell"
+  'helm-threepeat': 'finish-threepeat',
+  'helm-goat': 'finish-goat',
+};
+export const LEGACY_UNMAPPED = ['helm-classic', 'helm-retro', 'helm-oldschool', 'helm-speed'];
 export const isPurchasable = (i: EquipmentItem) => !i.unlock || i.unlock.kind === 'beat';

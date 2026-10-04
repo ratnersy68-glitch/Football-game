@@ -63,6 +63,8 @@ export interface Actor {
   jukeCd: number;
   spinT: number;
   spinCd: number;
+  stiffT: number;
+  stiffCd: number;
   reactT: number; // reaction delay before switching assignment
   down: boolean;
   stamina: number;
@@ -84,7 +86,7 @@ export function makeActor(idx: number, team: TeamSide, p: PlayerData, slot: stri
     accel: 8 + a.acc * 0.09,
     role,
     engaged: -1, engageT: 0, shedFrom: -1, shedCd: 0, blockTarget: -1,
-    stunT: 0, tackleCd: 0, diveT: 0, jukeT: 0, jukeCd: 0, spinT: 0, spinCd: 0, reactT: 0,
+    stunT: 0, tackleCd: 0, diveT: 0, jukeT: 0, jukeCd: 0, spinT: 0, spinCd: 0, stiffT: 0, stiffCd: 0, reactT: 0,
     down: false, stamina: 1, hist: [], anim: Math.random() * 10, desire: { x: 0, y: 0 }, carrierTouches: 0,
   };
 }

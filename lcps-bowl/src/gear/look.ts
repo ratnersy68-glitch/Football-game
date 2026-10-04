@@ -7,6 +7,7 @@ import { RNG } from '../game/rng';
 import { CATALOG, C, itemById } from './catalog';
 import type { ArmLook, EquipmentCategory, EquipmentItem, Look, PlayerGear, PlayerStyle, ThemeId } from './types';
 import { shade, skinFor } from '../game/render/sprites';
+import { buildFor } from './rig/spec';
 
 export const THEMES: { id: ThemeId; name: string; desc: string }[] = [
   { id: 'none', name: 'INDIVIDUAL', desc: 'Every player wears his own fit.' },
@@ -53,12 +54,14 @@ export function autoGear(p: PlayerData, allowed: (i: EquipmentItem) => boolean, 
   };
   const chance = (base: number) => rng.chance(Math.max(0, Math.min(1, base)));
   const g: PlayerGear = { stripe: !old || rng.chance(0.5), logo: true, gloveSide: 'both', leftArm: [], rightArm: [] };
-  // Helmet & mask
+  // Helmet, pads & mask (the four exact shop helmets / pads, or team-issued)
   const helmets = pool('helmet');
-  const oldHelm = helmets.filter((i) => ['retro', 'oldschool', 'classic', 'classic2'].includes(i.style ?? ''));
-  const modernHelm = helmets.filter((i) => ['speed', 'flex', 'facet', 'minimal', 'aggressive'].includes(i.style ?? ''));
   const big = pos === 'OL' || pos === 'DL';
-  g.helmet = old ? pickWeighted(oldHelm.length ? oldHelm : helmets) : flashy || chance(0.5) ? pickWeighted((big ? modernHelm.filter((i) => i.style !== 'minimal') : modernHelm).length ? modernHelm : helmets) : pickWeighted(helmets);
+  const helmBias: Record<string, number> = big ? { zero2trench: 4, speedflex: 2, f7: 2, zero2: 1, standard: 3 } : old ? { standard: 6, speedflex: 1, f7: 1, zero2: 1, zero2trench: 0.2 } : { speedflex: 3, f7: 3, zero2: 2, zero2trench: 0.5, standard: 3 };
+  g.helmet = helmets.length ? rng.weighted(helmets, helmets.map((i) => helmBias[i.style ?? 'standard'] ?? 1)).id : undefined;
+  const pads = pool('pads');
+  const padBias: Record<string, number> = big ? { battle: 3, elite: 2, twoinone: 1, xflex: 1, standard: 3 } : pos === 'QB' || pos === 'WR' || pos === 'CB' || pos === 'K' ? { xflex: 3, twoinone: 2, elite: 1, battle: 0.5, standard: 3 } : { battle: 2, elite: 2, xflex: 2, twoinone: 1, standard: 3 };
+  g.pads = pads.length ? rng.weighted(pads, pads.map((i) => padBias[i.style ?? 'standard'] ?? 1)).id : undefined;
   g.finish = pickWeighted(pool('finish', (i) => (flashy ? true : i.style !== 'chrome')));
   if (!flashy || chance(0.6)) g.finish = pool('finish').find((i) => i.style === 'gloss')?.id ?? g.finish;
   const maskStyle: Record<Position, string[]> = {
@@ -184,13 +187,15 @@ export function resolveLook(p: PlayerData, team: TeamInfo, home: boolean, theme:
   const shellBase = gear.shellColor === 'white' ? C.white : gear.shellColor === 'black' ? C.black : gear.shellColor === 'secondary' ? team.colors.secondary : gear.shellColor === 'primary' ? team.colors.primary : team.helmetStyle.shell;
   const finish = itemById(gear.finish)?.style ?? 'gloss';
   let shell = shellBase;
+  if (finish === 'goat') shell = '#e8b923';
   let shadeC = shade(shellBase, -0.18);
   let hi = shade(shellBase, 0.22);
   if (finish === 'matte') { shadeC = shade(shellBase, -0.1); hi = shellBase; }
   if (finish === 'metallic') { hi = shade(shellBase, 0.38); shadeC = shade(shellBase, -0.25); }
   if (finish === 'pearl') { shell = mix(shellBase, '#ffffff', 0.18); hi = '#ffffff'; shadeC = mix(shellBase, '#c9d1e6', 0.3); }
   if (finish === 'chrome') { shell = mix(shellBase, '#dfe6ef', 0.55); hi = '#ffffff'; shadeC = mix(shellBase, '#55606f', 0.5); }
-  const stripeC = helmItem.colors[0] ? tok(helmItem.colors[0]) : team.helmetStyle.stripe;
+  if (finish === 'goat') { hi = '#fff3b0'; shadeC = '#a8790f'; }
+  const stripeC = finish === 'threepeat' ? '#e8b923' : helmItem.colors[0] ? tok(helmItem.colors[0]) : team.helmetStyle.stripe;
   const maskItem = itemById(gear.facemask) ?? itemById('mask-skill')!;
   let maskColor = maskItem.colors[0] ? tok(maskItem.colors[0]) : team.helmetStyle.facemask;
   const mc = gear.maskColor ?? 'default';
@@ -235,7 +240,11 @@ export function resolveLook(p: PlayerData, team: TeamInfo, home: boolean, theme:
     pants: u.pants,
     pantsShade: shade(u.pants, -0.18),
     torso: TORSO[p.pos] + (p.weight > 270 ? 1 : 0),
-    helmet: { model: helmItem.style ?? 'classic', shell, shade: shadeC, hi, stripe: gear.stripe === false ? undefined : stripeC, logo: gear.logo === false ? undefined : team.colors.secondary === shell ? team.colors.primary : team.colors.secondary, finish },
+    pads: itemById(gear.pads)?.style ?? 'standard',
+    teamId: team.id,
+    build: buildFor(p.pos ?? 'WR'),
+    number: p.number,
+    helmet: { model: helmItem.style ?? 'standard', shell, shade: shadeC, hi, stripe: gear.stripe === false ? undefined : stripeC, logo: gear.logo === false ? undefined : team.colors.secondary === shell ? team.colors.primary : team.colors.secondary, finish },
     mask: { style: maskItem.style ?? 'skill', color: maskColor },
     visor,
     mouthguard: mgItem ? { color: tok(mgItem.colors[0]), style: mgItem.style ?? 'standard', hang: mgItem.style === 'strapped' } : undefined,

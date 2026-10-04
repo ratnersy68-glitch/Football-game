@@ -25,6 +25,7 @@ export interface ControlInput {
   juke: -1 | 0 | 1;
   spin: boolean;
   dive: boolean;
+  stiff: boolean; // stiff arm (ball carrier)
   throwTo: number | null;
   throwAway: boolean;
   switchPlayer: boolean;
@@ -34,7 +35,7 @@ export interface ControlInput {
 }
 
 export const NO_INPUT: ControlInput = {
-  mx: 0, my: 0, sprint: false, juke: 0, spin: false, dive: false, throwTo: null, throwAway: false,
+  mx: 0, my: 0, sprint: false, juke: 0, spin: false, dive: false, stiff: false, throwTo: null, throwAway: false,
   switchPlayer: false, action: false, actionHeld: false, give: false,
 };
 
@@ -93,6 +94,7 @@ export type SimEvent =
   | { t: 'sack'; by: number; qb: number }
   | { t: 'fumble'; carrier: number; forcedBy: number; recoveredBy: number; lost: boolean }
   | { t: 'juke'; by: number }
+  | { t: 'stiff'; by: number }
   | { t: 'kick'; by: number; landX: number }
   | { t: 'fieldedKick'; by: number; x: number }
   | { t: 'shed'; by: number }
@@ -496,6 +498,8 @@ export class PlaySim {
       if (a.jukeCd > 0) a.jukeCd -= dt;
       if (a.spinT > 0) a.spinT -= dt;
       if (a.spinCd > 0) a.spinCd -= dt;
+      if (a.stiffT > 0) a.stiffT -= dt;
+      if (a.stiffCd > 0) a.stiffCd -= dt;
       if (a.shedCd > 0) a.shedCd -= dt;
       if (a.reactT > 0) a.reactT -= dt;
     }
@@ -616,6 +620,7 @@ export class PlaySim {
     if (isCarrier && !isQbHolding) {
       if (input.juke !== 0 && a.jukeCd <= 0) this.doJuke(a, input.juke);
       if (input.spin && a.spinCd <= 0) this.doSpin(a);
+      if (input.stiff && a.stiffCd <= 0) this.doStiffArm(a);
       if (input.dive && a.diveT <= 0) this.doDive(a, mx, my);
     } else if (!isCarrier) {
       // Defender / chaser actions: only when the other team has (or is about to catch) the ball
@@ -632,6 +637,14 @@ export class PlaySim {
     a.vx *= 0.85;
     a.stamina = Math.max(0, a.stamina - 0.06);
     this.events.push({ t: 'juke', by: a.idx });
+  }
+
+  /** Stiff arm: the free arm extends into the nearest tackler; harder to bring down for a moment. Cosmetic gear has no effect. */
+  doStiffArm(a: Actor) {
+    a.stiffT = 0.4;
+    a.stiffCd = 1.1;
+    a.stamina = Math.max(0, a.stamina - 0.05);
+    this.events.push({ t: 'stiff', by: a.idx });
   }
 
   doSpin(a: Actor) {
@@ -1474,6 +1487,7 @@ export class PlaySim {
       if (isQbSack) p += 0.12;
       if (c.jukeT > 0) p -= 0.26 * (0.6 + ca.agi / 250);
       if (c.spinT > 0) p -= 0.24 * (0.6 + ca.agi / 250);
+      if (c.stiffT > 0 && !isQbSack) p -= 0.2 * (0.5 + ca.str / 200);
       if (d.diveT > 0) p += 0.06;
       // Gang tackle bonus
       const helpers = this.actors.filter((x) => x.team === d.team && x !== d && isFree(x) && dist(x, c) < 1.8).length;
@@ -1511,7 +1525,7 @@ export class PlaySim {
         c.vy *= 0.6;
         c.stunT = Math.max(c.stunT, 0.3 - ca.agi * 0.0015);
         this.events.push({ t: 'missed', by: d.idx });
-        if (c.jukeT > 0 || c.spinT > 0) this.flash(c.jukeT > 0 ? 'JUKED!' : 'SPIN MOVE!', 0.7);
+        if (c.jukeT > 0 || c.spinT > 0 || c.stiffT > 0) this.flash(c.jukeT > 0 ? 'JUKED!' : c.spinT > 0 ? 'SPIN MOVE!' : 'STIFF ARM!', 0.7);
         else if (contactors === 1 && this.rng.chance(0.4)) this.flash('BROKEN TACKLE!', 0.7);
       }
     }

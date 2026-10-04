@@ -11,10 +11,11 @@ import { Btn } from '../../components/common';
 import { Sound } from '../../game/audio/Sound';
 import { fullName } from '../../game/players';
 
-type SlotId = 'helmet' | 'finish' | 'facemask' | 'visor' | 'mouthguard' | 'leftArm' | 'rightArm' | 'gloves' | 'wrist' | 'towel' | 'undershirt' | 'handwarmer' | 'legs' | 'socks' | 'spats' | 'cleats' | 'accessory';
+type SlotId = 'helmet' | 'pads' | 'finish' | 'facemask' | 'visor' | 'mouthguard' | 'leftArm' | 'rightArm' | 'gloves' | 'wrist' | 'towel' | 'undershirt' | 'handwarmer' | 'legs' | 'socks' | 'spats' | 'cleats' | 'accessory';
 
 const SLOTS: { id: SlotId; label: string; cats: EquipmentCategory[]; side: 'left' | 'right' }[] = [
   { id: 'helmet', label: 'HELMET', cats: ['helmet'], side: 'left' },
+  { id: 'pads', label: 'SHOULDER PADS', cats: ['pads'], side: 'left' },
   { id: 'finish', label: 'FINISH', cats: ['finish'], side: 'left' },
   { id: 'facemask', label: 'FACEMASK', cats: ['facemask'], side: 'left' },
   { id: 'visor', label: 'VISOR', cats: ['visor'], side: 'left' },
@@ -34,10 +35,10 @@ const SLOTS: { id: SlotId; label: string; cats: EquipmentCategory[]; side: 'left
 ];
 
 const field: Partial<Record<SlotId, keyof PlayerGear>> = {
-  helmet: 'helmet', finish: 'finish', facemask: 'facemask', visor: 'visor', mouthguard: 'mouthguard', gloves: 'gloves',
+  helmet: 'helmet', pads: 'pads', finish: 'finish', facemask: 'facemask', visor: 'visor', mouthguard: 'mouthguard', gloves: 'gloves',
   towel: 'towel', undershirt: 'undershirt', handwarmer: 'handwarmer', legs: 'legsleeve', socks: 'socks', spats: 'spats', cleats: 'cleats', accessory: 'accessory',
 };
-const NO_NONE: SlotId[] = ['helmet', 'finish', 'facemask', 'socks', 'cleats'];
+const NO_NONE: SlotId[] = ['helmet', 'pads', 'finish', 'facemask', 'socks', 'cleats'];
 
 function currentIds(g: PlayerGear, slot: SlotId): string[] {
   if (slot === 'leftArm') return g.leftArm ?? [];

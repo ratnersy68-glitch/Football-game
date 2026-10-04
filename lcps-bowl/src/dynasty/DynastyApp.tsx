@@ -5,7 +5,21 @@ import {
   seasonLabel, userRecordLine, runOffseason, seriesFor,
 } from './Season';
 import { LCPS_TEAMS, getTeam, programExpectation, rivalryName, isLcps } from '../data/teams';
-import { listSaves, loadSlot, saveSlot, lastSlot, deleteSlot, SLOTS, type Slot } from '../save/storage';
+import { listSaves, loadSlot, saveSlot, lastSlot, deleteSlot, backupSlot, SLOTS, type Slot } from '../save/storage';
+
+/** Load a slot; older gear schemas are backed up (raw bytes) before migrating, then saved in the new schema. */
+async function openSlot(slot: Slot): Promise<Dynasty | null> {
+  const loaded = await loadSlot<Dynasty>(slot);
+  if (!loaded) return null;
+  loaded.slot = slot;
+  if (needsGearMigration(loaded)) {
+    await backupSlot(slot, 'gear-v1');
+    ensureLocker(loaded);
+    await autosave(loaded);
+  }
+  ensureLocker(loaded);
+  return loaded;
+}
 import { getSettings, useSettings } from '../save/settings';
 import { TeamLogo, Btn, Stars, RatingBar } from '../components/common';
 import { GameScreen } from '../screens/GameScreen';
@@ -22,7 +36,7 @@ import { Sound } from '../game/audio/Sound';
 import { LockerScreen, BBBadge } from '../gear/ui/Locker';
 import { RewardsPanel, DropReveal } from '../gear/ui/Rewards';
 import { GameDayFit } from '../gear/ui/GameDayFit';
-import { ensureLocker } from '../gear/economy';
+import { ensureLocker, needsGearMigration } from '../gear/economy';
 
 type View =
   | { id: 'slots' }
@@ -62,8 +76,8 @@ export function DynastyApp({ mode, onExit }: { mode: 'new' | 'continue' | 'play'
     if (mode === 'new') return;
     const slot = lastSlot() ?? listSaves().find((s) => s.exists)?.slot;
     if (!slot) { setView({ id: 'slots' }); return; }
-    loadSlot<Dynasty>(slot).then((loaded) => {
-      if (loaded) { loaded.slot = slot; ensureLocker(loaded); setD(loaded); setView({ id: 'home' }); }
+    openSlot(slot).then((loaded) => {
+      if (loaded) { setD(loaded); setView({ id: 'home' }); }
       else setView({ id: 'slots' });
     });
   }, [mode]);
@@ -109,7 +123,7 @@ export function DynastyApp({ mode, onExit }: { mode: 'new' | 'continue' | 'play'
 
   if (view.id === 'slots') return <SlotPicker mode={mode} onBack={onExit} onPick={(slot, exists) => {
     if (mode === 'new' || !exists) setView({ id: 'teamSelect', slot });
-    else loadSlot<Dynasty>(slot).then((l) => { if (l) { l.slot = slot; ensureLocker(l); setD(l); setView({ id: 'home' }); } });
+    else openSlot(slot).then((l) => { if (l) { setD(l); setView({ id: 'home' }); } });
   }} />;
   if (view.id === 'teamSelect') return <TeamSelect onBack={() => setView({ id: 'slots' })} onPick={(team) => setView({ id: 'coach', slot: view.slot, team })} />;
   if (view.id === 'coach') return <CoachSetup team={view.team} onBack={() => setView({ id: 'teamSelect', slot: view.slot })} onStart={(name, fmt) => startNew(view.slot, view.team, name, fmt)} />;

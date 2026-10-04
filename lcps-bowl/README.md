@@ -24,7 +24,10 @@ npm run dev        # → http://localhost:5173
 | `npx tsx scripts/simDynasty.ts 3` | Simulate 3 complete dynasty seasons headlessly |
 | `npx tsx scripts/playLab.ts slants 200 "Cover 2"` | Run one play 200 times against a coverage and report the outcomes |
 | `node scripts/e2e.mjs out/` | Browser playtest with screenshots (needs `npm run dev` on port 5199, or pass a URL) |
-| `node scripts/e2eGear.mjs out/` | Gear loop in the browser: win → earn BB → buy → equip on the QB → reload → next game → QB wears it |
+| `node scripts/e2eExactGear.mjs out/` | Correction-pack acceptance: earn BB → shop shows the 4 supplied helmet and 4 pad images → buy both → equip on the QB → reload → next game, where the QB wears both |
+| `node scripts/e2eMotion.mjs out/ URL 6` | Plays real downs and samples the animation director against engine events (throw → flight → catch → carry, tackles), with zoomed contact sheets |
+| `npx tsx scripts/exportAtlases.ts` | Exports the character rig as PNG atlases + `manifest.json` (frames, fps, loops, events, anchors) to `public/assets/sprites/` |
+| `npx tsx scripts/assetAudit.ts` | Rewrites `docs/ASSET_AUDIT.md`, re-hashing every supplied file against the pack's SHA-256 list |
 
 ## Controls
 
@@ -37,6 +40,7 @@ npm run dev        # → http://localhost:5173
 | T | Throw it away (during the play) · Timeout (in the huddle) |
 | Q / E, or double-tap W/S | Juke up / down |
 | F | Spin move |
+| R | Stiff arm (ball carrier) |
 | Tab / C | Switch defender (before or during the snap) |
 | H | Hurry-up offense |
 | Enter | Continue |
@@ -79,32 +83,58 @@ Input goes through `src/game/input/Input.ts`, which builds an abstract `ControlI
 
 ## LCPS Locker: Bowl Bucks and gear
 
-Gear is cosmetic only. It never changes ratings or game results.
+Gear is cosmetic only. It never changes ratings, speed, accuracy, strength, injury odds or collision size.
 
-- **Bowl Bucks (BB)** are earned only by playing dynasty games. The post-game rewards screen itemizes every line:
-  - game played, win, rivalry, playoff, championship, upset, shutout;
-  - 300+ pass yards, 200+ rush yards, 3+ pass or rush TDs, defensive TD, return TD;
-  - player of the game, comeback, OT win.
-- **Simulated games** pay only the game-result lines (played / win / rivalry / playoff / title / upset).
-- **Economy:** a new dynasty starts with 300 BB, and a typical win pays 250–700 BB. That puts legendary gear (1,500–4,000 BB) several games away.
-- **LOCKER** (main menu and dynasty tab) has five sections:
-  - **SHOP:** 16 categories plus school collections; ALL/OWNED/LOCKED/rarity/favorite filters; Friday Night Drops that rotate weekly.
-  - **MY GEAR:** everything you own.
-  - **CUSTOMIZE PLAYER:** full-body preview with every slot around it; RANDOMIZE FIT and TEAM DRIP.
-  - **COLLECTION:** achievements, trophy gear, school collections and drops.
-  - **TEAM THEMES:** Blackout, Whiteout, Pink Out, Throwback, Playoff Mode, Championship Gold.
-- **Owned styles** can be used on any number of your players.
-- **Helmets** are original designs, with nine models that each have a distinct silhouette. You choose finish (gloss / matte / metallic / pearl / chrome), shell color, stripe and logo, and helmets adapt to school colors.
-- **Unlocks:**
-  - Achievements award trophy gear.
-  - Rare drops come with a reveal animation.
-  - Beating a school unlocks its collection.
-  - Championships unlock the championship set (1 title → gloves, 2 → visor, 3 → Dynasty cleats, 5 → GOAT helmet).
-- **In gameplay:** players are drawn as layered sprites, so equipped gear is visible on the field, including on CPU teams.
-  - Visors, sleeves, bands, gloves, towels, spats, cleats and helmet models all show.
-  - CPU and exhibition teams get position-based auto drip with a style personality.
-- **GAME DAY FIT** appears before each dynasty game, with theme suggestions for rivalry, playoff and title games.
-- **Saves:** the locker is saved with the dynasty.
+- **Bowl Bucks (BB)** are earned only by playing dynasty games.
+  - The rewards screen itemizes every line.
+  - Each completed game pays exactly once, keyed by season and game id, so reloads and revisits never pay again.
+  - A new dynasty starts with 300 BB, and a typical win pays 250–700 BB.
+- **Exact supplied products:** the shop's **Helmets** and **Shoulder Pads** categories are the eight products from the correction pack. Each shows its supplied image unchanged on a white panel, with `object-fit: contain`.
+
+  | Item | Category | Rarity | Price |
+  | --- | --- | --- | --- |
+  | SPEEDFLEX | Helmet | Epic | 1,500 BB |
+  | F7 | Helmet | Rare | 1,000 BB |
+  | VICIS ZERO2 | Helmet | Legendary | 2,000 BB |
+  | VICIS ZERO2 TRENCH | Helmet | Legendary | 2,250 BB |
+  | X-FLEX PADS | Shoulder Pads | Epic | 1,250 BB |
+  | VICIS ELITE PADS | Shoulder Pads | Legendary | 2,000 BB |
+  | BATTLE PADS | Shoulder Pads | Rare | 750 BB |
+  | 2-IN-1 PADS | Shoulder Pads | Common | 400 BB |
+
+  - Everyone starts with a team-issued helmet and pads, which are not sold.
+  - Source-to-destination mappings and hashes are in `src/assets/registry.ts` and `docs/ASSET_AUDIT.md`.
+- **In game**, each product becomes its own low-res layer:
+  - Helmets are team-colored shells. Each model has its own side, front and back profile, panel cuts and facemask shape.
+  - Pads change the shoulder silhouette under the jersey; they are never drawn exposed.
+- **Other gear:** visors, sleeves, bands, gloves, towels, spats/tape, cleats and accessories stay attached to their joints in every frame.
+- **Purchases** check funds, deduct once, block duplicates and save immediately. One purchase unlocks the style for any number of roster players.
+- **Save migration:** the save schema is versioned (`locker.gearSchema`).
+  - Before migrating, older saves are backed up raw (`lcps-bowl:backup:<slot>:gear-v1`).
+  - Earlier invented helmets map to a supplied model only where there was a clear match (Flex Panel → SPEEDFLEX, Faceted → F7, Smooth Zero → ZERO2, Trench → ZERO2 TRENCH).
+  - Anything else is kept as a legacy record and is never sold.
+- **LOCKER** has five sections:
+  - **SHOP:** helmets, shoulder pads, finishes and the other gear categories, plus school collections and Friday Night Drops.
+  - **MY GEAR**
+  - **CUSTOMIZE PLAYER**
+  - **COLLECTION:** achievements, trophy gear and drops.
+  - **TEAM THEMES**
+- **GAME DAY FIT** appears before each dynasty game.
+
+## Characters and animation
+
+Players are drawn by one layered pixel rig (`src/gear/rig/`), built from `Character_Motion_Guide.png`, `IMG_3755.png` and the techpack (`docs/correction-pack/`).
+
+- **Grid:** a 48×48 cell with its origin at (24, 42), drawn nearest-neighbor at integer scale.
+- **Builds:** three builds share one pixel grid and helmet size.
+  - **SKILL:** QB, WR, CB, S, K. Front shoulders 15 px.
+  - **HYBRID:** RB, LB, TE. Front shoulders 17 px.
+  - **LINEMAN:** OL, DL. Front shoulders 22 px.
+- **Directions:** right, left, toward the camera and away from it. Numbers and school marks are never mirrored, and left/right gear stays on the anatomical side.
+- **Actions:** all 31 techpack actions, with their frame counts, fps, loop modes, next states and zero-based event frames (`src/gear/rig/spec.ts`).
+- **Gameplay director:** `src/game/render/anim.ts` picks actions from the play simulation and its confirmed events, including snap, handoff, throw, catch, interception, tackle, sack, kick, shed, juke, spin, stiff arm and dive. Animations never award a catch, turnover or score on their own.
+- **Football:** there is exactly one football. It sits at the holder's grip anchor and flies on its own after release.
+- **ANIMATION LAB** (main menu footer) previews every action, frame, build, direction and helmet/pad pair, with anchor overlays.
 
 ## Team logos
 
@@ -138,12 +168,14 @@ src/
                Plays (playbook/formations/routes), players, Lineup, Bot, render/, input/, audio/
   dynasty/     Season (orchestrator), Schedule, Standings, Rankings, Playoffs, Development, Awards,
                Records, Events, Stories, DynastyApp/DynastyPages (UI)
-  gear/        Bowl Bucks economy, gear catalog, look resolver, layered player sprite, Locker/Shop/Rewards UI
+  gear/        Bowl Bucks economy, gear catalog, look resolver, Locker/Shop/Rewards UI
+  gear/rig/    character rig: spec (actions/timing/events), poses, rasterizer, helmet & pad layers, canvas cache
+  assets/      registry of the supplied correction-pack files (paths + SHA-256)
   data/        teams, fictional name pools
   screens/     MainMenu, Exhibition, GameScreen, Settings, TeamDatabase, RecordBook
   components/  shared UI (logos, play diagrams, box score)
   save/        settings + IndexedDB save slots
-public/assets/ teams/, audio/ (optional real assets)
+public/assets/ teams/<id>/logo.png (supplied official logos), gear/ (supplied product art), sprites/ (exported atlases), reference/
 tests/         Vitest
 scripts/       sims, audits, browser playtests
 ```
