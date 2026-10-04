@@ -2,13 +2,14 @@ import { useEffect, useMemo, useRef, useState } from 'react';
 import { GameSession, type GameConfig, type GameResult } from '../game/GameSession';
 import { Renderer, VIEW_W, VIEW_H, type Atmosphere } from '../game/render/Renderer';
 import { InputState } from '../game/input/Input';
+import { TouchControls } from '../game/input/Touch';
 import { Sound, type SoundName } from '../game/audio/Sound';
 import { clockText, downText, yardLineText, other, type Side } from '../game/Rules';
 import { OFFENSE_PLAYS, PLAY_CATEGORIES, DEF_FORMATIONS, COVERAGES, COVERAGE_DESC, type PlayCategory, type DefFormationId, type Coverage } from '../game/Plays';
 import { fgDistance, fgProbability } from '../game/Coach';
 import { TeamLogo, PlayDiagram, Btn } from '../components/common';
 import { BoxScore } from '../components/BoxScore';
-import { getSettings } from '../save/settings';
+import { getSettings, useSettings } from '../save/settings';
 
 export interface IntroInfo {
   title: string; // e.g. FRIDAY NIGHT
@@ -34,6 +35,11 @@ export function GameScreen({ config, atmosphere, intro, onExit, story }: Props) 
   const session = useMemo(() => new GameSession(config), [config]);
   const renderer = useMemo(() => new Renderer(atmosphere), [atmosphere]);
   const input = useMemo(() => new InputState(), []);
+  const touch = useMemo(() => new TouchControls(() => ({ session, renderer })), [session, renderer]);
+  const retro = useSettings().controls === 'retro';
+  const retroRef = useRef(retro);
+  retroRef.current = retro;
+  renderer.retro = retro;
   const [, setTick] = useState(0);
   const [showIntro, setShowIntro] = useState(true);
   const [paused, setPaused] = useState(false);
@@ -46,6 +52,9 @@ export function GameScreen({ config, atmosphere, intro, onExit, story }: Props) 
   // Main loop
   useEffect(() => {
     input.attach();
+    touch.attach(canvasRef.current!);
+    renderer.touch = touch;
+    renderer.retro = retroRef.current;
     Sound.startCrowd(atmosphere.championship ? 0.6 : atmosphere.playoff || atmosphere.rivalry ? 0.5 : 0.32);
     const ctx = canvasRef.current!.getContext('2d')!;
     if (import.meta.env.DEV) (window as unknown as { __lcps?: unknown }).__lcps = { session, renderer };
@@ -59,7 +68,7 @@ export function GameScreen({ config, atmosphere, intro, onExit, story }: Props) 
       raf = requestAnimationFrame(loop);
       let dt = Math.min(0.1, (now - last) / 1000);
       last = now;
-      const ui = input.takeUi();
+      const ui = [...input.takeUi(), ...touch.takeUi()];
       if (ui.includes('pause') && !introRef.current) setPaused((p) => !p);
       if (introRef.current) {
         if (ui.includes('continue') || ui.includes('snap')) { setShowIntro(false); session.start(); Sound.play('whistle'); }
@@ -75,7 +84,8 @@ export function GameScreen({ config, atmosphere, intro, onExit, story }: Props) 
       const step = 1 / 60;
       let first = true;
       while (acc >= step) {
-        const ci = first ? input.control() : { ...input.control(), juke: 0 as const, spin: false, dive: false, throwTo: null, throwAway: false, switchPlayer: false, action: false, give: false };
+        const ci0 = first ? input.control() : { ...input.control(), juke: 0 as const, spin: false, dive: false, throwTo: null, throwAway: false, switchPlayer: false, action: false, give: false };
+        const ci = retroRef.current ? touch.control(ci0) : ci0;
         session.update(step, ci);
         acc -= step;
         first = false;
@@ -126,9 +136,10 @@ export function GameScreen({ config, atmosphere, intro, onExit, story }: Props) 
     return () => {
       cancelAnimationFrame(raf);
       input.detach();
+      touch.detach();
       Sound.stopCrowd();
     };
-  }, [session, renderer, input, atmosphere, config]);
+  }, [session, renderer, input, touch, atmosphere, config]);
 
   const g = session.g;
   const home = config.home.info;
@@ -150,11 +161,13 @@ export function GameScreen({ config, atmosphere, intro, onExit, story }: Props) 
         <Banners s={session} />
         {showIntro && <IntroOverlay s={session} intro={intro} />}
         {!showIntro && !paused && session.phase === 'playcall' && us && (
-          g.phase === 'kickoff' ? <KickoffCall s={session} /> : role === 'O' ? <OffenseCall s={session} /> : <DefenseCall s={session} />
+          retro ? <RetroCall s={session} /> : g.phase === 'kickoff' ? <KickoffCall s={session} /> : role === 'O' ? <OffenseCall s={session} /> : <DefenseCall s={session} />
         )}
         {!showIntro && !paused && session.phase === 'pat_choice' && <PatChoice s={session} />}
-        {!showIntro && !paused && session.phase === 'kick_meter' && <KickMeterView s={session} />}
-        {!showIntro && !paused && (session.phase === 'presnap' || session.phase === 'live') && <Hints s={session} />}
+        {!showIntro && !paused && session.phase === 'kick_meter' && (retro ? <RetroKickView s={session} touch={touch} /> : <KickMeterView s={session} />)}
+        {!showIntro && !paused && (session.phase === 'presnap' || session.phase === 'live') && (retro ? <RetroHints s={session} touch={touch} /> : <Hints s={session} />)}
+        {!showIntro && !paused && retro && (session.phase === 'post' || session.phase === 'kick_anim') && <div className="hint pixel">TAP TO CONTINUE</div>}
+        {!showIntro && session.phase !== 'final' && <button className="pause-btn" aria-label="Pause" onClick={() => setPaused((p) => !p)}>{paused ? '▶' : 'II'}</button>}
         {!showIntro && session.phase === 'break' && <BreakOverlay s={session} />}
         {session.phase === 'final' && <FinalOverlay s={session} story={story?.(session) ?? null} onDone={() => onExit(session.result(), session)} />}
         {paused && session.phase !== 'final' && (
@@ -172,9 +185,10 @@ export function GameScreen({ config, atmosphere, intro, onExit, story }: Props) 
           </div>
         )}
       </div>
+      <div className="rotate-hint"><div className="phone" /><div>TURN YOUR PHONE SIDEWAYS<br />TO PLAY</div></div>
       <div className="game-footer">
         <span>{away.shortName} @ {home.shortName}</span>
-        <span className="dim">ESC pause · ENTER continue · T timeout</span>
+        <span className="dim">{retro ? 'TAP snap · DRAG BACK throw · SWIPE juke/dive' : 'ESC pause · ENTER continue · T timeout'}</span>
       </div>
     </div>
   );
@@ -260,7 +274,7 @@ function IntroOverlay({ s, intro }: { s: GameSession; intro: IntroInfo }) {
         <div className="intro-meta">{weatherLabel(s.cfg.weather)} · {s.cfg.difficulty} · {Math.round(s.cfg.quarterLen / 60)}-MIN QUARTERS</div>
         {intro.series && <div className="intro-meta gold">{intro.series}</div>}
         {intro.pa && <div className="intro-pa">“{intro.pa}”</div>}
-        <div className="press pixel blink">PRESS ENTER TO KICK OFF</div>
+        <div className="press pixel blink">TAP OR PRESS ENTER TO KICK OFF</div>
       </div>
     </div>
   );
@@ -486,7 +500,7 @@ function BreakOverlay({ s }: { s: GameSession }) {
           <span>{s.cfg.away.info.shortName} {g.score.away}</span>
           <span>{s.cfg.home.info.shortName} {g.score.home}</span>
         </div>
-        <div className="dim">PRESS ENTER</div>
+        <div className="dim">TAP OR PRESS ENTER</div>
       </div>
     </div>
   );
@@ -539,3 +553,85 @@ export function ControlsHelp() {
 }
 
 void getSettings;
+
+// ---------------------------------------------------------------- Retro Bowl-style controls
+
+/** No playbook (like Retro Bowl): downs 1–3 and two-point tries call a pass play for you; 4th down asks GO / PUNT / FG. */
+function RetroCall({ s }: { s: GameSession }) {
+  const g = s.g;
+  const fourth = g.phase === 'scrimmage' && g.down === 4;
+  const auto = g.phase === 'kickoff' || !fourth;
+  useEffect(() => {
+    if (!auto || s.phase !== 'playcall') return;
+    const t = setTimeout(() => {
+      if (s.phase !== 'playcall') return;
+      if (g.phase === 'kickoff') { s.userKickoff(false); return; }
+      s.userCallOffense(retroPassPlay(s).id);
+    }, 250);
+    return () => clearTimeout(t);
+  }, [auto, s, g.phase, g.down, g.ballOn]);
+  if (auto) return null;
+  const fgD = fgDistance(g.ballOn);
+  const fgP = fgProbability(fgD, s.depth[g.possession], s.cfg.weather);
+  return (
+    <div className="overlay center-overlay retro-call">
+      <div className="modal">
+        <h2 className="pixel">4TH &amp; {g.toGo >= 100 - g.ballOn ? 'GOAL' : Math.max(1, Math.round(g.toGo))}</h2>
+        <div className="dim small">{situation(s)}</div>
+        <div className="retro-choices">
+          <button className="retro-btn go" onClick={() => s.userCallOffense(retroPassPlay(s).id)}>GO FOR IT</button>
+          {!g.ot && <button className="retro-btn" onClick={() => s.userCallOffense('punt')}>PUNT</button>}
+          {fgD <= 62 && <button className="retro-btn" onClick={() => s.userCallOffense('fg')}>FIELD GOAL<small>{fgD} YDS · {Math.round(fgP * 100)}%</small></button>}
+        </div>
+      </div>
+    </div>
+  );
+}
+
+function retroPassPlay(s: GameSession) {
+  const g = s.g;
+  const pool = OFFENSE_PLAYS.filter((p) => p.kind === 'pass' && !p.playAction);
+  const short = g.toGo <= 4 || g.phase === 'pat';
+  const pick = pool.filter((p) => (short ? (p.drop ?? 5) <= 5 : true));
+  const list = pick.length ? pick : pool;
+  return list[Math.floor(Math.random() * list.length)];
+}
+
+function RetroHints({ s, touch }: { s: GameSession; touch: TouchControls }) {
+  const sim = s.sim;
+  if (!sim) return null;
+  const role = sim.setup.userTeam;
+  let text = '';
+  if (!sim.snapped) {
+    if (role === 'O' && sim.setup.kind === 'scrimmage') text = 'TAP TO SNAP';
+    else if (sim.setup.kind === 'kickoff' && role === 'D') text = 'TAP TO START THE KICKOFF';
+    else if (sim.setup.kind === 'punt' && role === 'O') text = 'TAP TO PUNT';
+    else if (role === null && s.cfg.userSide) text = 'DEFENSE ON THE FIELD…';
+  } else {
+    const ctx = touch.context();
+    if (ctx === 'qb') text = 'DRAG BACK TO AIM · RELEASE TO THROW · SWIPE FORWARD TO RUN';
+    else if (ctx === 'carrier') text = 'SWIPE ↑ ↓ TO JUKE · SWIPE FORWARD TO DIVE · HOLD + DRAG TO STEER';
+    else if (sim.setup.kind === 'punt' && role === 'D' && sim.ball.state === 'air') text = 'TAP = FAIR CATCH';
+    else if (role === null && s.cfg.userSide) text = 'DEFENSE ON THE FIELD…';
+  }
+  if (!text) return null;
+  return <div className="hint pixel retro-hint">{text}</div>;
+}
+
+function RetroKickView({ s, touch }: { s: GameSession; touch: TouchControls }) {
+  const k = s.kick;
+  if (!k) return null;
+  const kpow = s.depth[s.g.possession].K[0]?.attrs.kpow ?? 50;
+  const need = Math.min(1, (k.distance - 4) / (32 + kpow * 0.3));
+  const aim = touch.kickAim;
+  return (
+    <div className="overlay kick-meter retro-kick">
+      <div className="km-title pixel">{k.kind === 'xp' ? 'EXTRA POINT' : `${k.distance}-YARD FIELD GOAL`}</div>
+      <div className="km-power">
+        <div className="km-power-fill" style={{ width: `${(aim?.power ?? 0) * 100}%`, background: aim && aim.power >= need ? '#4cd964' : undefined }} />
+        <div className="km-need" style={{ left: `${need * 100}%` }} />
+      </div>
+      <div className="km-help pixel">PULL BACK PAST THE LINE · UP/DOWN TO AIM · RELEASE TO KICK</div>
+    </div>
+  );
+}

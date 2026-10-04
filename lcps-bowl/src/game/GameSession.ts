@@ -401,7 +401,25 @@ export class GameSession {
       k.t = 0;
       return;
     }
-    if (k.stage === 'power') {
+    if (k.stage === 'power') this.resolveKick();
+  }
+
+  /**
+   * Retro-style kick: drag back and release. aim -2..2 (left/right of center; |aim| > ~1 hooks wide), power 0..1 (drag length).
+   * Uses the same kicker-rating math as the meter.
+   */
+  kickSwipe(aim: number, power: number) {
+    const k = this.kick;
+    if (!k || this.phase !== 'kick_meter' || k.stage === 'done') return;
+    k.aim = Math.max(-2, Math.min(2, aim));
+    k.power = Math.max(0, Math.min(1, power));
+    this.resolveKick();
+  }
+
+  private resolveKick() {
+    const k = this.kick;
+    if (!k) return;
+    {
       k.stage = 'done';
       const g = this.g;
       const kicker = this.depth[g.possession].K[0];

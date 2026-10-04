@@ -147,8 +147,8 @@ h4 { font-family: var(--pixel); font-size: 10px; color: var(--gold); margin: 10p
 .db-cols { display: grid; grid-template-columns: 1fr 1fr; gap: 20px; padding: 14px 20px; }
 
 /* ---------- Game ---------- */
-.game-root { height: 100vh; display: flex; flex-direction: column; align-items: center; justify-content: center; background: #000; overflow: hidden; }
-.game-wrap { position: relative; width: min(100vw, calc((100vh - 26px) * 1.6)); aspect-ratio: 16 / 10; container-type: inline-size; }
+.game-root { height: 100vh; height: 100dvh; display: flex; flex-direction: column; align-items: center; justify-content: center; background: #000; overflow: hidden; }
+.game-wrap { position: relative; width: min(100vw, calc((100dvh - 26px) * 1.6)); aspect-ratio: 16 / 10; container-type: inline-size; }
 .game-canvas { width: 100%; height: 100%; image-rendering: pixelated; display: block; }
 .game-footer { display: flex; justify-content: space-between; width: min(100vw, calc((100vh - 26px) * 1.6)); font-family: var(--pixel); font-size: 8px; padding: 6px 8px; color: #aab; }
 .overlay { position: absolute; inset: 0; pointer-events: none; }
@@ -637,3 +637,67 @@ tr.me td { background: rgba(255, 216, 74, 0.08); }
 .lab-meta { width: 150px; display: flex; flex-direction: column; font: 10px var(--pixel); color: #fff; gap: 3px; align-self: center; }
 .lab-frame { display: flex; flex-direction: column; align-items: center; font: 8px monospace; color: #eaffd8; }
 .lab-cell { image-rendering: pixelated; background: rgba(255,255,255,0.06); }
+
+/* ---------- Mobile / touch (Retro controls) ---------- */
+html, body { overscroll-behavior: none; -webkit-tap-highlight-color: transparent; }
+.game-root, .game-canvas { touch-action: none; user-select: none; -webkit-user-select: none; -webkit-touch-callout: none; }
+.game-root { padding: env(safe-area-inset-top) env(safe-area-inset-right) env(safe-area-inset-bottom) env(safe-area-inset-left); }
+.pause-btn { position: absolute; top: 1cqw; left: 1cqw; z-index: 6; width: 4.2cqw; height: 4.2cqw; min-width: 34px; min-height: 34px; border-radius: 0.8cqw; border: 2px solid rgba(255,255,255,0.6); background: rgba(0,0,0,0.55); color: #fff; font: 1.3cqw var(--pixel); display: flex; align-items: center; justify-content: center; }
+.retro-hint { font-size: 1.15cqw; bottom: 1.6cqw; }
+.retro-call { pointer-events: auto; }
+.retro-choices { display: flex; gap: 1.2cqw; justify-content: center; margin-top: 1.4cqw; flex-wrap: wrap; }
+.retro-btn { min-width: 16cqw; min-height: 6cqw; padding: 1cqw 1.6cqw; border-radius: 0.8cqw; border: 2px solid #fff; background: #1b2a66; color: #fff; font: 1.4cqw var(--pixel); display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 0.5cqw; }
+.retro-btn.go { background: #c8102e; }
+.retro-btn small { font: 0.9cqw var(--pixel); color: #ffe27a; }
+.retro-kick .km-help { font-size: 1cqw; }
+.rotate-hint { display: none; }
+@media (orientation: portrait) and (max-width: 900px) {
+  .game-root .rotate-hint { display: flex; position: fixed; inset: 0; z-index: 50; background: #05081a; color: #fff; flex-direction: column; align-items: center; justify-content: center; gap: 18px; font: 14px var(--pixel); text-align: center; padding: 24px; line-height: 1.8; }
+  .rotate-hint .phone { width: 46px; height: 76px; border: 4px solid #ffd84a; border-radius: 8px; animation: rotatePhone 1.6s ease-in-out infinite; }
+}
+@keyframes rotatePhone { 0%, 30% { transform: rotate(0deg); } 60%, 100% { transform: rotate(-90deg); } }
+@media (max-height: 520px) { .game-footer { display: none; } .game-wrap { width: min(100vw, calc(100dvh * 1.6)); } }
+
+/* Menus and dynasty screens on phones */
+@media (max-width: 900px), (max-height: 520px) {
+  body { font-size: 14px; }
+  .menu-content { padding: 18px 20px; gap: 14px; }
+  .title { font-size: clamp(30px, 9vh, 64px); margin: 6px 0; }
+  .menu-list { gap: 6px; }
+  .menu-item { min-width: 220px; padding-top: 9px; padding-bottom: 9px; }
+  .dyn-tabs { flex-wrap: nowrap; overflow-x: auto; -webkit-overflow-scrolling: touch; padding: 4px 8px; scrollbar-width: none; }
+  .dyn-tabs::-webkit-scrollbar { display: none; }
+  .dyn-tab { flex: none; }
+  .shop-tabs, .shop-filters, .locker-nav { flex-wrap: nowrap; overflow-x: auto; scrollbar-width: none; }
+  .shop-tab, .chip, .locker-tab { flex: none; }
+  table { display: block; overflow-x: auto; }
+  .modal, .item-detail { max-width: 96vw; max-height: 92dvh; overflow: auto; }
+  .item-detail { grid-template-columns: 1fr; }
+  .product-panel img { max-width: 100%; }
+  .locker-head { flex-wrap: wrap; }
+  .locker-room { max-width: 100%; height: auto; }
+  button, .btn { min-height: 34px; }
+}
+/* Informational overlays never swallow taps: they fall through to the field (tap = continue / snap) */
+.intro, .intro *, .center-overlay.soft, .center-overlay.soft *, .banner, .banner *, .scoreboard, .scoreboard *, .hint { pointer-events: none !important; }
+
+@media (max-height: 520px) {
+  .menu-content { flex-direction: row; align-items: center; justify-content: space-between; padding: 14px 4vw; gap: 4vw; height: 100dvh; }
+  .menu-list { display: grid; grid-template-columns: repeat(2, minmax(170px, 1fr)); gap: 8px; align-items: stretch; }
+  .menu-item { min-width: 0; font-size: 12px; padding: 12px 14px; }
+  .menu-foot { position: absolute; bottom: 8px; left: 4vw; right: 4vw; }
+  .title-block .subtitle { font-size: 13px; }
+}
+/* Phone landscape: exhibition/setup screens stay compact; the KICK OFF button stays reachable */
+@media (max-height: 520px) and (min-width: 600px) {
+  .screen-head { padding: 8px 14px; }
+  .matchup { grid-template-columns: 1fr 90px 1fr; gap: 10px; padding: 10px 14px; }
+  .matchup .team-logo { width: 54px !important; height: 54px !important; }
+  .mu-name { font-size: 11px; }
+  .team-picker { grid-template-columns: repeat(9, 1fr); gap: 3px; }
+  .tp-item { padding: 3px 1px; font-size: 6px; }
+  .tp-item .team-logo { width: 22px !important; height: 22px !important; }
+  .options-grid { grid-template-columns: 1fr 1fr; padding: 0 14px; gap: 6px 14px; }
+  .setup-go { position: sticky; bottom: 8px; z-index: 4; margin: 10px 0; }
+  .setup-go .btn { padding: 12px 30px; }
+}

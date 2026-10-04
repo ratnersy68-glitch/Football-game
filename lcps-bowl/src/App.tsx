@@ -12,7 +12,7 @@ import type { Atmosphere } from './game/render/Renderer';
 import { generateRoster } from './game/players';
 import { RNG } from './game/rng';
 import { isRivalry, rivalryName } from './data/teams';
-import { getSettings } from './save/settings';
+import { simDefenseOn } from './save/settings';
 import { listSaves, lastSlot } from './save/storage';
 import type { TeamInfo } from './game/types';
 import { buildStory } from './dynasty/Stories';
@@ -53,7 +53,7 @@ export function App() {
       quarterLen: c.quarterLen,
       weather: c.weather,
       timeOfDay: c.timeOfDay,
-      simDefense: getSettings().simDefense,
+      simDefense: simDefenseOn(),
       rivalry: rival,
     };
     const atmo: Atmosphere = { timeOfDay: c.timeOfDay, weather: c.weather, crowd: rival ? 0.95 : 0.75, rivalry: rival, playoff: false, championship: false };

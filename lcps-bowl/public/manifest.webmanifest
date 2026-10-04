@@ -1,0 +1,12 @@
+{
+  "name": "LCPS Bowl",
+  "short_name": "LCPS Bowl",
+  "description": "Friday Nights. Loudoun County. One Champion.",
+  "start_url": "./",
+  "scope": "./",
+  "display": "fullscreen",
+  "orientation": "landscape",
+  "background_color": "#05081a",
+  "theme_color": "#0b1f45",
+  "icons": [{ "src": "assets/teams/stone-bridge/logo.png", "sizes": "1200x1200", "type": "image/png", "purpose": "any" }]
+}

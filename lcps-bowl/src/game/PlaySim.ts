@@ -27,6 +27,8 @@ export interface ControlInput {
   dive: boolean;
   stiff: boolean; // stiff arm (ball carrier)
   throwTo: number | null;
+  /** Retro-style slingshot throw: aim at a field spot (sim coordinates). */
+  throwAt?: { x: number; y: number } | null;
   throwAway: boolean;
   switchPlayer: boolean;
   action: boolean; // primary action pressed this frame (space)
@@ -718,7 +720,9 @@ export class PlaySim {
       if (play.kind === 'pass' && play.playAction && rb && this.t >= 0.7 && rb.role === 'carry') rb.role = 'pblock';
       // User throws
       if (s.userTeam === 'O' && play.kind === 'pass' && !this.pastLos) {
-        if (input.throwTo != null && this.t > 0.2) {
+        if (input.throwAt && this.t > 0.2) {
+          this.throwAt(qb, input.throwAt.x, input.throwAt.y);
+        } else if (input.throwTo != null && this.t > 0.2) {
           const tgt = this.actors.find((a) => a.team === 'O' && a.number === input.throwTo && a.role === 'route');
           if (tgt) this.throwTo(qb, tgt);
         } else if (input.throwAway && this.t > 0.2) {
@@ -853,6 +857,56 @@ export class PlaySim {
       if (df.role === 'man' || df.role === 'zone' || df.role === 'pursue') df.role = 'ballhawk';
     }
     tgt.role = 'route';
+  }
+
+  /**
+   * Throw to a spot the player aimed at (drag back, release). The receiver who can get there first goes for it;
+   * nobody is guaranteed the ball: arrival is resolved by whoever is in reach, exactly like targeted throws.
+   */
+  throwAt(qb: Actor, x: number, y: number) {
+    if (this.passThrown || this.ball.holder !== qb.idx) return;
+    const a = qb.p.attrs;
+    const speed = 16 + a.arm * 0.1;
+    const spot = { x: Math.min(x, 112), y: clamp(y, -2, FIELD_W + 2) };
+    const d = dist(qb, spot);
+    const ft = d / speed + (d > 22 ? 0.35 : d > 12 ? 0.15 : 0.05);
+    let tgt: Actor | null = null;
+    let best = Infinity;
+    let tgtAt: Vec | null = null;
+    for (const r of this.actors) {
+      if (r.team !== 'O' || r.idx === qb.idx || r.down || (r.role !== 'route' && r.role !== 'carry' && r.role !== 'pblock')) continue;
+      const at = this.predict(r, ft);
+      const score = dist(at, spot) + (r.role === 'route' ? 0 : 3);
+      if (score < best) { best = score; tgt = r; tgtAt = at; }
+    }
+    // Light aim assist (Retro Bowl-style forgiveness): a throw near where a receiver will be bends toward him
+    if (tgt && tgtAt && best < 6) {
+      const k = best < 3 ? 0.75 : 0.5;
+      spot.x += (tgtAt.x - spot.x) * k;
+      spot.y += (tgtAt.y - spot.y) * k;
+    }
+    // Manual aim: smaller random error than auto-targeted throws, still pressure/arm/weather dependent
+    const pressure = this.pressureOn(qb);
+    const moving = Math.hypot(qb.vx, qb.vy) > 2.5 ? 1 : 0;
+    const weather = this.setup.weather === 'rain' ? 1.2 : this.setup.weather === 'snow' ? 1.25 : this.setup.weather === 'wind' ? 1.15 : 1;
+    const armPenalty = d > 20 + a.arm * 0.3 ? (d - (20 + a.arm * 0.3)) * 0.12 : 0;
+    const err = ((1.32 - a.accu / 100) * (0.3 + d * 0.06) * (1 + pressure * 1.1 + moving * 0.45) * 0.5 + armPenalty) * weather;
+    spot.x += this.rng.normal(0, err * 0.85);
+    spot.y += this.rng.normal(0, err);
+    this.launch(qb, spot.x, spot.y, ft, Math.min(9, 1 + d * 0.18), 'pass', tgt ? tgt.idx : -1);
+    this.passThrown = true;
+    this.passer = qb.idx;
+    this.passTarget = tgt ? tgt.idx : -1;
+    this.airYds = spot.x - this.setup.los;
+    qb.role = 'idle';
+    this.events.push({ t: 'throw', qb: qb.idx, target: tgt ? tgt.idx : -1, airYds: this.airYds });
+    const skill = this.setup.skill.D;
+    for (const df of this.actors) {
+      if (df.team !== 'D' || df.role === 'rush') continue;
+      df.reactT = 0.12 + (1 - skill) * 0.28 + (100 - df.p.attrs.awr) * 0.003;
+      if (df.role === 'man' || df.role === 'zone' || df.role === 'pursue') df.role = 'ballhawk';
+    }
+    if (tgt) tgt.role = 'route';
   }
 
   throwAway(qb: Actor) {

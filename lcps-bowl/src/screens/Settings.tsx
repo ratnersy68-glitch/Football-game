@@ -32,7 +32,15 @@ export function SettingsScreen({ onBack }: { onBack: () => void }) {
             <div className="seg">{[120, 180, 300, 480].map((q) => <button key={q} className={s.quarterLen === q ? 'on' : ''} onClick={() => setSettings({ quarterLen: q })}>{q / 60} MIN</button>)}</div>
           </div>
           <div className="opt">
-            <span className="opt-label">DEFENSIVE SNAPS</span>
+            <span className="opt-label">CONTROLS</span>
+            <div className="seg">
+              <button className={s.controls === 'retro' ? 'on' : ''} onClick={() => setSettings({ controls: 'retro' })}>RETRO (TOUCH)</button>
+              <button className={s.controls === 'classic' ? 'on' : ''} onClick={() => setSettings({ controls: 'classic' })}>CLASSIC (KEYBOARD)</button>
+            </div>
+            <p className="dim small">RETRO plays like Retro Bowl. Tap to snap, drag back from anywhere to aim and release to throw. Your runner goes forward on his own: swipe up or down to juke and swipe forward to dive. You play offense, and the defense is simulated. CLASSIC has the full playbook, keyboard moves and playable defense.</p>
+          </div>
+          <div className="opt" style={s.controls === 'retro' ? { opacity: 0.45 } : undefined}>
+            <span className="opt-label">DEFENSIVE SNAPS{s.controls === 'retro' ? ' (AUTO-SIM IN RETRO)' : ''}</span>
             <div className="seg">
               <button className={!s.simDefense ? 'on' : ''} onClick={() => setSettings({ simDefense: false })}>PLAY THEM</button>
               <button className={s.simDefense ? 'on' : ''} onClick={() => setSettings({ simDefense: true })}>AUTO-SIM (FAST)</button>

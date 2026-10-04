@@ -60,6 +60,10 @@ export class Renderer {
   private time = 0;
   /** Visual-only animation state machine (reads PlaySim + its events). */
   readonly anim = new AnimDirector();
+  /** Retro touch controls (aim / kick previews are drawn on the field). */
+  touch?: import('../input/Touch').TouchControls;
+  /** Retro controls: no receiver number icons (you aim at a spot instead). */
+  retro = false;
   /** Last drawn anchors per actor (tests / debugging). */
   readonly lastAnchors = new Map<number, import('../../gear/rig/raster').Anchors>();
   private frameDt = 1 / 60;
@@ -645,9 +649,32 @@ export class Renderer {
     } else if (!sim.snapped && sim.setup.kind === 'scrimmage') {
       drawBall(ctx, this.sx(sim.setup.los - 0.2), this.sy(sim.setup.ballY) - 1, 0);
     }
+    // Retro slingshot aim: dotted arc from the QB to the landing reticle
+    const aim = this.touch?.aimTarget;
+    if (aim && sim.qbIdx >= 0) {
+      const qb = sim.actors[sim.qbIdx];
+      const x0 = this.sx(qb.x), y0 = this.sy(qb.y) - 20;
+      const x1 = this.sx(aim.x), y1 = this.sy(aim.y);
+      const d = Math.hypot(x1 - x0, y1 - y0);
+      const arc = Math.min(46, d * 0.28);
+      const n = Math.max(6, Math.floor(d / 7));
+      for (let i = 1; i < n; i++) {
+        const t = i / n;
+        const x = x0 + (x1 - x0) * t, y = y0 + (y1 - y0) * t - arc * 4 * t * (1 - t);
+        ctx.fillStyle = i % 2 ? 'rgba(255,255,255,0.9)' : 'rgba(255,228,74,0.9)';
+        ctx.fillRect(Math.round(x) - 1, Math.round(y) - 1, 2, 2);
+      }
+      ctx.strokeStyle = '#ffe44a';
+      ctx.lineWidth = 1;
+      ctx.beginPath();
+      ctx.ellipse(Math.round(x1) + 0.5, Math.round(y1) + 0.5, 7, 3, 0, 0, Math.PI * 2);
+      ctx.stroke();
+      ctx.fillStyle = '#ffe44a';
+      ctx.fillRect(Math.round(x1) - 1, Math.round(y1), 3, 1);
+    }
     // Receiver icons (human offense, pass play, before the throw)
     const play = sim.setup.offPlay;
-    if (userTeam === 'O' && play && (play.kind === 'pass' || play.kind === 'option') && !sim.passThrown && !sim.pastLos && !sim.done && (play.kind === 'pass' || !sim.handedOff)) {
+    if (!this.retro && userTeam === 'O' && play && (play.kind === 'pass' || play.kind === 'option') && !sim.passThrown && !sim.pastLos && !sim.done && (play.kind === 'pass' || !sim.handedOff)) {
       for (const a of sim.actors) {
         if (a.number == null || a.team !== 'O') continue;
         if (play.kind === 'option' && sim.t > 0.85) continue;
@@ -707,6 +734,20 @@ export class Renderer {
       drawRig(ctx, Math.round(this.sx(spotX - (ka && ka.t > 0.15 ? 0.5 : 2))), Math.round(hy + 4), kl('k'), 'skill', 'right', 'kick', kf);
       for (let i = -3; i <= 3; i++) {
         drawRig(ctx, Math.round(this.sx(spotX + 7)), Math.round(this.sy(CENTER_Y + i * 1.3)), kl('ol' + i), 'lineman', 'right', 'block', 3);
+      }
+      // Retro kick aim preview (pull back = power, up/down = aim)
+      const kaim = this.touch?.kickAim;
+      if (s.phase === 'kick_meter' && kaim) {
+        const kpow = s.depth[s.g.possession].K[0]?.attrs.kpow ?? 50;
+        const carry = kaim.power * (32 + kpow * 0.3) + 4;
+        const n = 14;
+        for (let i = 1; i <= n; i++) {
+          const t = i / n;
+          const x = this.sx(spotX + carry * t);
+          const y = this.sy(CENTER_Y + kaim.aim * 3.89 * 1.6 * t) - 4 * 26 * t * (1 - t) * (0.4 + kaim.power);
+          ctx.fillStyle = carry >= dist ? '#4cd964' : '#ffe44a';
+          ctx.fillRect(Math.round(x) - 1, Math.round(y) - 1, 2, 2);
+        }
       }
       if (ka) {
         const f = Math.min(1, ka.t / ka.dur);

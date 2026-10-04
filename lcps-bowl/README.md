@@ -35,6 +35,30 @@ npm run dev        # → http://localhost:5173
 
 ## Controls
 
+### Retro controls (default; phones, tablets, mouse)
+
+LCPS Bowl is built for phones held sideways. The default **RETRO** scheme plays like Retro Bowl.
+
+| Gesture | Action |
+| --- | --- |
+| Tap | Snap the ball · continue after a play · fair catch on a punt |
+| Drag back from anywhere, then release | Throw. It works like a slingshot: the ball goes the opposite way, and a longer pull throws deeper. A dotted arc and a reticle show where it will land, and a throw near a receiver's spot bends toward him. |
+| Swipe forward (with the QB) | Scramble |
+| Ball carrier | Runs forward on his own. Hold and drag up/down to steer. |
+| Quick swipe up / down | Juke |
+| Quick swipe forward | Dive |
+| Field goal / extra point | Pull back past the line for power, drag up/down to aim, release to kick |
+| ⏸ (top left) | Pause |
+
+- There is no playbook: downs 1–3 call a pass play for you.
+- On 4th down you choose **GO FOR IT**, **PUNT** or **FIELD GOAL**.
+- Your defense is simulated, so you play offense, just like Retro Bowl.
+- **CLASSIC** (in Settings) brings back the full playbook, keyboard moves and playable defense.
+
+`node scripts/e2eRetro.mjs out/` plays real downs on an emulated landscape phone using these gestures.
+
+### Classic keyboard controls
+
 | Key | Action |
 | --- | --- |
 | WASD / Arrows | Move |

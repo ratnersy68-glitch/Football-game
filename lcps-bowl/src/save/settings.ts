@@ -12,12 +12,14 @@ export interface Settings {
   crowd: number;
   music: number;
   playoffFormat: 'standard' | 'expanded';
+  /** RETRO = Retro Bowl-style touch controls (drag-back passing, auto-run, swipe moves, defense auto-simmed). */
+  controls: 'retro' | 'classic';
 }
 
 const KEY = 'lcps-bowl:settings';
 const DEFAULTS: Settings = {
   quarterLen: 180, difficulty: 'VARSITY', simDefense: false, showRoutes: true,
-  master: 0.7, sfx: 0.8, crowd: 0.6, music: 0.4, playoffFormat: 'standard',
+  master: 0.7, sfx: 0.8, crowd: 0.6, music: 0.4, playoffFormat: 'standard', controls: 'retro',
 };
 
 function load(): Settings {
@@ -46,3 +48,6 @@ export function setSettings(patch: Partial<Settings>) {
 export function useSettings(): Settings {
   return useSyncExternalStore((cb) => { listeners.add(cb); return () => listeners.delete(cb); }, () => current, () => current);
 }
+
+/** Retro controls always auto-sim defense (you only play offense, like Retro Bowl). */
+export const simDefenseOn = (s: Settings = current) => s.controls === 'retro' || s.simDefense;

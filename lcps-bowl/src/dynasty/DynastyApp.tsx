@@ -20,7 +20,7 @@ async function openSlot(slot: Slot): Promise<Dynasty | null> {
   ensureLocker(loaded);
   return loaded;
 }
-import { getSettings, useSettings } from '../save/settings';
+import { getSettings, useSettings, simDefenseOn } from '../save/settings';
 import { TeamLogo, Btn, Stars, RatingBar } from '../components/common';
 import { GameScreen } from '../screens/GameScreen';
 import type { GameResult, GameSession } from '../game/GameSession';
@@ -143,7 +143,7 @@ export function DynastyApp({ mode, onExit }: { mode: 'new' | 'continue' | 'play'
   }
   if (view.id === 'game') {
     const s = getSettings();
-    const { config, atmo, intro } = gameSetup(d, view.game, { difficulty: s.difficulty, quarterLen: s.quarterLen, simDefense: s.simDefense, userPlays: true });
+    const { config, atmo, intro } = gameSetup(d, view.game, { difficulty: s.difficulty, quarterLen: s.quarterLen, simDefense: simDefenseOn(s), userPlays: true });
     return <GameScreen config={config} atmosphere={atmo} intro={intro} story={(sess) => buildStory(sess, { playoffRound: view.game.round, championship: view.game.round === 'LCPS Bowl' })} onExit={(r, sess) => onGameDone(view.game, r, sess)} />;
   }
   if (view.id === 'gameday') return <GameDayFit d={d} g={view.game} onBack={() => setView({ id: 'home' })} onChange={() => { refresh(); void autosave(d); }} onKickoff={() => setView({ id: 'game', game: view.game })} />;
