@@ -1,5 +1,7 @@
 # SATURDAY 26
 
+> **Also in this repo: [LCPS BOWL](lcps-bowl/)** — a pixel-art arcade football game + dynasty mode for Loudoun County Public Schools high school football (`cd lcps-bowl && npm install && npm run dev`).
+
 Two ways to play college football:
 
 - **Player Career (3D):** create a QB, RB, WR or TE, pick any of 50 Big Ten / SEC / Big 12 schools, and live a freshman season — class, practice, training, studying and a phone full of friends, teammates, coaches and an academic advisor making plans with you — then play every Saturday yourself in real-time 3D against your real schedule.

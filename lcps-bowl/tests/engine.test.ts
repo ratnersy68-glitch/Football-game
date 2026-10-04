@@ -85,9 +85,14 @@ describe('play simulation', () => {
 
   it('interceptions happen and flip possession', () => {
     let ints = 0;
-    for (let seed = 1; seed <= 120 && ints === 0; seed++) {
-      const sim = run({ offPlay: playById('four_verts'), defCall: { formation: 'Dime', coverage: 'Cover 4' }, skill: { O: 0.1, D: 0.95 } }, undefined, seed);
-      if (sim.outcome!.interceptor) { ints++; expect(['tackle', 'td', 'touchback', 'oob', 'recovered']).toContain(sim.outcome!.type); }
+    for (let seed = 1; seed <= 150 && ints === 0; seed++) {
+      // A human QB forcing deep balls into quarters coverage
+      let threw = false;
+      const sim = run({ offPlay: playById('four_verts'), defCall: { formation: 'Dime', coverage: 'Cover 4' }, userTeam: 'O', skill: { O: 0.5, D: 0.95 } }, (s) => {
+        if (!threw && s.t > 1.7) { threw = true; return { ...NO_INPUT, throwTo: 1 + (seed % 4) }; }
+        return NO_INPUT;
+      }, seed);
+      if (sim.outcome!.interceptor) { ints++; expect(['tackle', 'td', 'touchback', 'oob', 'recovered']).toContain(sim.outcome!.type); expect(sim.outcome!.team === 'D' || sim.outcome!.type === 'recovered').toBe(true); }
     }
     expect(ints).toBeGreaterThan(0);
   });

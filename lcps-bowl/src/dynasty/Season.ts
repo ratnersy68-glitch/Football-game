@@ -79,10 +79,13 @@ export function rosterFor(d: Dynasty, team: string): PlayerData[] {
   return guestRosters.get(key)!;
 }
 
-export function coachingBonus(d: Dynasty, team: string): number {
+export function coachingBonus(d: Dynasty, team: string, rivalry = false): number {
   if (!isLcps(team)) return 0;
-  const f = d.programs[team].facilities;
-  return (f.coaching ?? 0) * 0.012 + (f.film ?? 0) * 0.008;
+  const prog = d.programs[team];
+  const f = prog.facilities;
+  // Team morale (wins, rivalry wins) gives a small edge; rivalry nights fire everyone up.
+  const morale = prog.roster.reduce((a, p) => a + p.morale, 0) / Math.max(1, prog.roster.length);
+  return (f.coaching ?? 0) * 0.012 + (f.film ?? 0) * 0.008 + (morale - 70) / 1500 + (rivalry ? 0.01 : 0);
 }
 
 export function currentRoundName(d: Dynasty): string | null {
@@ -116,8 +119,8 @@ export function gameSetup(d: Dynasty, g: GameRecord, opts: { difficulty: Difficu
   const championship = g.round === 'LCPS Bowl';
   const userSide = opts.userPlays ? (g.home === d.userTeam ? 'home' : 'away') : null;
   const config: GameConfig = {
-    home: { info: getTeam(g.home), roster: rosterFor(d, g.home), depthOrder: d.programs[g.home]?.depthOrder as never, coaching: coachingBonus(d, g.home) },
-    away: { info: getTeam(g.away), roster: rosterFor(d, g.away), depthOrder: d.programs[g.away]?.depthOrder as never, coaching: coachingBonus(d, g.away) },
+    home: { info: getTeam(g.home), roster: rosterFor(d, g.home), depthOrder: d.programs[g.home]?.depthOrder as never, coaching: coachingBonus(d, g.home, g.rivalry) },
+    away: { info: getTeam(g.away), roster: rosterFor(d, g.away), depthOrder: d.programs[g.away]?.depthOrder as never, coaching: coachingBonus(d, g.away, g.rivalry) },
     userSide: userSide as 'home' | 'away' | null,
     difficulty: opts.difficulty,
     quarterLen: opts.quarterLen,
