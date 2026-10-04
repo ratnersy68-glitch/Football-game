@@ -48,6 +48,7 @@ export function GameScreen({ config, atmosphere, intro, onExit, story }: Props) 
     input.attach();
     Sound.startCrowd(atmosphere.championship ? 0.6 : atmosphere.playoff || atmosphere.rivalry ? 0.5 : 0.32);
     const ctx = canvasRef.current!.getContext('2d')!;
+    if (import.meta.env.DEV) (window as unknown as { __lcps?: unknown }).__lcps = { session, renderer };
     let last = performance.now();
     let acc = 0;
     let raf = 0;

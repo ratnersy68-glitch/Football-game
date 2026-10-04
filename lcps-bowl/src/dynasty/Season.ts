@@ -20,6 +20,8 @@ import { buildStory } from './Stories';
 import type { Atmosphere } from '../game/render/Renderer';
 import type { IntroInfo } from '../screens/GameScreen';
 import type { Difficulty } from '../game/types';
+import { ensureLocker, gameRewards, seasonEndRewards } from '../gear/economy';
+import { itemById } from '../gear/catalog';
 
 export const START_YEAR = 2026;
 const pairKey = (a: string, b: string) => (a < b ? `${a}|${b}` : `${b}|${a}`);
@@ -60,6 +62,7 @@ export function createDynasty(userTeam: string, coachName: string, slot: 1 | 2 |
     coach: { wins: 0, losses: 0, titles: 0, playoffWins: 0, seasons: 0, coyAwards: 0 }, alumni: [],
   };
   d.rankings.push({ week: 0, order: computeRankings(d) });
+  ensureLocker(d);
   const t = getTeam(userTeam);
   d.news.push({ year: d.year, week: 0, kind: 'program', headline: `${coachName.toUpperCase()} TAKES OVER AT ${t.shortName.toUpperCase()}`, body: `The ${t.mascot} hand the keys to a new head coach. Expectation: ${programExpectation(t)}.`, team: userTeam });
   d.events = rollWeeklyEvents(d, rng);
@@ -119,8 +122,8 @@ export function gameSetup(d: Dynasty, g: GameRecord, opts: { difficulty: Difficu
   const championship = g.round === 'LCPS Bowl';
   const userSide = opts.userPlays ? (g.home === d.userTeam ? 'home' : 'away') : null;
   const config: GameConfig = {
-    home: { info: getTeam(g.home), roster: rosterFor(d, g.home), depthOrder: d.programs[g.home]?.depthOrder as never, coaching: coachingBonus(d, g.home, g.rivalry) },
-    away: { info: getTeam(g.away), roster: rosterFor(d, g.away), depthOrder: d.programs[g.away]?.depthOrder as never, coaching: coachingBonus(d, g.away, g.rivalry) },
+    home: { info: getTeam(g.home), roster: rosterFor(d, g.home), depthOrder: d.programs[g.home]?.depthOrder as never, coaching: coachingBonus(d, g.home, g.rivalry), theme: g.home === d.userTeam ? d.locker?.theme : undefined },
+    away: { info: getTeam(g.away), roster: rosterFor(d, g.away), depthOrder: d.programs[g.away]?.depthOrder as never, coaching: coachingBonus(d, g.away, g.rivalry), theme: g.away === d.userTeam ? d.locker?.theme : undefined },
     userSide: userSide as 'home' | 'away' | null,
     difficulty: opts.difficulty,
     quarterLen: opts.quarterLen,
@@ -170,7 +173,7 @@ export function gameSetup(d: Dynasty, g: GameRecord, opts: { difficulty: Difficu
 // ---------------------------------------------------------------- results
 
 /** Applies a finished game (played by the human or simulated) to the dynasty. */
-export function applyResult(d: Dynasty, g: GameRecord, r: GameResult, session?: GameSession, rng = new RNG(seedFrom(g.id) + 7)) {
+export function applyResult(d: Dynasty, g: GameRecord, r: GameResult, session?: GameSession, rng = new RNG(seedFrom(g.id) + 7), userPlayed = false) {
   if (g.played) return;
   g.played = true;
   g.homeScore = r.homeScore;
@@ -258,6 +261,13 @@ export function applyResult(d: Dynasty, g: GameRecord, r: GameResult, session?: 
     if (won && g.week > 10) { pts += 5; d.coach.playoffWins++; }
     prog.points += pts;
     for (const p of prog.roster) p.morale = Math.max(20, Math.min(100, p.morale + (won ? (g.rivalry ? 6 : 3) : -3)));
+  }
+  // Bowl Bucks for the user's games
+  if (g.home === d.userTeam || g.away === d.userTeam) {
+    const us = d.userTeam;
+    const opp = g.home === us ? g.away : g.home;
+    d.lastRewards = gameRewards(d, g, r, { simmed: !userPlayed, preRankUs: winner === us ? preRankW : preRankL, preRankThem: winner === us ? preRankL : preRankW });
+    void opp;
   }
   if (d.phase === 'playoffs') advanceBracket(d, g);
   if (d.news.length > 300) d.news.splice(0, d.news.length - 300);
@@ -363,6 +373,9 @@ export function endSeason(d: Dynasty) {
   const user = d.programs[d.userTeam];
   if (b.champion === d.userTeam) { d.coach.titles++; user.points += 15; }
   user.points += Math.round(user.prestige * 3);
+  const sr = seasonEndRewards(d);
+  for (const a of sr.achievements) d.news.push({ year: d.year, week: 16, kind: 'award', headline: `ACHIEVEMENT: ${a.name} (+${a.bb} BB)`, team: d.userTeam });
+  for (const id of sr.unlocked) d.news.push({ year: d.year, week: 16, kind: 'award', headline: `LOCKER UNLOCK: ${itemById(id)?.name ?? id}`, team: d.userTeam });
   d.coach.seasons++;
 }
 
@@ -428,6 +441,7 @@ export function runOffseason(d: Dynasty): OffseasonReport {
   d.offseasonPending = true;
   d.events = rollWeeklyEvents(d, rng);
   d.news.push({ year: d.year, week: 0, kind: 'program', headline: `${d.year} PRESEASON: ${getTeam(d.userTeam).shortName} welcomes ${report.freshmen.length} newcomers`, team: d.userTeam });
+  ensureLocker(d);
   return report;
 }
 

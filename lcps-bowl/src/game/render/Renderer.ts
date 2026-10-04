@@ -6,9 +6,11 @@ import type { GameSession } from '../GameSession';
 import type { Actor } from '../Actor';
 import type { TeamInfo, Weather, TimeOfDay } from '../types';
 import { FIELD_W, CENTER_Y } from '../math';
-import { drawPlayer, drawShadow, drawBall, drawCheerleader, drawRef, shade, skinFor, type Kit, type Pose } from './sprites';
+import { drawShadow, drawBall, drawCheerleader, drawRef, shade, skinFor, type Kit, type Pose } from './sprites';
 import { teamImage, initials } from './assets';
 import { RNG } from '../rng';
+import { drawGearedPlayer } from '../../gear/sprite';
+import { resolveLook, genericLook } from '../../gear/look';
 import { other, type Side } from '../Rules';
 
 export const VIEW_W = 640;
@@ -407,13 +409,12 @@ export class Renderer {
     ctx.fillStyle = this.atmo.timeOfDay === 'night' ? '#2b5a2b' : '#3b7a39';
     ctx.fillRect(0, y0, VIEW_W, 14);
     // Team bench: players standing
-    const kit: Kit = { ...kitFor(home, true), skin: '#c68863' };
     for (let wx = 32; wx <= 68; wx += 1.6) {
       const x = this.sx(wx);
       if (x < -10 || x > VIEW_W + 10) continue;
-      const k = { ...kit, skin: skinFor(String(Math.round(wx * 10))) };
       const bob = Math.sin(this.time * 3 + wx) > 0.95 - this.excitement * 0.6 ? 'celebrate' : 'stand';
-      drawPlayer(ctx, x, y0 + 13 + (Math.round(wx * 10) % 3), k, wx < 50 ? 1 : -1, bob as Pose, 0, 1);
+      const look = genericLook(home, true, `bench-${home.id}-${Math.round(wx * 10)}`);
+      drawGearedPlayer(ctx, x, y0 + 13 + (Math.round(wx * 10) % 3), look, wx < 50 ? 1 : -1, bob as Pose, 0, 1);
     }
     // Coach
     const cxp = this.sx(50);
@@ -547,10 +548,7 @@ export class Renderer {
     const sim = s.sim;
     if (!sim) return;
     const oSide: Side = sim.setup.kind === 'kickoff' ? other(s.g.possession) : s.g.possession;
-    const kits: Record<'O' | 'D', Omit<Kit, 'skin'>> = {
-      O: kitFor(s.team(oSide).info, oSide === 'home'),
-      D: kitFor(s.team(other(oSide)).info, oSide !== 'home'),
-    };
+    const sideOf: Record<'O' | 'D', Side> = { O: oSide, D: other(oSide) };
     const order = [...sim.actors].sort((a, b) => a.y - b.y);
     const userTeam = sim.setup.userTeam;
     const user = sim.user;
@@ -625,10 +623,12 @@ export class Renderer {
       const x = this.sx(a.x);
       if (x < -20 || x > VIEW_W + 20) continue;
       const y = this.sy(a.y);
-      const kit = { ...kits[a.team], skin: skinFor(a.p.id) };
+      const side = sideOf[a.team];
+      const tg = s.team(side);
+      const look = resolveLook(a.p, tg.info, side === 'home', tg.theme ?? 'none');
       const pose = this.poseFor(a, s);
       const facing: 1 | -1 = !sim.snapped ? (a.team === 'O' ? 1 : -1) : a.facing;
-      drawPlayer(ctx, x, y, kit, facing, pose, a.anim, a.pos === 'OL' || a.pos === 'DL' ? 1.12 : 1);
+      drawGearedPlayer(ctx, x, y, look, facing, pose, a.anim, 1, { presnap: !sim.snapped });
       if (a === carrier) {
         drawBall(ctx, x + facing * 3, y - 8, 0);
       }
@@ -667,7 +667,7 @@ export class Renderer {
         for (const d of sim.actors) if (d.team === 'D') near = Math.min(near, Math.hypot(d.x - a.x, d.y - a.y));
         const col = near > 3.2 ? '#38d86b' : near > 1.6 ? '#f2c94c' : '#eb5757';
         const x = Math.round(this.sx(a.x));
-        const y = Math.round(this.sy(a.y)) - 26;
+        const y = Math.round(this.sy(a.y)) - 32;
         ctx.fillStyle = '#111';
         ctx.fillRect(x - 5, y - 5, 11, 11);
         ctx.fillStyle = col;
@@ -685,7 +685,7 @@ export class Renderer {
     // Arrow over user
     if (user && userTeam) {
       const x = Math.round(this.sx(user.x));
-      const y = Math.round(this.sy(user.y)) - 22;
+      const y = Math.round(this.sy(user.y)) - 27;
       ctx.fillStyle = '#ffe44a';
       ctx.fillRect(x - 2, y, 5, 1);
       ctx.fillRect(x - 1, y + 1, 3, 1);
@@ -706,16 +706,17 @@ export class Renderer {
       const dist = ka ? ka.distance : s.kick?.distance ?? 20;
       const spotX = 110 - dist; // hold spot (posts at 110)
       const kickSide = s.g.possession;
-      const kit = { ...kitFor(s.team(kickSide).info, kickSide === 'home'), skin: '#e0ac85' };
+      const kt = s.team(kickSide).info;
+      const kl = (seed: string) => genericLook(kt, kickSide === 'home', `${kt.id}-${seed}`, seed === 'k' ? 'K' : 'OL');
       // Line + holder + kicker
       const hx = this.sx(spotX);
       const hy = this.sy(CENTER_Y);
       drawShadow(ctx, hx, hy, 8);
-      drawPlayer(ctx, hx - 2, hy, kit, 1, 'stance', 0);
+      drawGearedPlayer(ctx, hx - 2, hy, kl('h'), 1, 'stance', 0, 1);
       const kicked = ka && ka.t > 0.15;
-      drawPlayer(ctx, this.sx(spotX - (kicked ? 0.5 : 2)), hy + 4, kit, 1, kicked ? 'run' : 'stand', ka ? ka.t * 8 : 0);
+      drawGearedPlayer(ctx, this.sx(spotX - (kicked ? 0.5 : 2)), hy + 4, kl('k'), 1, kicked ? 'run' : 'stand', ka ? ka.t * 8 : 0, 1);
       for (let i = -3; i <= 3; i++) {
-        drawPlayer(ctx, this.sx(spotX + 7), this.sy(CENTER_Y + i * 1.3), kit, 1, 'stance', 0, 1.1);
+        drawGearedPlayer(ctx, this.sx(spotX + 7), this.sy(CENTER_Y + i * 1.3), kl('ol' + i), 1, 'stance', 0, 1);
       }
       if (ka) {
         const f = Math.min(1, ka.t / ka.dur);
@@ -808,7 +809,7 @@ export class Renderer {
     if (!sim || sim.messageT <= 0 || !sim.message) return;
     const carrier = sim.carrier ?? sim.user;
     const x = carrier ? this.sx(carrier.x) : VIEW_W / 2;
-    const y = carrier ? this.sy(carrier.y) - 34 : 120;
+    const y = carrier ? this.sy(carrier.y) - 38 : 120;
     ctx.font = `8px ${FONT}`;
     ctx.textAlign = 'center';
     ctx.fillStyle = '#000';

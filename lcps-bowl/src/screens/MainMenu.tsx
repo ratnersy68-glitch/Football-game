@@ -59,10 +59,11 @@ export function StadiumBackdrop({ dim = 0.45 }: { dim?: number }) {
   );
 }
 
-export function MainMenu({ hasSave, onNav }: { hasSave: boolean; onNav: (to: 'play' | 'continue' | 'new' | 'exhibition' | 'settings' | 'teams' | 'records') => void }) {
+export function MainMenu({ hasSave, bb, onNav }: { hasSave: boolean; bb?: number | null; onNav: (to: 'play' | 'continue' | 'new' | 'exhibition' | 'settings' | 'teams' | 'records' | 'locker') => void }) {
   const items = useMemo(() => [
     { id: 'play' as const, label: 'PLAY', primary: true },
     { id: 'continue' as const, label: 'CONTINUE DYNASTY', disabled: !hasSave },
+    { id: 'locker' as const, label: '🪙 LOCKER', disabled: !hasSave },
     { id: 'new' as const, label: 'NEW DYNASTY' },
     { id: 'exhibition' as const, label: 'EXHIBITION' },
     { id: 'settings' as const, label: 'SETTINGS' },
@@ -71,6 +72,7 @@ export function MainMenu({ hasSave, onNav }: { hasSave: boolean; onNav: (to: 'pl
   return (
     <div className="screen menu-screen">
       <StadiumBackdrop dim={0.42} />
+      {bb != null && <div className="menu-bb"><span className="bb-badge big"><span className="coin">🪙</span> {bb.toLocaleString('en-US')} BB</span></div>}
       <div className="menu-content">
         <div className="title-block">
           <div className="title-kicker pixel">LOUDOUN COUNTY PUBLIC SCHOOLS</div>

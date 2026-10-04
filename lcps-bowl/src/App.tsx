@@ -12,7 +12,7 @@ import { generateRoster } from './game/players';
 import { RNG } from './game/rng';
 import { isRivalry, rivalryName } from './data/teams';
 import { getSettings } from './save/settings';
-import { listSaves } from './save/storage';
+import { listSaves, lastSlot } from './save/storage';
 import type { TeamInfo } from './game/types';
 import { buildStory } from './dynasty/Stories';
 
@@ -23,7 +23,7 @@ type Screen =
   | { id: 'settings' }
   | { id: 'teams' }
   | { id: 'records' }
-  | { id: 'dynasty'; mode: 'new' | 'continue' | 'play' };
+  | { id: 'dynasty'; mode: 'new' | 'continue' | 'play' | 'locker' };
 
 function seedOf(id: string) {
   let h = 0;
@@ -39,6 +39,7 @@ export function exhibitionRoster(t: TeamInfo) {
 export function App() {
   const [screen, setScreen] = useState<Screen>({ id: 'menu' });
   const hasSave = useMemo(() => listSaves().some((s) => s.exists), [screen]);
+  const bb = useMemo(() => { const last = lastSlot(); const m = listSaves().find((s) => s.exists && (last == null || s.slot === last)); return m ? m.bb ?? 0 : null; }, [screen]);
 
   const startExhibition = (c: ExhibitionChoice) => {
     const rival = isRivalry(c.home.id, c.away.id);
@@ -69,6 +70,7 @@ export function App() {
       return (
         <MainMenu
           hasSave={hasSave}
+          bb={bb}
           onNav={(to) => {
             if (to === 'exhibition') setScreen({ id: 'exhibition' });
             else if (to === 'settings') setScreen({ id: 'settings' });
@@ -76,6 +78,7 @@ export function App() {
             else if (to === 'records') setScreen({ id: 'records' });
             else if (to === 'new') setScreen({ id: 'dynasty', mode: 'new' });
             else if (to === 'continue') setScreen({ id: 'dynasty', mode: 'continue' });
+            else if (to === 'locker') setScreen({ id: 'dynasty', mode: 'locker' });
             else if (to === 'play') setScreen(hasSave ? { id: 'dynasty', mode: 'play' } : { id: 'exhibition' });
           }}
         />

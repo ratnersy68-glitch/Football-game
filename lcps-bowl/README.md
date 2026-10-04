@@ -24,6 +24,7 @@ npm run dev        # → http://localhost:5173
 | `npx tsx scripts/simDynasty.ts 3` | Simulate 3 complete dynasty seasons headlessly |
 | `npx tsx scripts/playLab.ts slants 200 "Cover 2"` | Run one play 200 times against a coverage and report the outcomes |
 | `node scripts/e2e.mjs out/` | Browser playtest with screenshots (needs `npm run dev` on port 5199, or pass a URL) |
+| `node scripts/e2eGear.mjs out/` | Gear loop in the browser: win → earn BB → buy → equip on the QB → reload → next game → QB wears it |
 
 ## Controls
 
@@ -76,6 +77,35 @@ Input goes through `src/game/input/Input.ts`, which builds an abstract `ControlI
 
 **Exhibition**: pick any two schools, home/away, weather, time of day, difficulty and quarter length, or watch the CPU play.
 
+## LCPS Locker: Bowl Bucks and gear
+
+Gear is cosmetic only. It never changes ratings or game results.
+
+- **Bowl Bucks (BB)** are earned only by playing dynasty games. The post-game rewards screen itemizes every line:
+  - game played, win, rivalry, playoff, championship, upset, shutout;
+  - 300+ pass yards, 200+ rush yards, 3+ pass or rush TDs, defensive TD, return TD;
+  - player of the game, comeback, OT win.
+- **Simulated games** pay only the game-result lines (played / win / rivalry / playoff / title / upset).
+- **Economy:** a new dynasty starts with 300 BB, and a typical win pays 250–700 BB. That puts legendary gear (1,500–4,000 BB) several games away.
+- **LOCKER** (main menu and dynasty tab) has five sections:
+  - **SHOP:** 16 categories plus school collections; ALL/OWNED/LOCKED/rarity/favorite filters; Friday Night Drops that rotate weekly.
+  - **MY GEAR:** everything you own.
+  - **CUSTOMIZE PLAYER:** full-body preview with every slot around it; RANDOMIZE FIT and TEAM DRIP.
+  - **COLLECTION:** achievements, trophy gear, school collections and drops.
+  - **TEAM THEMES:** Blackout, Whiteout, Pink Out, Throwback, Playoff Mode, Championship Gold.
+- **Owned styles** can be used on any number of your players.
+- **Helmets** are original designs, with nine models that each have a distinct silhouette. You choose finish (gloss / matte / metallic / pearl / chrome), shell color, stripe and logo, and helmets adapt to school colors.
+- **Unlocks:**
+  - Achievements award trophy gear.
+  - Rare drops come with a reveal animation.
+  - Beating a school unlocks its collection.
+  - Championships unlock the championship set (1 title → gloves, 2 → visor, 3 → Dynasty cleats, 5 → GOAT helmet).
+- **In gameplay:** players are drawn as layered sprites, so equipped gear is visible on the field, including on CPU teams.
+  - Visors, sleeves, bands, gloves, towels, spats, cleats and helmet models all show.
+  - CPU and exhibition teams get position-based auto drip with a style personality.
+- **GAME DAY FIT** appears before each dynasty game, with theme suggestions for rivalry, playoff and title games.
+- **Saves:** the locker is saved with the dynasty.
+
 ## Team logos
 
 Real logos are not downloaded. To use them, drop files into the team folders and the game picks them up automatically everywhere:
@@ -108,6 +138,7 @@ src/
                Plays (playbook/formations/routes), players, Lineup, Bot, render/, input/, audio/
   dynasty/     Season (orchestrator), Schedule, Standings, Rankings, Playoffs, Development, Awards,
                Records, Events, Stories, DynastyApp/DynastyPages (UI)
+  gear/        Bowl Bucks economy, gear catalog, look resolver, layered player sprite, Locker/Shop/Rewards UI
   data/        teams, fictional name pools
   screens/     MainMenu, Exhibition, GameScreen, Settings, TeamDatabase, RecordBook
   components/  shared UI (logos, play diagrams, box score)

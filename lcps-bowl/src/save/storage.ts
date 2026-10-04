@@ -23,6 +23,7 @@ export interface SaveMeta {
   record?: string;
   savedAt?: number;
   championships?: number;
+  bb?: number;
 }
 
 const memory = new Map<string, string>();

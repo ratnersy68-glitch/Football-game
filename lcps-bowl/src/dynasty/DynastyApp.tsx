@@ -19,6 +19,10 @@ import { RosterPage, SchedulePage, StandingsPage, RankingsPage, PlayoffPage, Tea
 import { RecordBookView } from '../screens/RecordBook';
 import { StadiumBackdrop } from '../screens/MainMenu';
 import { Sound } from '../game/audio/Sound';
+import { LockerScreen, BBBadge } from '../gear/ui/Locker';
+import { RewardsPanel, DropReveal } from '../gear/ui/Rewards';
+import { GameDayFit } from '../gear/ui/GameDayFit';
+import { ensureLocker } from '../gear/economy';
 
 type View =
   | { id: 'slots' }
@@ -26,13 +30,14 @@ type View =
   | { id: 'coach'; slot: Slot; team: string }
   | { id: 'home' }
   | { id: 'game'; game: GameRecord }
+  | { id: 'gameday'; game: GameRecord }
   | { id: 'weekResults'; games: GameRecord[]; user?: GameRecord }
   | { id: 'loading'; text: string };
 
-export type Tab = 'home' | 'roster' | 'schedule' | 'standings' | 'rankings' | 'playoffs' | 'team' | 'players' | 'coaching' | 'recruiting' | 'program' | 'stats' | 'records' | 'news';
+export type Tab = 'locker' | 'home' | 'roster' | 'schedule' | 'standings' | 'rankings' | 'playoffs' | 'team' | 'players' | 'coaching' | 'recruiting' | 'program' | 'stats' | 'records' | 'news';
 
 export const TABS: [Tab, string][] = [
-  ['home', 'HOME'], ['roster', 'ROSTER'], ['schedule', 'SCHEDULE'], ['standings', 'STANDINGS'], ['playoffs', 'PLAYOFF PICTURE'],
+  ['home', 'HOME'], ['locker', '🪙 LOCKER'], ['roster', 'ROSTER'], ['schedule', 'SCHEDULE'], ['standings', 'STANDINGS'], ['playoffs', 'PLAYOFF PICTURE'],
   ['rankings', 'RANKINGS'], ['team', 'TEAM'], ['players', 'PLAYERS'], ['coaching', 'COACHING'], ['recruiting', 'RECRUITING'],
   ['program', 'PROGRAM'], ['stats', 'STATS'], ['records', 'RECORDS'], ['news', 'NEWS'],
 ];
@@ -41,14 +46,14 @@ export async function autosave(d: Dynasty) {
   const r = userRecordLine(d);
   await saveSlot(d.slot, d, {
     team: d.userTeam, teamName: `${getTeam(d.userTeam).shortName} ${getTeam(d.userTeam).mascot}`, coach: d.coachName,
-    year: d.year, week: seasonLabel(d), record: `${r.w}–${r.l}`, championships: d.programs[d.userTeam].championships.length,
+    year: d.year, week: seasonLabel(d), record: `${r.w}–${r.l}`, championships: d.programs[d.userTeam].championships.length, bb: d.locker?.bb ?? 0,
   });
 }
 
-export function DynastyApp({ mode, onExit }: { mode: 'new' | 'continue' | 'play'; onExit: () => void }) {
+export function DynastyApp({ mode, onExit }: { mode: 'new' | 'continue' | 'play' | 'locker'; onExit: () => void }) {
   const [d, setD] = useState<Dynasty | null>(null);
   const [view, setView] = useState<View>(mode === 'new' ? { id: 'slots' } : { id: 'loading', text: 'Loading dynasty…' });
-  const [tab, setTab] = useState<Tab>('home');
+  const [tab, setTab] = useState<Tab>(mode === 'locker' ? 'locker' : 'home');
   const [, force] = useState(0);
   const [progress, setProgress] = useState<{ done: number; total: number; label: string } | null>(null);
   const refresh = () => force((x) => x + 1);
@@ -58,7 +63,7 @@ export function DynastyApp({ mode, onExit }: { mode: 'new' | 'continue' | 'play'
     const slot = lastSlot() ?? listSaves().find((s) => s.exists)?.slot;
     if (!slot) { setView({ id: 'slots' }); return; }
     loadSlot<Dynasty>(slot).then((loaded) => {
-      if (loaded) { loaded.slot = slot; setD(loaded); setView({ id: 'home' }); }
+      if (loaded) { loaded.slot = slot; ensureLocker(loaded); setD(loaded); setView({ id: 'home' }); }
       else setView({ id: 'slots' });
     });
   }, [mode]);
@@ -86,7 +91,7 @@ export function DynastyApp({ mode, onExit }: { mode: 'new' | 'continue' | 'play'
   const onGameDone = async (g: GameRecord, result: GameResult | null, session: GameSession) => {
     if (!d) return;
     if (!result) { setView({ id: 'home' }); return; }
-    applyResult(d, g, result, session);
+    applyResult(d, g, result, session, undefined, true);
     await finishUserWeek(d, g);
   };
 
@@ -104,7 +109,7 @@ export function DynastyApp({ mode, onExit }: { mode: 'new' | 'continue' | 'play'
 
   if (view.id === 'slots') return <SlotPicker mode={mode} onBack={onExit} onPick={(slot, exists) => {
     if (mode === 'new' || !exists) setView({ id: 'teamSelect', slot });
-    else loadSlot<Dynasty>(slot).then((l) => { if (l) { l.slot = slot; setD(l); setView({ id: 'home' }); } });
+    else loadSlot<Dynasty>(slot).then((l) => { if (l) { l.slot = slot; ensureLocker(l); setD(l); setView({ id: 'home' }); } });
   }} />;
   if (view.id === 'teamSelect') return <TeamSelect onBack={() => setView({ id: 'slots' })} onPick={(team) => setView({ id: 'coach', slot: view.slot, team })} />;
   if (view.id === 'coach') return <CoachSetup team={view.team} onBack={() => setView({ id: 'teamSelect', slot: view.slot })} onStart={(name, fmt) => startNew(view.slot, view.team, name, fmt)} />;
@@ -127,7 +132,8 @@ export function DynastyApp({ mode, onExit }: { mode: 'new' | 'continue' | 'play'
     const { config, atmo, intro } = gameSetup(d, view.game, { difficulty: s.difficulty, quarterLen: s.quarterLen, simDefense: s.simDefense, userPlays: true });
     return <GameScreen config={config} atmosphere={atmo} intro={intro} story={(sess) => buildStory(sess, { playoffRound: view.game.round, championship: view.game.round === 'LCPS Bowl' })} onExit={(r, sess) => onGameDone(view.game, r, sess)} />;
   }
-  if (view.id === 'weekResults') return <WeekResults d={d} games={view.games} user={view.user} onDone={() => { setView({ id: 'home' }); setTab('home'); }} />;
+  if (view.id === 'gameday') return <GameDayFit d={d} g={view.game} onBack={() => setView({ id: 'home' })} onChange={() => { refresh(); void autosave(d); }} onKickoff={() => setView({ id: 'game', game: view.game })} />;
+  if (view.id === 'weekResults') return <WeekResults d={d} games={view.games} user={view.user} onDone={() => { setView({ id: 'home' }); setTab('home'); }} onLocker={() => { setView({ id: 'home' }); setTab('locker'); }} />;
 
   return (
     <div className="screen dyn-screen">
@@ -141,8 +147,9 @@ export function DynastyApp({ mode, onExit }: { mode: 'new' | 'continue' | 'play'
         ) : d.offseasonPending && d.lastOffseason && tab === 'home' ? (
           <OffseasonView d={d} onContinue={() => { d.offseasonPending = false; void autosave(d); refresh(); }} onChange={() => { refresh(); void autosave(d); }} />
         ) : tab === 'home' ? (
-          <Home d={d} onPlay={(g) => setView({ id: 'game', game: g })} onSim={simUserGame} onSimWeek={() => finishUserWeek(d)} goTab={setTab} />
-        ) : tab === 'roster' ? <RosterPage d={d} onChange={() => { refresh(); void autosave(d); }} />
+          <Home d={d} onPlay={(g) => setView({ id: 'gameday', game: g })} onSim={simUserGame} onSimWeek={() => finishUserWeek(d)} goTab={setTab} />
+        ) : tab === 'locker' ? <LockerScreen d={d} onChange={() => { refresh(); void autosave(d); }} />
+          : tab === 'roster' ? <RosterPage d={d} onChange={() => { refresh(); void autosave(d); }} />
           : tab === 'schedule' ? <SchedulePage d={d} />
           : tab === 'standings' ? <StandingsPage d={d} />
           : tab === 'rankings' ? <RankingsPage d={d} />
@@ -177,6 +184,7 @@ function DynastyHeader({ d, onExit }: { d: Dynasty; onExit: () => void }) {
         <div><span>RANKING</span><b>#{r.rank}</b></div>
         <div><span>PRESTIGE</span><b><Stars n={prog.prestige} /></b></div>
         <div><span>PROGRAM PTS</span><b>{prog.points}</b></div>
+        <div><span>BOWL BUCKS</span><b><BBBadge bb={d.locker?.bb ?? 0} /></b></div>
       </div>
       <Btn small variant="ghost" onClick={onExit}>SAVE & EXIT</Btn>
     </header>
@@ -287,7 +295,9 @@ function NextGameCard({ d, g, onPlay, onSim }: { d: Dynasty; g: GameRecord; onPl
   );
 }
 
-function WeekResults({ d, games, user, onDone }: { d: Dynasty; games: GameRecord[]; user?: GameRecord; onDone: () => void }) {
+function WeekResults({ d, games, user, onDone, onLocker }: { d: Dynasty; games: GameRecord[]; user?: GameRecord; onDone: () => void; onLocker: () => void }) {
+  const rewards = user && d.lastRewards ? d.lastRewards : null;
+  const [dropOpen, setDropOpen] = useState(!!rewards?.drop);
   const ug = user ? d.schedule.find((g) => g.id === user.id) ?? user : undefined;
   const won = ug && ug.played ? (ug.home === d.userTeam ? ug.homeScore! > ug.awayScore! : ug.awayScore! > ug.homeScore!) : null;
   useEffect(() => { if (won) Sound.play('touchdown'); }, [won]);
@@ -295,6 +305,8 @@ function WeekResults({ d, games, user, onDone }: { d: Dynasty; games: GameRecord
     <div className="screen setup-screen">
       <header className="screen-head"><span /><h2 className="pixel">AROUND LOUDOUN COUNTY</h2><span /></header>
       <div className="week-results">
+        {rewards && <RewardsPanel d={d} r={rewards} onLocker={onLocker} />}
+        {rewards?.drop && dropOpen && <DropReveal d={d} drop={rewards.drop} onDone={() => setDropOpen(false)} />}
         {ug && ug.story && (
           <div className="newspaper big-news">
             <div className="np-mast">THE LOUDOUN GRIDIRON GAZETTE · {d.year}</div>

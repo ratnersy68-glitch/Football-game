@@ -111,6 +111,10 @@ export interface PlayerData {
   /** Season history: year -> statline (for career tables). */
   history?: { year: number; grade: Grade; ovr: number; stats: StatLine }[];
   traits?: string[];
+  /** Cosmetic equipment (never affects ratings). */
+  gear?: import('../gear/types').PlayerGear;
+  /** Personality used for auto-generated drip: TRADITIONAL / CLEAN / FLASHY / OLD SCHOOL / SWAGGER. */
+  style?: string;
 }
 
 /** Team identity in the database. Ratings are the program's starting point. */

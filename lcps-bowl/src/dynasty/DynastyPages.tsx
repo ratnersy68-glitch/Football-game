@@ -13,6 +13,11 @@ import { GRADE_LABEL, POSITIONS, type PlayerData, type Position, type StatLine }
 import { useSettings, setSettings } from '../save/settings';
 import { DIFFICULTIES } from '../game/types';
 import { Sound } from '../game/audio/Sound';
+import { GearEditor } from '../gear/ui/GearEditor';
+import { PlayerPreview } from '../gear/ui/Preview';
+import { itemById, RARITY_COLOR } from '../gear/catalog';
+import { gearIds, ensurePlayerGear } from '../gear/economy';
+import { styleFor } from '../gear/look';
 
 // ---------------------------------------------------------------- roster
 
@@ -107,8 +112,10 @@ function statRows(s: StatLine, pos: Position): [string, string | number][] {
 
 export function PlayerCard({ d, p, onClose, onChange }: { d: Dynasty; p: PlayerData; onClose: () => void; onChange?: () => void }) {
   const [, f] = useState(0);
+  const [tab, setTab] = useState<'stats' | 'attrs' | 'gear' | 'edit'>('stats');
   const team = getTeam(d.userTeam);
   const mine = d.programs[d.userTeam].roster.includes(p);
+  if (mine) ensurePlayerGear(d, p);
   useEffect(() => {
     const h = (e: KeyboardEvent) => { if (e.key === 'Escape') onClose(); };
     window.addEventListener('keydown', h);
@@ -116,7 +123,7 @@ export function PlayerCard({ d, p, onClose, onChange }: { d: Dynasty; p: PlayerD
   }, [onClose]);
   return (
     <div className="modal-back" onClick={onClose}>
-      <div className="player-card panel" onClick={(e) => e.stopPropagation()}>
+      <div className={`player-card panel ${tab === 'edit' ? 'wide' : ''}`} onClick={(e) => e.stopPropagation()}>
         <div className="pc-hero" style={{ background: `linear-gradient(120deg, ${team.colors.primary}, ${team.colors.secondary})` }}>
           <div className="pc-num pixel">{p.number}</div>
           <div>
@@ -127,8 +134,25 @@ export function PlayerCard({ d, p, onClose, onChange }: { d: Dynasty; p: PlayerD
           <div className="pc-ovr"><OvrBadge v={ovr(p)} /><div className="small">POT {p.potential}</div></div>
           <button className="close" onClick={onClose}>✕</button>
         </div>
-        <div className="pc-body">
-          <div>
+        <div className="pc-tabs">
+          {([['stats', 'STATS'], ['attrs', 'ATTRIBUTES'], ['gear', 'GEAR']] as const).map(([k, l]) => <button key={k} className={`chip ${tab === k || (k === 'gear' && tab === 'edit') ? 'on' : ''}`} onClick={() => setTab(k)}>{l}</button>)}
+        </div>
+        {tab === 'edit' && <GearEditor d={d} player={p} onChange={() => { f((x) => x + 1); onChange?.(); }} onClose={() => setTab('gear')} />}
+        {tab === 'gear' && (
+          <div className="pc-gear">
+            <PlayerPreview p={p} team={team} gear={p.gear} theme={d.locker?.theme} scale={9} />
+            <div>
+              <h4>CURRENT FIT · STYLE: {styleFor(p)}</h4>
+              <ul className="fit-list">
+                {gearIds(p.gear).map((id, i) => { const it = itemById(id); return it ? <li key={id + i}><span className="pixel tiny" style={{ color: RARITY_COLOR[it.rarity] }}>{it.rarity.toUpperCase()}</span> {it.name}</li> : null; })}
+              </ul>
+              {mine && <Btn variant="gold" onClick={() => setTab('edit')}>EDIT GEAR</Btn>}
+              <p className="dim small">Gear is cosmetic only and never changes ratings.</p>
+            </div>
+          </div>
+        )}
+        <div className="pc-body" style={{ display: tab === 'stats' || tab === 'attrs' ? undefined : 'none' }}>
+          <div style={{ display: tab === 'attrs' ? undefined : 'none' }}>
             <h4>ATTRIBUTES</h4>
             {(['spd', 'str', 'agi', 'acc', 'awr', 'sta'] as const).map((k) => <RatingBar key={k} label={ATTR_LABEL[k]} value={p.attrs[k]} />)}
             <h4>{p.pos} RATINGS</h4>
@@ -140,7 +164,7 @@ export function PlayerCard({ d, p, onClose, onChange }: { d: Dynasty; p: PlayerD
             ))}
             {mine && p.pendingUpgrades > 0 && <p className="gold small">{p.pendingUpgrades} upgrade point{p.pendingUpgrades > 1 ? 's' : ''} available{ovr(p) >= p.potential ? ' (at potential: smaller gains)' : ''}.</p>}
           </div>
-          <div>
+          <div style={{ display: tab === 'stats' ? undefined : 'none' }}>
             <h4>{d.year} SEASON</h4>
             <table className="mini-stats"><tbody>{statRows(p.season, p.pos).map(([k, v]) => <tr key={k}><td>{k}</td><td>{v}</td></tr>)}</tbody></table>
             <h4>CAREER</h4>

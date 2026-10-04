@@ -21,6 +21,8 @@ export interface TeamGameSetup {
   depthOrder?: Partial<Record<string, string[]>>;
   /** Coaching / program bonus applied to AI skill (0..0.15). */
   coaching?: number;
+  /** Cosmetic team-wide gear theme. */
+  theme?: import('../gear/types').ThemeId;
 }
 
 export interface GameConfig {

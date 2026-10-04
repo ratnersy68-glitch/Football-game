@@ -177,6 +177,10 @@ export interface Dynasty {
   lastOffseason?: OffseasonReport;
   /** Show the offseason report screen until the user starts the new season. */
   offseasonPending?: boolean;
+  /** LCPS Locker: Bowl Bucks, owned gear, achievements, themes. */
+  locker?: import('../gear/types').Locker;
+  /** Rewards from the most recent user game (shown on the results screen). */
+  lastRewards?: import('../gear/types').GameRewards;
 }
 
 export interface OffseasonReport {

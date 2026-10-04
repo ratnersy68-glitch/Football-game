@@ -61,6 +61,15 @@ Status: ✅ done · 🟡 partial / simplified · ⬜ not yet
 - ✅ Newspaper game stories from real stats; news feed
 - ✅ Save system: 3 slots, IndexedDB with fallback, autosave after every week
 
+## Gear shop and Bowl Bucks
+- ✅ Bowl Bucks earned from play: itemized post-game rewards, balance shown in the menu and dynasty header
+- ✅ LCPS Locker: shop (16 categories, filters, featured drops), my gear, customize player, collection, team themes
+- ✅ ~250 original items with rarity price bands, plus a 6-item collection for every LCPS school
+- ✅ Purchase, inventory, favorites, equip on any player, randomize fit, team drip, player card GEAR tab
+- ✅ Layered player sprite: purchased gear renders on players during gameplay (verified in the browser)
+- ✅ Achievements, trophy gear, rare drops, championship collection, team themes, game day fit
+- ✅ CPU auto drip by position and style personality; cosmetic only
+
 ## Testing
 - ✅ Unit and integration tests (Vitest) for every rule listed in the spec plus full games and a dynasty season
 - ✅ Headless balance audits (CPU vs CPU, scripted-human bot vs CPU at each difficulty)
