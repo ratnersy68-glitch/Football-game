@@ -2,7 +2,7 @@
   "name": "LCPS Bowl",
   "short_name": "LCPS Bowl",
   "description": "Friday Nights. Loudoun County. One Champion.",
-  "start_url": "./",
+  "start_url": "./index.html",
   "scope": "./",
   "display": "fullscreen",
   "orientation": "landscape",
