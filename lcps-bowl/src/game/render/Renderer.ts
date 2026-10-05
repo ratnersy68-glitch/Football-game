@@ -67,6 +67,7 @@ export class Renderer {
   /** Last drawn anchors per actor (tests / debugging). */
   readonly lastAnchors = new Map<number, import('../../gear/rig/raster').Anchors>();
   private frameDt = 1 / 60;
+  private rigErrorLogged = false;
 
   constructor(private atmo: Atmosphere) {
     for (let i = 0; i < 160; i++) this.drops.push({ x: Math.random() * VIEW_W, y: Math.random() * VIEW_H, s: 0.6 + Math.random() * 0.8 });
@@ -625,7 +626,13 @@ export class Renderer {
       const tg = s.team(side);
       const look = resolveLook(a.p, tg.info, side === 'home', tg.theme ?? 'none');
       const pk = this.anim.pick(a);
-      const fr = drawRig(ctx, Math.round(x), Math.round(y), look, pk.build, pk.dir, pk.action, pk.frame, { presnap: !sim.snapped, number: a.p.number });
+      let fr;
+      try {
+        fr = drawRig(ctx, Math.round(x), Math.round(y), look, pk.build, pk.dir, pk.action, pk.frame, { presnap: !sim.snapped, number: a.p.number });
+      } catch (err) {
+        if (!this.rigErrorLogged) { this.rigErrorLogged = true; console.error('[render] player sprite failed', err); }
+        continue;
+      }
       this.lastAnchors.set(a.idx, fr.anchors);
       if (a.idx === holder) {
         const g = fr.anchors.ball ?? { x: fr.anchors.waist.x + (pk.dir === 'left' ? -3 : 3), y: fr.anchors.waist.y - 2 };

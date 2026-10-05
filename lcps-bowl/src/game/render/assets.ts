@@ -71,6 +71,7 @@ export function logoDecal(id: string, w: number, h: number): string[][] | null {
   cv.height = h;
   const ctx = cv.getContext('2d', { willReadFrequently: true });
   if (!ctx) return null;
+  try {
   ctx.imageSmoothingEnabled = true;
   ctx.imageSmoothingQuality = 'high';
   const r = fitRect(img, 0, 0, w, h);
@@ -87,4 +88,9 @@ export function logoDecal(id: string, w: number, h: number): string[][] | null {
   }
   decalCache.set(key, rows);
   return rows;
+  } catch {
+    // e.g. a tainted canvas: draw helmets without the mark rather than failing
+    decalCache.set(key, null);
+    return null;
+  }
 }
