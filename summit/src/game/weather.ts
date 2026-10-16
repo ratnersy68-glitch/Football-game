@@ -47,7 +47,7 @@ export function makeWeather(kind: WeatherKind, hour: number, seed: number): Weat
 
 export function weatherLabel(w: WeatherState): string {
   const h = Math.floor(w.hour), m = Math.floor((w.hour - h) * 60);
-  const t = w.hour < 7 ? 'Dawn' : w.hour < 9 ? 'Sunrise' : w.hour < 17 ? 'Day' : w.hour < 19.5 ? 'Sunset' : 'Night';
+  const t = w.hour < 6.5 ? 'Night' : w.hour < 8.5 ? 'Sunrise' : w.hour < 16.5 ? 'Day' : w.hour < 18.3 ? 'Sunset' : 'Night';
   return `${WEATHER_LABEL[w.kind]} · ${t} ${String(h).padStart(2, '0')}:${String(m).padStart(2, '0')}`;
 }
 

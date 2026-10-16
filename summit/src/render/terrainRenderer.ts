@@ -11,9 +11,13 @@ import { clamp, smoothstep } from '../core/math';
 const CHUNK = 256;
 const STEPS = [2, 4, 8, 16, 32];
 
+/** Sparkle strength — follows sunlight so glints vanish at night / in fog. */
+export const snowGlint = { value: 1 };
+
 export function makeSnowMaterial(): THREE.MeshStandardMaterial {
   const m = new THREE.MeshStandardMaterial({ vertexColors: true, roughness: 0.88, metalness: 0 });
   m.onBeforeCompile = (sh) => {
+    sh.uniforms.uGlint = snowGlint;
     sh.vertexShader = sh.vertexShader
       .replace('#include <common>', `#include <common>
         attribute float aGroom; attribute float aStripe; attribute float aIce;
@@ -24,6 +28,7 @@ export function makeSnowMaterial(): THREE.MeshStandardMaterial {
     sh.fragmentShader = sh.fragmentShader
       .replace('#include <common>', `#include <common>
         varying float vGroom; varying float vStripe; varying float vIce; varying vec3 vWPos;
+        uniform float uGlint;
         float h21(vec2 p){ p = fract(p*vec2(123.34, 456.21)); p += dot(p, p+45.32); return fract(p.x*p.y); }
         float vnoise(vec2 p){ vec2 i = floor(p), f = fract(p); f = f*f*(3.0-2.0*f);
           return mix(mix(h21(i), h21(i+vec2(1,0)), f.x), mix(h21(i+vec2(0,1)), h21(i+vec2(1,1)), f.x), f.y); }`)
@@ -40,11 +45,13 @@ export function makeSnowMaterial(): THREE.MeshStandardMaterial {
       .replace('#include <emissivemap_fragment>', `#include <emissivemap_fragment>
         {
           vec3 vd = normalize(cameraPosition - vWPos);
-          vec2 cell = floor(vWPos.xz * 5.0);
+          vec2 gp = vWPos.xz * 14.0;
+          vec2 cell = floor(gp);
           float r = h21(cell);
+          float dotMask = 1.0 - smoothstep(0.05, 0.16, length(fract(gp) - 0.5));
           vec3 fdir = normalize(vec3(h21(cell + 7.1) - 0.5, 1.2, h21(cell + 3.7) - 0.5));
-          float glint = step(0.93, r) * pow(max(dot(reflect(-vd, fdir), normalize(vec3(0.3, 0.8, -0.5))), 0.0), 60.0);
-          totalEmissiveRadiance += vec3(glint) * 1.6 * (1.0 - smoothstep(20.0, 70.0, length(cameraPosition - vWPos))) * (1.0 - vIce);
+          float glint = step(0.9, r) * dotMask * pow(max(dot(reflect(-vd, fdir), normalize(vec3(0.3, 0.8, -0.5))), 0.0), 40.0);
+          totalEmissiveRadiance += vec3(glint) * 2.2 * uGlint * (1.0 - smoothstep(8.0, 40.0, length(cameraPosition - vWPos))) * (1.0 - vIce);
         }`);
   };
   return m;
@@ -173,8 +180,9 @@ export class TerrainRenderer {
       col[k * 3] = col3.r; col[k * 3 + 1] = col3.g; col[k * 3 + 2] = col3.b;
       groom[k] = groomed;
       ice[k] = surf === 'ice' ? 1 : 0;
-      const gx = -nx, gz = -nz;
-      const th = Math.atan2(gx, gz);
+      // stripes follow the broad fall line (24 m gradient) so they don't zig-zag
+      const bgx = T.gridHeight(x + 24, z) - T.gridHeight(x - 24, z), bgz = T.gridHeight(x, z + 24) - T.gridHeight(x, z - 24);
+      const th = Math.atan2(-bgx, -bgz);
       stripe[k] = x * Math.cos(th) - z * Math.sin(th);
       k++;
     };

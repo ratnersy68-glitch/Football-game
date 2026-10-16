@@ -8,7 +8,7 @@ import { Back, Coins, DiffIcon, ResortArt } from '../components/common';
 import { WEATHER_LABEL, type WeatherKind } from '../../render/sceneSetup';
 import { DISCIPLINE_INFO } from '../../data/names';
 
-const HOURS: [number, string][] = [[7.2, 'Sunrise'], [11, 'Midday'], [15, 'Afternoon'], [18.2, 'Sunset'], [21, 'Night skiing']];
+const HOURS: [number, string][] = [[7.3, 'Sunrise'], [11, 'Midday'], [15, 'Afternoon'], [17.4, 'Sunset'], [21, 'Night skiing']];
 
 export function ResortSelect({ api, mode }: { api: AppApi; mode: 'freeride' | 'mountains' }) {
   const p = api.profile;

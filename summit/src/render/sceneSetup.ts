@@ -215,7 +215,7 @@ export function timeOfDay(hour: number, weather: WeatherKind): Atmosphere {
   const sunDir = new THREE.Vector3(Math.sin(az) * 0.8, Math.max(-0.3, sunAlt) * 0.9 + 0.05, -0.6 + Math.cos(az) * 0.2).normalize();
   const day = clamp(sunAlt * 2.2, 0, 1);
   const golden = clamp(1 - Math.abs(sunAlt - 0.12) * 4, 0, 1) * (sunAlt > -0.1 ? 1 : 0);
-  const night = clamp(-sunAlt * 3 + 0.2, 0, 1);
+  const night = clamp(-sunAlt * 3.2 - 0.05, 0, 1);
   const zenith = new THREE.Color('#2f6fc4').lerp(new THREE.Color('#0b1430'), night);
   const horizon = new THREE.Color('#bcd9f2').lerp(new THREE.Color('#f2b27a'), golden * 0.85).lerp(new THREE.Color('#1a2440'), night);
   const sunColor = new THREE.Color('#fff6ea').lerp(new THREE.Color('#ffb06a'), golden).lerp(new THREE.Color('#5a6a9a'), night);
@@ -241,6 +241,7 @@ export function timeOfDay(hour: number, weather: WeatherKind): Atmosphere {
   if (weather === 'fog') fogDensity = 0.0035;
   if (weather === 'overcast') fogDensity = 0.0004;
   if (weather === 'wind') fogDensity = 0.00028;
-  if (night > 0.5) hemiI = Math.max(hemiI, 0.55);
+  // night skiing: floodlit pistes read as a cool, bright ambient
+  if (night > 0.3) { hemiI = Math.max(hemiI, 0.6 + 0.6 * night); hemiSky.lerp(new THREE.Color('#7f93c8'), night); hemiGround.lerp(new THREE.Color('#3a4566'), night); }
   return { zenith, horizon, fog, sunColor, sunIntensity: sunI, hemiSky, hemiGround, hemiIntensity: hemiI, fogDensity, sunDir, stars: night * (weather === 'clear' || weather === 'wind' ? 1 : 0.1), exposure };
 }

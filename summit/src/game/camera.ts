@@ -53,8 +53,15 @@ export class CameraRig {
       height += 1.2; dist += 1.5;
       lookAt.y -= Math.min(2.5, Math.max(0, -s.vel.y) * 0.15);
     }
-    if (s.state === 'lift') { dist = 9; height = 3.5; }
-    if (this.mode === 'first' && headWorld && s.state !== 'crashed') {
+    if (s.state === 'lift') {
+      // chairlift / gondola cam: behind and to the side of the carrier, looking past the rider up the line
+      const right = new THREE.Vector3(-this.dir.z, 0, this.dir.x);
+      desired.copy(target).addScaledVector(this.dir, -7).addScaledVector(right, 5).add(new THREE.Vector3(0, 2.2, 0));
+      if (!this.init) this.pos.copy(desired);
+      this.pos.lerp(desired, damp(3, dt));
+      lookAt.copy(target).addScaledVector(this.dir, 12).y += 0.5;
+      fov = 58;
+    } else if (this.mode === 'first' && headWorld && s.state !== 'crashed') {
       desired.copy(headWorld).addScaledVector(this.dir, 0.15).y += 0.05;
       lookAt.copy(desired).addScaledVector(this.dir, 10);
       lookAt.y += -0.5 - (s.state === 'ride' ? Math.max(0, -s.vel.y) * 0.08 : 0);
@@ -78,7 +85,7 @@ export class CameraRig {
       this.pos.z = lerp(this.pos.z, desired.z, k);
       this.pos.y = lerp(this.pos.y, desired.y, damp(s.state === 'air' ? 2.5 : 4, dt));
     }
-    if (this.mode !== 'first') {
+    if (this.mode !== 'first' && s.state !== 'lift') {
       // terrain avoidance: stay above snow and keep line of sight
       const minY = T.height(this.pos.x, this.pos.z) + 1.0;
       if (this.pos.y < minY) this.pos.y = minY;

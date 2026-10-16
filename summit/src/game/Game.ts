@@ -6,7 +6,7 @@ import * as THREE from 'three';
 import { RESORTS } from '../data/resorts';
 import { buildResortAsync, trailPoint, type Resort } from '../world/resortBuilder';
 import { Environment, QUALITY, timeOfDay, type Quality, type WeatherKind } from '../render/sceneSetup';
-import { TerrainRenderer } from '../render/terrainRenderer';
+import { TerrainRenderer, snowGlint } from '../render/terrainRenderer';
 import { Vegetation } from '../render/trees';
 import { Props } from '../render/props';
 import { LiftMeshes } from '../render/liftMeshes';
@@ -425,6 +425,7 @@ export class Game {
         const i = this.lifts.nearStation(this.player.pos.x, this.player.pos.z);
         if (i >= 0 && this.player.state === 'ride' && this.player.speed < 7) {
           this.lifts.board(i, this.player);
+          this.cam.snap();
           this.showToast(`Boarding ${this.resort.lifts[i].name} — F to skip, hold W to speed up`);
         }
       }
@@ -604,7 +605,9 @@ export class Game {
 
   private applyWeather() {
     const w = this.weather;
-    this.env.applyAtmosphere(timeOfDay(w.hour, w.kind));
+    const atmo = timeOfDay(w.hour, w.kind);
+    this.env.applyAtmosphere(atmo);
+    snowGlint.value = Math.min(1, atmo.sunIntensity / 2.6) * (atmo.fogDensity > 0.001 ? 0.3 : 1);
     this.snow.setIntensity(w.snowfall * 7000 * QUALITY[this.config.quality].particles);
   }
 

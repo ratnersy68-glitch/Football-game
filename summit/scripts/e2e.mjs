@@ -116,5 +116,40 @@ if (scenario === 'screens') {
     await wait(300);
   }
 }
+if (scenario === 'showcase') {
+  const ride = async (id) => {
+    await page.goto(BASE + '?unlock=1');
+    await page.click('[data-testid=menu-free-ride]');
+    await page.click(`[data-testid=resort-${id}]`);
+    await page.click('[data-testid=start-freeride]');
+    await waitLoaded();
+  };
+  const teleport = (fn) => page.evaluate(fn);
+  await ride('avalanche');
+  await teleport(() => { const g = window.__summit; const t = g.resort.trails.find((t) => t.kind === 'trail' && t.difficulty === 'triple'); g.skiTrail(t.id); g.setWeather('clear', 15); });
+  await wait(2500); await shot('avalanche-triple-top');
+  await hold('KeyW', 2500); await shot('avalanche-triple-ski');
+  await teleport(() => { const g = window.__summit; g.setWeather('heavy-snow', 12); const t = g.resort.trails.find((t) => t.kind === 'trail' && t.difficulty === 'double' && t.chute) ?? g.resort.trails.find((t) => t.difficulty === 'double'); g.skiTrail(t.id); });
+  await wait(2500); await shot('avalanche-chute-snow');
+  await ride('summit-x');
+  await teleport(() => { const g = window.__summit; const p = g.resort.parks.find((p) => p.style === 'superpipe'); g.skiTrail(p.trailId); });
+  await hold('KeyW', 1500); await wait(1200); await shot('summitx-superpipe');
+  await teleport(() => { const g = window.__summit; const p = g.resort.parks.find((p) => p.style === 'slopestyle'); g.skiTrail(p.trailId); g.cam.mode = 'cinematic'; });
+  await hold('KeyW', 2000); await wait(1500); await shot('summitx-slopestyle');
+  await teleport(() => { const g = window.__summit; const p = g.resort.parks.find((p) => p.style === 'rails'); g.skiTrail(p.trailId); g.cam.mode = 'follow'; });
+  await hold('KeyW', 2500); await shot('summitx-rails');
+  await ride('alpine-world');
+  await teleport(() => { const g = window.__summit; g.setWeather('clear', 17.4); g.travelToBase(); });
+  await wait(2500); await shot('alpine-base-sunset');
+  await teleport(() => { const g = window.__summit; const L = g.resort.lifts[0]; g.player.place(g.world, L.bottom.x, L.bottom.z - 5, Math.PI, 0); });
+  await wait(500); await page.keyboard.press('KeyF'); await wait(3000); await shot('alpine-gondola-ride');
+  await teleport(() => { const g = window.__summit; g.lifts.skip(g.player, g.world); g.setWeather('clear', 21.5); });
+  await wait(2500); await shot('alpine-night');
+  await ride('glacier-ridge');
+  await teleport(() => { const g = window.__summit; const L = g.resort.lifts[2]; g.player.place(g.world, L.bottom.x, L.bottom.z - 5, Math.PI, 0); g.setWeather('clear', 10); });
+  await wait(400); await page.keyboard.press('KeyF'); await wait(3500); await shot('glacier-chairlift');
+  await teleport(() => { const g = window.__summit; g.lifts.skip(g.player, g.world); g.setWeather('fog', 10); });
+  await wait(2500); await shot('glacier-top-fog');
+}
 console.log('errors', errors.slice(0, 10));
 await browser.close();

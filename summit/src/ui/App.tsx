@@ -37,7 +37,8 @@ export interface AppApi {
 }
 
 export function resortUnlocked(p: Profile, def: ResortDef): boolean {
-  return def.index === 0 || (stageOf(p) >= def.unlock.stage && totalMedals(p) >= def.unlock.medals) || (p as Profile & { unlockAll?: boolean }).unlockAll === true;
+  const dev = typeof location !== 'undefined' && new URLSearchParams(location.search).has('unlock');
+  return dev || def.index === 0 || (stageOf(p) >= def.unlock.stage && totalMedals(p) >= def.unlock.medals);
 }
 
 export function App() {
