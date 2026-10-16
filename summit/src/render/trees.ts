@@ -27,7 +27,7 @@ export function pineGeometry(variant: number, detailed: boolean, foliage: THREE.
   parts.push(colorize(trunk.toNonIndexed(), () => trunkC));
   const tiers = detailed ? (variant === 1 ? 4 : 3) : 1;
   const tall = variant === 1 ? 1.25 : 1;
-  const snowAmt = variant === 2 ? 0.7 : 0.45;
+  const snowAmt = variant === 2 ? 0.75 : 0.35;
   for (let t = 0; t < tiers; t++) {
     const f = t / Math.max(1, tiers);
     const r = detailed ? (2.4 - f * 1.6) * (variant === 1 ? 0.8 : 1) : 2.1;
@@ -39,7 +39,7 @@ export function pineGeometry(variant: number, detailed: boolean, foliage: THREE.
     ng.computeVertexNormals();
     parts.push(colorize(ng, (yy, ny) => {
       const rel = (yy - (y - h / 2)) / h;
-      const s = ny > 0.35 && rel < 0.85 ? snowAmt : rel > 0.9 ? 0.85 : 0.08;
+      const s = rel > 0.86 ? 0.8 : rel > 0.55 && ny > 0.45 ? snowAmt * 0.6 : 0.05;
       return foliage.clone().lerp(dark, 0.4 * (1 - rel)).lerp(snow, s);
     }));
   }

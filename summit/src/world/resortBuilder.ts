@@ -889,7 +889,9 @@ function buildLift(terrain: Terrain, id: number, name: string, type: Lift['type'
         const dStation = Math.min(i === 0 ? f * span : Infinity, i + 1 === towers.length - 1 ? (1 - f) * span : Infinity);
         const need = dStation < 18 ? Math.min(minClear, 2.4) : minClear;
         const cy = lerp(a.y + a.h, b.y + b.h, f) - Math.sin(f * Math.PI) * Math.min(1.5, span * 0.006);
-        const short = terrain.gridHeight(x, z) + need - cy;
+        const lx = -(b.z - a.z) / span * 2.6, lz = (b.x - a.x) / span * 2.6;
+        const ground = Math.max(terrain.gridHeight(x, z), terrain.gridHeight(x + lx, z + lz), terrain.gridHeight(x - lx, z - lz));
+        const short = ground + need - cy;
         if (short > worst) { worst = short; wf = f; }
       }
       if (worst > 0.01) {

@@ -118,33 +118,35 @@ export function courseMeshes(T: Terrain, c: RaceCourse): THREE.Group {
   poleG.translate(0, 0.95, 0);
   const flagG = new THREE.PlaneGeometry(0.75, 0.65);
   const panelSide = c.discipline === 'slalom' ? 0 : 1;
+  // instanced poles and flags: two draw calls per colour regardless of gate count
+  const poles: Record<'red' | 'blue', THREE.Matrix4[]> = { red: [], blue: [] };
+  const flags: Record<'red' | 'blue', THREE.Matrix4[]> = { red: [], blue: [] };
+  const tall = c.discipline === 'ski-cross' || c.discipline === 'freestyle';
   for (const gate of c.gates) {
     const rx = -gate.dz, rz = gate.dx;
-    const m = gate.color === 'red' ? red : blue;
-    if (c.discipline === 'ski-cross' || c.discipline === 'freestyle') {
-      // checkpoint banners at the track edges
-      for (const s of [-1, 1]) {
-        const x = gate.x + rx * (gate.width / 2) * s, z = gate.z + rz * (gate.width / 2) * s;
-        const p = new THREE.Mesh(new THREE.CylinderGeometry(0.06, 0.06, 2.6, 6), m);
-        p.position.set(x, T.height(x, z) + 1.3, z);
-        g.add(p);
-      }
-      continue;
-    }
     for (const s of [-1, 1]) {
       const x = gate.x + rx * (gate.width / 2) * s, z = gate.z + rz * (gate.width / 2) * s;
-      const y = T.height(x, z);
-      const p = new THREE.Mesh(poleG, m);
-      p.position.set(x, y, z);
-      g.add(p);
+      poles[gate.color].push(new THREE.Matrix4().compose(new THREE.Vector3(x, T.height(x, z), z), new THREE.Quaternion(), new THREE.Vector3(tall ? 2 : 1, tall ? 1.4 : 1, tall ? 2 : 1)));
     }
-    if (panelSide) {
-      const f = new THREE.Mesh(flagG, new THREE.MeshLambertMaterial({ color: gate.color === 'red' ? 0xe23a3a : 0x2a5be0, side: THREE.DoubleSide }));
-      const x = gate.x, z = gate.z;
-      f.position.set(x, T.height(x, z) + 1.2, z);
-      f.rotation.y = Math.atan2(gate.dx, gate.dz) + Math.PI / 2;
-      f.scale.set(gate.width / 0.75 * 0.9, 1, 1);
-      g.add(f);
+    if (panelSide && !tall) {
+      const q = new THREE.Quaternion().setFromEuler(new THREE.Euler(0, Math.atan2(gate.dx, gate.dz) + Math.PI / 2, 0));
+      flags[gate.color].push(new THREE.Matrix4().compose(new THREE.Vector3(gate.x, T.height(gate.x, gate.z) + 1.2, gate.z), q, new THREE.Vector3((gate.width / 0.75) * 0.9, 1, 1)));
+    }
+  }
+  for (const col of ['red', 'blue'] as const) {
+    const m = col === 'red' ? red : blue;
+    if (poles[col].length) {
+      const im = new THREE.InstancedMesh(poleG, m, poles[col].length);
+      poles[col].forEach((mm, i) => im.setMatrixAt(i, mm));
+      im.computeBoundingSphere();
+      g.add(im);
+    }
+    if (flags[col].length) {
+      const fm = new THREE.MeshLambertMaterial({ color: col === 'red' ? 0xe23a3a : 0x2a5be0, side: THREE.DoubleSide });
+      const im = new THREE.InstancedMesh(flagG, fm, flags[col].length);
+      flags[col].forEach((mm, i) => im.setMatrixAt(i, mm));
+      im.computeBoundingSphere();
+      g.add(im);
     }
   }
   // finish arch
@@ -184,12 +186,25 @@ export function courseMeshes(T: Terrain, c: RaceCourse): THREE.Group {
   }
   crowd.computeBoundingSphere();
   g.add(crowd);
-  // start house
+  // start: hut beside the line plus an open START arch the camera can see through
   const st = c.start;
-  const house = new THREE.Mesh(new THREE.BoxGeometry(5, 3.2, 3), new THREE.MeshLambertMaterial({ color: 0x14365f }));
-  house.position.set(st.x - st.dx * 2.5, T.height(st.x, st.z) + 1.6, st.z - st.dz * 2.5);
+  const srx = -st.dz, srz = st.dx;
+  const hutX = st.x + srx * 9, hutZ = st.z + srz * 9;
+  const house = new THREE.Mesh(new THREE.BoxGeometry(4, 3, 4), new THREE.MeshLambertMaterial({ color: 0x14365f }));
+  house.position.set(hutX, T.height(hutX, hutZ) + 1.5, hutZ);
   house.rotation.y = Math.atan2(st.dx, st.dz);
   g.add(house);
+  const sw = 6;
+  for (const sgn of [-1, 1]) {
+    const x = st.x + st.dx * 1.5 + srx * (sw / 2) * sgn, z = st.z + st.dz * 1.5 + srz * (sw / 2) * sgn;
+    const post = new THREE.Mesh(new THREE.BoxGeometry(0.3, 3.4, 0.3), archM);
+    post.position.set(x, T.height(x, z) + 1.7, z);
+    g.add(post);
+  }
+  const sb = new THREE.Mesh(new THREE.BoxGeometry(sw + 0.6, 0.7, 0.2), new THREE.MeshLambertMaterial({ map: textTexture('START', '#14365f') }));
+  sb.position.set(st.x + st.dx * 1.5, T.height(st.x, st.z) + 3.6, st.z + st.dz * 1.5);
+  sb.rotation.y = Math.atan2(st.dx, st.dz);
+  g.add(sb);
   g.traverse((o) => { if ((o as THREE.Mesh).isMesh) o.castShadow = true; });
   return g;
 }

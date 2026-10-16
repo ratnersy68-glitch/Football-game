@@ -156,7 +156,7 @@ export class Environment {
   buildBackdrop(seed: string, baseY: number, tint: THREE.Color, rock: THREE.Color) {
     if (this.backdrop) { this.scene.remove(this.backdrop); this.backdrop.geometry.dispose(); }
     const noise = new Noise2D(seed + ':backdrop');
-    const segs = 160, rings = 6;
+    const segs = 420, rings = 9;
     const R0 = this.q.drawDist * 0.85, R1 = this.q.drawDist * 1.35;
     const pos: number[] = [], col: number[] = [], idx: number[] = [];
     const c = new THREE.Color();
@@ -165,12 +165,13 @@ export class Environment {
       const rad = lerp(R0, R1, fr);
       for (let s = 0; s <= segs; s++) {
         const a = (s / segs) * Math.PI * 2;
-        const ridge = noise.ridged(Math.cos(a) * 3 + 10, Math.sin(a) * 3 + 10, 4);
-        const bump = Math.sin(fr * Math.PI);
-        const h = (bump * (500 + ridge * 2200) + noise.noise(a * 9, fr * 5) * 180) * (r === 0 ? 0.0 : 1) + (r === rings ? -200 : 0);
-        pos.push(Math.cos(a) * rad, baseY - 300 + h, Math.sin(a) * rad);
-        const snow = clamp((h - 500) / 900, 0, 1);
-        c.copy(rock).lerp(tint, 0.35 + 0.65 * snow);
+        const ridge = noise.ridged(Math.cos(a) * 2.2 + 10, Math.sin(a) * 2.2 + 10 + fr, 4);
+        const bump = Math.pow(Math.sin(fr * Math.PI), 0.7);
+        const h = (bump * (350 + ridge * 1100) + noise.noise(a * 7, fr * 3) * 120) * (r === 0 ? 0.0 : 1) + (r === rings ? -200 : 0);
+        pos.push(Math.cos(a) * rad, baseY - 250 + h, Math.sin(a) * rad);
+        const snow = clamp((h - 300) / 500, 0, 1);
+        const rockBand = clamp(noise.noise(a * 23, fr * 6) * 0.5 + 0.2, 0, 0.45) * (1 - snow);
+        c.copy(tint).lerp(rock, rockBand).lerp(new THREE.Color('#aac2dc'), 0.3 + 0.25 * fr);
         col.push(c.r, c.g, c.b);
       }
     }
@@ -183,7 +184,15 @@ export class Environment {
     g.setAttribute('color', new THREE.Float32BufferAttribute(col, 3));
     g.setIndex(idx);
     g.computeVertexNormals();
-    const m = new THREE.MeshLambertMaterial({ vertexColors: true, flatShading: true });
+    // bake soft directional shading so distant ranges stay bright and hazy
+    const nrm = g.getAttribute('normal');
+    const L = new THREE.Vector3(0.4, 0.75, -0.5).normalize();
+    for (let i = 0; i < nrm.count; i++) {
+      const sh = 0.78 + 0.3 * Math.max(-0.4, nrm.getX(i) * L.x + nrm.getY(i) * L.y + nrm.getZ(i) * L.z);
+      col[i * 3] *= sh; col[i * 3 + 1] *= sh; col[i * 3 + 2] *= sh;
+    }
+    g.setAttribute('color', new THREE.Float32BufferAttribute(col, 3));
+    const m = new THREE.MeshBasicMaterial({ vertexColors: true });
     this.backdrop = new THREE.Mesh(g, m);
     this.backdrop.frustumCulled = false;
     this.scene.add(this.backdrop);
@@ -210,13 +219,13 @@ export function timeOfDay(hour: number, weather: WeatherKind): Atmosphere {
   const zenith = new THREE.Color('#2f6fc4').lerp(new THREE.Color('#0b1430'), night);
   const horizon = new THREE.Color('#bcd9f2').lerp(new THREE.Color('#f2b27a'), golden * 0.85).lerp(new THREE.Color('#1a2440'), night);
   const sunColor = new THREE.Color('#fff6ea').lerp(new THREE.Color('#ffb06a'), golden).lerp(new THREE.Color('#5a6a9a'), night);
-  let sunI = lerp(0.15, 2.7, day) * (1 - night * 0.9);
-  let hemiI = lerp(0.35, 1.0, day);
+  let sunI = lerp(0.15, 3.1, day) * (1 - night * 0.9);
+  let hemiI = lerp(0.3, 0.68, day);
   const hemiSky = new THREE.Color('#cfe6ff').lerp(new THREE.Color('#ffd9b8'), golden * 0.6).lerp(new THREE.Color('#3a4a7a'), night);
-  const hemiGround = new THREE.Color('#9aa3b0').lerp(new THREE.Color('#2a3044'), night);
+  const hemiGround = new THREE.Color('#7d8796').lerp(new THREE.Color('#2a3044'), night);
   const fog = horizon.clone().lerp(new THREE.Color('#e4edf6'), 0.35 * day);
-  let fogDensity = 0.00016;
-  let exposure = lerp(0.9, 1.0, day) + night * 0.25;
+  let fogDensity = 0.00021;
+  let exposure = lerp(0.85, 0.9, day) + night * 0.3;
   if (weather === 'overcast' || weather === 'light-snow' || weather === 'heavy-snow' || weather === 'fog') {
     const k = weather === 'overcast' ? 0.6 : weather === 'light-snow' ? 0.7 : weather === 'heavy-snow' ? 0.9 : 0.85;
     const grey = new THREE.Color('#c4ccd6').lerp(new THREE.Color('#1c2232'), night);

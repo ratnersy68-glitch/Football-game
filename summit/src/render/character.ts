@@ -322,7 +322,7 @@ export class Character {
       s.mesh.scale.set(1, Math.max(0.05, len - r * 0.6) / 1, 1);
     }
     this.pelvis.position.copy(J.pelvis).y -= 0.03;
-    this.pelvis.quaternion.copy(this.body.quaternion.identity());
+    this.pelvis.rotation.set(0, 0, 0);
     if (!ski) this.pelvis.rotation.y = Math.PI / 2;
     // head looks along travel
     this.head.position.copy(J.head);
@@ -352,8 +352,8 @@ export class Character {
         this.skiR.position.set(J.ankleR.x, J.ankleR.y - 0.1, J.ankleR.z + 0.3);
         this.skiL.rotation.set(0.25, 0, 0); this.skiR.rotation.set(0.25, 0, 0);
       } else {
-        this.skiL.position.set(J.ankleL.x, J.ankleL.y - 0.1, J.ankleL.z + 0.1);
-        this.skiR.position.set(J.ankleR.x, J.ankleR.y - 0.1, J.ankleR.z + 0.1);
+        this.skiL.position.set(J.ankleL.x, J.ankleL.y - 0.07, J.ankleL.z + 0.1);
+        this.skiR.position.set(J.ankleR.x, J.ankleR.y - 0.07, J.ankleR.z + 0.1);
         const japan = p.grab === 4 || p.grab === 6 ? p.grabAmt : 0;
         this.skiL.rotation.set(-japan * 0.5, -plow, japan * 0.3);
         this.skiR.rotation.set(-japan * 0.5, plow, -japan * 0.3);
@@ -378,7 +378,7 @@ export class Character {
       placeFoot(this.bootL, J.ankleL, Math.PI / 2 - 0.2);
       placeFoot(this.bootR, J.ankleR, Math.PI / 2 + 0.2);
       const mid = V().addVectors(J.ankleL, J.ankleR).multiplyScalar(0.5);
-      this.board.position.set(mid.x, mid.y - 0.1, mid.z);
+      this.board.position.set(mid.x, mid.y - 0.07, mid.z);
       this.board.rotation.set(0, 0, 0);
     }
     // whole-body angulation into the turn (skis go on edge with it)

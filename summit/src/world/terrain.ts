@@ -19,7 +19,7 @@ export interface SnowConditions {
 export const DEFAULT_CONDITIONS: SnowConditions = { powder: 0.5, ice: 0.3, slushLine: 0, label: 'Packed Powder' };
 
 export const SURFACE_PHYS: Record<Surface, { mu: number; grip: number; drag: number; label: string }> = {
-  groomed: { mu: 0.045, grip: 1.0, drag: 0.0, label: 'Groomed corduroy' },
+  groomed: { mu: 0.045, grip: 1.0, drag: 0.0, label: 'Groomed piste' },
   hardpack: { mu: 0.04, grip: 0.85, drag: 0.0, label: 'Hardpack' },
   ice: { mu: 0.022, grip: 0.42, drag: 0.0, label: 'Ice' },
   powder: { mu: 0.06, grip: 0.8, drag: 0.32, label: 'Powder' },
