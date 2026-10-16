@@ -139,7 +139,8 @@ export function buildStadium(st: Stadium, home: Team, cond: Conditions): BuiltSt
   sun.position.copy(afternoon ? T(-220, 160, 220) : night ? T(0, 400, 150) : T(-150, 380, -120));
   sun.target.position.copy(T(0, 0, 110));
   sun.castShadow = true;
-  sun.shadow.mapSize.set(2048, 2048);
+  const mobile = 'ontouchstart' in window && Math.min(screen.width, screen.height) < 900;
+  sun.shadow.mapSize.set(mobile ? 1024 : 2048, mobile ? 1024 : 2048);
   const sc = sun.shadow.camera;
   sc.left = -220; sc.right = 220; sc.top = 220; sc.bottom = -220; sc.near = 10; sc.far = 900;
   sun.shadow.bias = -0.0008;

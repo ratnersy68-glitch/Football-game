@@ -232,3 +232,76 @@ select { background: #101c33; color: var(--text); border: 1px solid var(--line);
 .final .score { font-family: var(--display); font-size: 64px; display: flex; gap: 30px; align-items: center; margin: 10px 0 18px; }
 .final .score .tm { padding: 6px 22px; border-radius: 8px; }
 .loading { position: absolute; inset: 0; display: flex; align-items: center; justify-content: center; font-family: var(--display); font-size: 28px; background: var(--bg); }
+
+/* ---------- Touch controls ---------- */
+.touch { position: absolute; inset: 0; pointer-events: none; z-index: 30; font-family: var(--display); }
+.touch .tbtn { pointer-events: auto; touch-action: none; -webkit-tap-highlight-color: transparent; border-radius: 50%; border: 2px solid rgba(255,255,255,0.55); background: rgba(10,22,44,0.55); color: #fff; font-family: var(--display); letter-spacing: 0.04em; display: inline-flex; align-items: center; justify-content: center; backdrop-filter: blur(2px); user-select: none; -webkit-user-select: none; }
+.touch .tbtn.on { background: rgba(255,204,51,0.85); color: #1a1200; border-color: #ffe08a; transform: scale(0.94); }
+.touch .tbtn.big { width: 96px; height: 96px; font-size: 20px; }
+.touch .tbtn.mid { width: 66px; height: 66px; font-size: 14px; }
+.touch .tbtn.sm { width: 44px; height: 44px; font-size: 13px; border-radius: 12px; }
+.touch .tbtn.power { border-color: #ff7a59; } .touch .tbtn.contact { border-color: #7fd8ff; }
+.tc-top { position: absolute; right: 50%; transform: translateX(50%); top: 8px; display: flex; gap: 8px; }
+.tc-group { position: absolute; inset: 0; }
+.tc-group[data-g=replaybtn] { position: static; }
+.tc-group[data-g=bat] .big, .tc-group[data-g=pitch] .big, .tc-group[data-g=wait] .big { position: absolute; right: max(26px, env(safe-area-inset-right)); bottom: 108px; }
+.tc-group[data-g=bat] .power { position: absolute; right: 136px; bottom: 96px; }
+.tc-group[data-g=bat] .contact { position: absolute; right: 120px; bottom: 178px; }
+.tc-group[data-g=steal] { inset: auto; left: max(18px, env(safe-area-inset-left)); bottom: 120px; }
+.tc-group[data-g=steal] .tbtn { position: static; }
+.tc-hint { position: absolute; left: 50%; bottom: 60px; transform: translateX(-50%); font-family: var(--font); font-size: 12px; color: #dfe7f2; background: rgba(0,0,0,0.45); padding: 4px 10px; border-radius: 12px; white-space: nowrap; }
+.tc-stick { position: absolute; left: max(28px, env(safe-area-inset-left)); bottom: 70px; width: 132px; height: 132px; border-radius: 50%; background: rgba(10,22,44,0.4); border: 2px solid rgba(255,255,255,0.35); pointer-events: auto; touch-action: none; display: flex; align-items: center; justify-content: center; }
+.tc-knob { width: 58px; height: 58px; border-radius: 50%; background: rgba(255,255,255,0.75); pointer-events: none; }
+.tc-throws { position: absolute; right: max(16px, env(safe-area-inset-right)); bottom: 70px; display: flex; flex-direction: column; align-items: center; gap: 4px; }
+.tc-throws > div { display: flex; gap: 70px; }
+.tc-group[data-g=field] .tc-actions { position: absolute; left: 50%; transform: translateX(-50%); bottom: 70px; display: flex; gap: 14px; }
+.tc-group[data-g=run] .tc-actions, .tc-group[data-g=replay] .tc-actions { position: absolute; right: max(16px, env(safe-area-inset-right)); bottom: 110px; display: flex; gap: 12px; }
+.tc-group[data-g=replay] .tc-actions { right: 50%; transform: translateX(50%); bottom: 90px; }
+.tc-sel { position: absolute; right: max(16px, env(safe-area-inset-right)); bottom: 190px; display: flex; gap: 6px; }
+.tc-rotate { display: none; position: absolute; left: 0; right: 0; top: 40%; text-align: center; font-size: 20px; color: #fff; background: rgba(0,0,0,0.65); padding: 14px; }
+@media (orientation: portrait) { .tc-rotate { display: block; } }
+.touch-device .hint-bar, .touch-device .replay-ui span:last-child, .touch-device .replay-prompt { display: none; }
+.touch-device .pitchpanel { bottom: auto; top: 96px; left: max(14px, env(safe-area-inset-left)); right: auto; }
+.touch-device .pitchpanel .pt { padding: 9px 10px; }
+.touch-device .meter { bottom: 230px; }
+.touch-device .meter-label { bottom: 258px; }
+.touch-device .throwhint { display: none; }
+
+/* ---------- Small screens (phones) ---------- */
+@media (max-width: 950px), (max-height: 520px) {
+  .screen-head { padding: 10px 14px 6px; gap: 10px; flex-wrap: wrap; }
+  .screen-head h1 { font-size: 22px; }
+  .steps { font-size: 11px; margin-left: 0; } .steps span { padding: 2px 6px; }
+  .screen-body { padding: 6px 12px 10px; -webkit-overflow-scrolling: touch; }
+  .screen-foot { padding: 8px 12px 12px; }
+  .screen-foot .grow { display: none; }
+  .btn { padding: 8px 14px; font-size: 15px; }
+  .logo { font-size: 54px; } .logo .ball { width: 42px; height: 42px; } .logo small { font-size: 14px; }
+  .home-menu { margin-top: 22px; width: 260px; } .home-menu .btn { font-size: 19px; padding: 10px; }
+  .leagues { grid-template-columns: 1fr; gap: 6px; }
+  .team-row { gap: 5px; }
+  .team-card { min-height: 64px; padding: 6px; }
+  .team-card .abbr { font-size: 20px; } .team-card .nm { font-size: 9px; } .team-card .ovr { font-size: 12px; right: 4px; top: 4px; }
+  .team-detail { grid-template-columns: 1fr; gap: 8px; padding: 10px; }
+  .park-grid { grid-template-columns: repeat(auto-fill, minmax(170px, 1fr)); }
+  .cond { gap: 12px; }
+  .lineup-wrap { grid-template-columns: 1fr; }
+  .tbl { font-size: 12px; } .tbl td, .tbl th { padding: 3px 4px; }
+  .diff-grid { grid-template-columns: repeat(2, 1fr); gap: 8px; } .diff { padding: 8px; } .diff h4 { font-size: 17px; } .diff p { font-size: 11px; }
+  .matchup .tm { font-size: 26px; }
+  .bug { left: 8px; top: 8px; transform: scale(0.82); transform-origin: top left; }
+  .linescore { display: none; }
+  .card { bottom: 8px; min-width: 0; padding: 4px 10px; transform: scale(0.8); }
+  .card.left { left: 0; transform-origin: bottom left; } .card.right { right: 0; transform-origin: bottom right; }
+  .pitchinfo { top: 8px; right: 8px; transform: scale(0.8); transform-origin: top right; }
+  .lower3 { transform: translateX(-50%) scale(0.72); transform-origin: bottom center; bottom: 60px; }
+  .banner { top: 26%; } .banner .sub { font-size: 16px; } .banner .stats3 { font-size: 20px; gap: 18px; }
+  .feedback { top: 16%; font-size: 22px; }
+  .runners { top: 72px; left: 8px; transform: scale(0.85); transform-origin: top left; }
+  .modal-box { padding: 12px; min-width: 0; max-height: 94vh; }
+  .pause-menu { display: grid; grid-template-columns: 1fr 1fr; width: min(560px, 92vw); gap: 6px; }
+  .modal-box h2 { margin-bottom: 6px; font-size: 20px; }
+  .box-grid, .controls-grid { grid-template-columns: 1fr; }
+  .final .score { font-size: 38px; }
+  .meter { width: 260px; }
+}

@@ -16,6 +16,7 @@ import { Renderer, type ViewState } from './render/Renderer';
 import { T } from './render/StadiumBuilder';
 import type { CamMode } from './render/CameraManager';
 import { PlayerController } from './input/PlayerController';
+import { TouchControls, isTouchDevice, type TouchMode } from './input/TouchControls';
 import { AudioManager } from './audio/AudioManager';
 import { Hud } from './ui/Hud';
 import { Modals } from './ui/Modals';
@@ -49,6 +50,7 @@ class App {
   prefs = loadPrefs();
   replay = new ReplaySystem();
   mode: 'menu' | 'game' = 'menu';
+  touch: TouchControls | null = null;
   paused = false;
   hrCam = 0;
   replayPrompt = false;
@@ -61,6 +63,33 @@ class App {
   constructor() {
     this.renderer = new Renderer(document.getElementById('canvas-wrap')!);
     this.ctrl = new PlayerController(this.renderer.renderer.domElement);
+    if (isTouchDevice()) {
+      document.body.classList.add('touch-device');
+      this.touch = new TouchControls(this.root, this.renderer.renderer.domElement, this.ctrl);
+      this.touch.onPause = () => {
+        if (this.replay.active) { this.replay.close(); this.hud?.hideGameplayRegions(false); }
+        else if (this.modals.open) this.modals.close();
+        else if (this.mode === 'game' && !this.finalShown) this.openPause();
+      };
+      this.touch.onAnyTouch = () => this.audio.unlock();
+      this.touch.onReplayDrag = (dx, dy) => {
+        const r = this.renderer.camMgr.replay;
+        r.yaw -= dx * 0.008;
+        r.pitch = Math.max(0.05, Math.min(1.45, r.pitch + dy * 0.006));
+      };
+      this.touch.onReplayPinch = (f) => {
+        const r = this.renderer.camMgr.replay;
+        r.dist = Math.max(12, Math.min(420, r.dist * f));
+      };
+    }
+    // Tap a pitch in the pitch list (touch-friendly; also works with a mouse).
+    this.ui.addEventListener('pointerdown', (e) => {
+      const el = (e.target as HTMLElement).closest<HTMLElement>('[data-pkey]');
+      if (!el) return;
+      e.preventDefault();
+      this.ctrl.virtualDown(el.dataset.pkey!);
+      setTimeout(() => this.ctrl.virtualUp(el.dataset.pkey!), 60);
+    });
     this.modals = new Modals(this.ui);
     this.menu = new MenuScreens(this.ui, {
       onStart: (s) => this.startGame(s),
@@ -204,7 +233,7 @@ class App {
           hud.pitcherCard(e, currentPitcher(e.state));
           break;
         }
-        case 'windup': this.replayPrompt = false; break;
+        case 'windup': this.replayPrompt = false; hud.hideLower3(); break;
         case 'pitchRelease': this.audio.play('pitch', 0.6); break;
         case 'swing': this.audio.play('swing', 0.7); break;
         case 'meterResult': hud.feedback(ev.text ?? '', 'PITCH METER', false); break;
@@ -371,8 +400,24 @@ class App {
       this.renderer.frame(null, { mode: 'menu', pci: null, zone: false, target: null, focus: null, dimCatcher: false }, dt);
       if (c.hit('Escape') && this.modals.open) this.modals.close();
     }
+    if (this.touch) this.touch.setMode(this.touchMode(), { steal: !!this.engine?.state.bases.some(Boolean), replay: this.mode === 'game' && this.replayPrompt && !this.replay.active });
     c.endFrame();
     requestAnimationFrame((n) => this.loop(n));
+  }
+
+  private touchMode(): TouchMode {
+    const e = this.engine;
+    if (this.mode !== 'game' || !e) return 'none';
+    if (this.replay.active) return 'replay';
+    if (this.paused || this.modals.open || this.finalShown || e.phase === 'final') return 'none';
+    const userBat = e.userSideBatting(), userPitch = e.userSidePitching();
+    if (e.phase === 'live') return userPitch ? 'field' : userBat ? 'run' : 'wait';
+    if (e.phase === 'prepitch' || e.phase === 'windup' || e.phase === 'pitch') {
+      if (userBat) return 'bat';
+      if (userPitch && e.phase === 'prepitch') return 'pitch';
+      return 'wait';
+    }
+    return 'wait';
   }
 
   private trackReplay(e: GameEngine, before: string, dt: number) {

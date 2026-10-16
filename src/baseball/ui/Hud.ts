@@ -105,6 +105,11 @@ export class Hud {
     if (this.lower3Timer > 0 && (this.lower3Timer -= dt) <= 0) this.set('lower3', '');
   }
 
+  hideLower3() {
+    this.set('lower3', '');
+    this.lower3Timer = 0;
+  }
+
   clearTransient() {
     for (const r of ['banner', 'toast', 'feedback', 'lower3']) this.set(r, '');
   }
@@ -172,13 +177,13 @@ export class Hud {
       const pr = pitcher.pitcher!;
       this.set('pitchpanel', `<div class="pitchpanel">${pr.pitches.map((c, i) => {
         const sh = PITCHES[c];
-        return `<div class="pt ${c === up.code ? 'sel' : ''}"><span class="key">${PITCH_KEYS[i]}</span><span class="dot" style="background:${sh.color}"></span>${sh.name}<span class="mph">${Math.round(pr.velocity * sh.speed)}</span></div>`;
+        return `<div class="pt clickable ${c === up.code ? 'sel' : ''}" data-pkey="Key${PITCH_KEYS[i]}"><span class="key">${PITCH_KEYS[i]}</span><span class="dot" style="background:${sh.color}"></span>${sh.name}<span class="mph">${Math.round(pr.velocity * sh.speed)}</span></div>`;
       }).join('')}<div class="hint">${up.stage === 'select' || up.stage === 'aim' ? 'Pick a pitch · aim with the mouse · SPACE to start the meter' : up.stage === 'meter' ? 'SPACE when the needle hits the gold line' : ''}</div></div>`);
       if (up.stage === 'meter' || up.stage === 'locked') {
-        const w = 360;
+        const w = 100;
         const zl = (up.zoneCenter - up.zoneHalf) / 1.15 * w, zw = (up.zoneHalf * 2) / 1.15 * w;
         const v = (up.locked ?? up.meter) / 1.15 * w;
-        this.set('meter', `<div class="meter-label">PITCH METER</div><div class="meter"><div class="zone" style="left:${zl - 30}px;width:${zw + 60}px;opacity:.45"></div><div class="zone perfect" style="left:${zl}px;width:${zw}px"></div><div class="needle" style="left:${v}px"></div></div>`);
+        this.set('meter', `<div class="meter-label">PITCH METER</div><div class="meter"><div class="zone" style="left:${zl - 8}%;width:${zw + 16}%;opacity:.45"></div><div class="zone perfect" style="left:${zl}%;width:${zw}%"></div><div class="needle" style="left:${v}%"></div></div>`);
       } else this.set('meter', '');
     } else {
       this.set('pitchpanel', '');
@@ -191,9 +196,9 @@ export class Hud {
       const f = play.controlled;
       if (x.throwHold && f) {
         const z = throwMeterZone(f);
-        const w = 360;
+        const w = 100;
         const v = Math.min(1.2, x.throwHold.t / x.throwFill);
-        this.set('meter', `<div class="meter-label">THROW TO ${BASE_NAMES[x.throwHold.base]} — release in the green</div><div class="meter"><div class="zone" style="left:${(z.start / 1.2) * w}px;width:${((z.end - z.start) / 1.2) * w}px"></div><div class="needle" style="left:${(v / 1.2) * w}px"></div></div>`);
+        this.set('meter', `<div class="meter-label">THROW TO ${BASE_NAMES[x.throwHold.base]} — release in the green</div><div class="meter"><div class="zone" style="left:${(z.start / 1.2) * w}%;width:${((z.end - z.start) / 1.2) * w}%"></div><div class="needle" style="left:${(v / 1.2) * w}%"></div></div>`);
       }
       if (f && f.hasBall) {
         const forced = new Set<number>();

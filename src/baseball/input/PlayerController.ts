@@ -40,6 +40,9 @@ export class PlayerController {
   runnerSel: number | null = null;
   enabled = true;
   private gpPrev: boolean[] = [];
+  /** Touch: virtual joystick and relative drag (screen pixels) for PCI / pitch aim. */
+  stick = { x: 0, y: 0 };
+  private drag: { x0: number; y0: number; x1: number; y1: number } | null = null;
 
   constructor(target: HTMLElement) {
     window.addEventListener('keydown', (e) => {
@@ -59,6 +62,20 @@ export class PlayerController {
     target.addEventListener('contextmenu', (e) => e.preventDefault());
   }
 
+  /** On-screen buttons feed the same key state as the keyboard. */
+  virtualDown(k: string) {
+    if (!this.keys.has(k)) this.pressed.add(k);
+    this.keys.add(k);
+  }
+  virtualUp(k: string) {
+    this.keys.delete(k);
+    this.released.add(k);
+  }
+  touchDrag(x0: number, y0: number, x1: number, y1: number) {
+    if (this.drag) { this.drag.x1 = x1; this.drag.y1 = y1; }
+    else this.drag = { x0, y0, x1, y1 };
+  }
+
   /** Was this key pressed this frame (edge)? */
   hit(k: string): boolean {
     return this.pressed.has(k);
@@ -69,6 +86,7 @@ export class PlayerController {
     this.released.clear();
     this.clicks = [];
     this.mouse.moved = false;
+    this.drag = null;
   }
 
   build(dt: number, ctx: ControllerContext): FrameInput {
@@ -82,6 +100,18 @@ export class PlayerController {
       if (p) {
         if (ctx.userPitching) this.aim = { x: clamp(p.x, -2.2, 2.2), y: clamp(p.y, 0.4, 4.8) };
         else this.pci = { x: clamp(p.x, -1.6, 1.6), y: clamp(p.y, 0.9, 4.3) };
+      }
+    }
+    if (this.drag) {
+      // Relative drag: the finger never has to cover the PCI.
+      const z = ctx.userPitching ? ctx.aimPlaneZ : ctx.pciPlaneZ;
+      const a = ctx.planePoint(this.drag.x0, this.drag.y0, z);
+      const b = ctx.planePoint(this.drag.x1, this.drag.y1, z);
+      if (a && b) {
+        const tgt = ctx.userPitching ? this.aim : this.pci;
+        const gain = 0.9;
+        tgt.x = clamp(tgt.x + (b.x - a.x) * gain, -2.2, 2.2);
+        tgt.y = clamp(tgt.y + (b.y - a.y) * gain, 0.4, 4.8);
       }
     }
     const kx = (k.has('ArrowRight') ? 1 : 0) - (k.has('ArrowLeft') ? 1 : 0) + gp.lx;
@@ -156,10 +186,12 @@ export class PlayerController {
     const out = { lx: 0, ly: 0, a: false, rt: false, lt: false, rb: false, lb: false, pitchIdx: -1, throwBase: 0, throwHeld: 0 };
     const pads = navigator.getGamepads ? navigator.getGamepads() : [];
     const gp = pads && Array.from(pads).find((p) => p);
+    out.lx = this.stick.x;
+    out.ly = this.stick.y;
     if (!gp) return out;
     const dz = (v: number) => (Math.abs(v) < 0.18 ? 0 : v);
-    out.lx = dz(gp.axes[0] ?? 0);
-    out.ly = dz(gp.axes[1] ?? 0);
+    out.lx += dz(gp.axes[0] ?? 0);
+    out.ly += dz(gp.axes[1] ?? 0);
     const btn = (i: number) => !!gp.buttons[i]?.pressed;
     const edge = (i: number) => btn(i) && !this.gpPrev[i];
     out.a = edge(0);

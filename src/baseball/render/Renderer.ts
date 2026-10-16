@@ -50,7 +50,8 @@ export class Renderer {
   constructor(container: HTMLElement) {
     this.container = container;
     this.renderer = new THREE.WebGLRenderer({ antialias: true, powerPreference: 'high-performance' });
-    this.renderer.setPixelRatio(Math.min(2, window.devicePixelRatio));
+    const mobile = 'ontouchstart' in window && Math.min(screen.width, screen.height) < 900;
+    this.renderer.setPixelRatio(Math.min(mobile ? 1.5 : 2, window.devicePixelRatio));
     this.renderer.shadowMap.enabled = true;
     this.renderer.shadowMap.type = THREE.PCFSoftShadowMap;
     this.renderer.toneMapping = THREE.ACESFilmicToneMapping;
