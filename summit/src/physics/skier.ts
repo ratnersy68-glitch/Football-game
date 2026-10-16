@@ -118,6 +118,7 @@ export class Skier {
   private rngState = 12345;
   pipeAir = false;
   inverted = false;
+  takeoffYaw = 0;
   lastGroundY = 0;
   impact = 0;
 
@@ -259,7 +260,8 @@ export class Skier {
       const depth = this.surface === 'powder' ? 0.35 + 0.65 * T.conditions.powder : this.surface === 'slush' ? 0.8 : 0.2;
       dec += sp.drag * depth * (1.25 - 0.8 * gear.powder) * speed * (isBoard ? 0.75 : 1);
       // snowplow / skid brake
-      if (input.brake) dec += (2.6 + 0.07 * speed) * Math.max(0.5, grip);
+      // snowplow at low speed, skidded check turns at speed: strong enough to hold on steeps
+      if (input.brake) dec += (2.8 + 0.13 * speed) * Math.max(0.5, grip);
       const ns = Math.max(0, speed - dec * dt);
       v.multiplyScalar(ns / speed);
       speed = ns;
@@ -358,6 +360,7 @@ export class Skier {
     this.maxY = this.pos.y;
     this.spinVel = 0; this.flipVel = 0; this.corkTilt = 0;
     this.inverted = false;
+    this.takeoffYaw = this.yaw;
     // start the air orientation from the ground pose, nudged toward upright
     _n.copy(this.normal).lerp(UP, 0.45).normalize();
     this.groundQuat(this.airQ, _n);
@@ -382,8 +385,14 @@ export class Skier {
     const rel = Math.hypot(rvx, v.y, rvz);
     const kd = (0.5 * RHO * 0.45) / MASS;
     v.x -= kd * rel * rvx * dt; v.y -= kd * rel * v.y * dt; v.z -= kd * rel * rvz * dt;
-    // tiny air steering
+    // tiny air steering (and on short hops the skis keep turning as on snow)
     const steer = clamp(input.steer, -1, 1);
+    if (this.airTime < 0.35 && input.spin === 0) {
+      const turn = steer * Math.min(2.2, 12 / Math.max(4, Math.hypot(v.x, v.z))) * 0.8 * dt;
+      this.takeoffYaw -= turn;
+      _q.setFromAxisAngle(UP, -turn);
+      this.airQ.premultiply(_q);
+    }
     if (Math.abs(steer) > 0.05) {
       _t.set(-this.launchDir.z, 0, this.launchDir.x); // left
       v.addScaledVector(_t, -steer * 1.1 * dt);
@@ -450,7 +459,7 @@ export class Skier {
     // landing assist close to the snow when no rotation is commanded
     const ground = T.height(this.pos.x, this.pos.z);
     const hAbove = this.pos.y - ground;
-    if (spinIn === 0 && flipIn === 0 && v.y < 0) {
+    if (spinIn === 0 && flipIn === 0 && v.y < 0 && this.airTime > 0.3) {
       const ttl = hAbove / Math.max(1, -v.y);
       if (ttl < 0.45) {
         T.normal(this.pos.x, this.pos.z, _m);
@@ -517,7 +526,8 @@ export class Skier {
     else if (impact > crashImpact * 0.72 || angUp > 0.5 + 0.12 * st || align < 0.8) landing = 'sketchy';
     else landing = 'clean';
 
-    if (fwd.lengthSq() > 1e-4) this.yaw = Math.atan2(fwd.x, fwd.z);
+    if (hop && Math.abs(this.air.spinAccum) < 0.3) this.yaw = wrapAngle(this.takeoffYaw + this.air.spinAccum * -1);
+    else if (fwd.lengthSq() > 1e-4) this.yaw = Math.atan2(fwd.x, fwd.z);
     this.compression = Math.min(1, impact * 0.12 + 0.2);
     this.grab = 0;
     this.grabAmt = 0;
@@ -651,22 +661,25 @@ export class Skier {
     const T = world.terrain;
     this.crashT += dt;
     const v = this.vel;
-    v.y -= G * dt;
-    this.pos.addScaledVector(v, dt);
     const hg = T.height(this.pos.x, this.pos.z) + 0.25;
-    if (this.pos.y <= hg) {
-      this.pos.y = hg;
+    if (this.pos.y > hg + 0.4) {
+      // tumbling through the air (off a cliff / big impact)
+      v.y -= G * dt;
+      this.pos.addScaledVector(v, dt);
+      const h2 = T.height(this.pos.x, this.pos.z) + 0.25;
+      if (this.pos.y < h2) this.pos.y = h2;
+    } else {
+      // sliding / rolling on the snow: tangential gravity vs heavy body friction
       T.normal(this.pos.x, this.pos.z, _m);
       const n = this.normal.set(_m.x, _m.y, _m.z);
-      const vn = v.dot(n);
-      if (vn < 0) v.addScaledVector(n, -vn * 1.25);
-      // tumbling body slides with high friction
-      const sp = v.length();
-      const dec = (0.55 * G * n.y + 0.4 * sp) * dt;
-      if (sp > 0) v.multiplyScalar(Math.max(0, sp - dec) / sp);
-      // gravity along slope keeps it sliding a bit
+      v.addScaledVector(n, -v.dot(n));
       _t.set(0, -G, 0).addScaledVector(n, G * n.y);
-      v.addScaledVector(_t, dt * 0.25);
+      v.addScaledVector(_t, dt);
+      const sp = v.length();
+      const dec = (0.75 * G * Math.max(0.2, n.y) + 0.06 * sp * sp + 0.3 * sp) * dt;
+      if (sp > 0) v.multiplyScalar(Math.max(0, sp - dec) / sp);
+      this.pos.addScaledVector(v, dt);
+      this.pos.y = T.height(this.pos.x, this.pos.z) + 0.25;
       this.crashSpin.multiplyScalar(1 - Math.min(0.9, 2.5 * dt));
     }
     const w = this.crashSpin.length();
@@ -675,14 +688,14 @@ export class Skier {
       this.bodyQ.premultiply(_q).normalize();
     }
     this.keepInBounds(world);
-    if (this.crashT > 1.3 && this.speed < 1.0) {
+    // on very steep faces the body keeps sliding; recover once slow (or after a while)
+    if ((this.crashT > 1.3 && this.speed < 1.2) || this.crashT > 5) {
       this.state = 'recover';
       this.crashT = 0;
       this.recoverFrom.copy(this.bodyQ);
-      // face across/down the slope
       T.normal(this.pos.x, this.pos.z, _m);
-      const fall = Math.atan2(_m.x, _m.z);
-      this.yaw = fall;
+      // stand up facing across the fall line so we don't immediately slide away
+      this.yaw = Math.atan2(_m.x, _m.z) + Math.PI / 2;
       this.vel.set(0, 0, 0);
     }
   }

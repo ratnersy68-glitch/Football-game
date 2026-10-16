@@ -97,8 +97,9 @@ export class Terrain {
   /** Micro relief + moguls (no features). */
   detailHeight(x: number, z: number): number {
     const t = this.trailAt(x, z);
-    const n = this.detail.noise(x / 7, z / 7);
-    let h = n * (0.16 * (1 - t.w) + 0.03 * t.w);
+    // off-piste: wind-blown bumps; on-piste: long, gentle undulation (no accidental launches)
+    let h = (1 - t.w) * 0.13 * this.detail.noise(x / 8, z / 8);
+    if (t.w > 0) h += t.w * 0.06 * this.detail.noise(x / 26 + 9, z / 26);
     if (t.id >= 0 && t.w > 0.02) {
       const tr = this.trails[t.id];
       if (tr && tr.moguls) h += this.mogul(x, z) * smoothW(t.w);

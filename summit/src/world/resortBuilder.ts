@@ -449,8 +449,14 @@ export function buildResort(def: ResortDef, progress?: (stage: string, f: number
       prof = shapeProfile(r, s, target - 0.012, target + 0.012, 0, 100, pins);
     } else {
       const disc = p.discipline!;
-      const lim = disc === 'ski-cross' || disc === 'freestyle' ? [0.12, 0.27] : def.index === 0 ? [0.08, 0.26] : disc === 'slalom' ? [0.2, 0.5] : [0.1, 0.56];
-      prof = shapeProfile(r, s, lim[0], lim[1], disc === 'downhill' || disc === 'super-g' ? 0.36 : 0, 200, pins);
+      const lim = disc === 'ski-cross' || disc === 'freestyle' ? [0.12, 0.27] : def.index === 0 ? [0.08, 0.26] : disc === 'slalom' ? [0.2, 0.5] : [0.1, 0.48];
+      prof = shapeProfile(r, s, lim[0], lim[1], disc === 'downhill' || disc === 'super-g' ? 0.32 : 0, 200, pins);
+      // race pistes are smoothed so grade changes are gradual (no accidental launch ramps)
+      for (let it = 0; it < 4; it++) {
+        const q = prof.slice();
+        for (let i = 3; i < prof.length - 3; i++) if (!pins[i]) q[i] = (prof[i - 3] + prof[i - 2] + prof[i - 1] + prof[i] + prof[i + 1] + prof[i + 2] + prof[i + 3]) / 7;
+        prof = q;
+      }
       icy = disc === 'slalom' || disc === 'giant-slalom' ? 0.25 : 0.15;
     }
     const kindKey = p.kind === 'trail' ? p.d : p.kind;
@@ -505,7 +511,7 @@ export function buildResort(def: ResortDef, progress?: (stage: string, f: number
       const endFade = Math.max(0.15, smoothstep(0, 24, endS - sk));
       const ww = w * endFade;
       if (ww <= 0) continue;
-      const other = tid[c] >= 0 && tid[c] !== tr.id ? tw[c] : 0;
+      const other = tid[c] >= 0 && tid[c] !== tr.id ? tw[c] * (trails[tid[c]].kind !== 'trail' ? 1.3 : 1) : 0;
       const keepEff = keep + (1 - keep) * smoothstep(0.3, 0.9, other);
       const T = tk + keepEff * (ctx.blur[c] - rk);
       const inCore = bestD[c] <= half + 2;
@@ -513,7 +519,8 @@ export function buildResort(def: ResortDef, progress?: (stage: string, f: number
       H[c] = lerp(H[c], T, wf);
       ctx.blur[c] = lerp(ctx.blur[c], T, wf);
       const mw = (1 - smoothstep(half, half + 3, bestD[c])) * (sk < endS - 2 || bestD[c] < half ? 1 : 0);
-      if (mw > 0 && mw >= tw[c] - 0.02) { tw[c] = Math.max(tw[c], mw); tid[c] = tr.id; }
+      const ownerProtected = tid[c] >= 0 && tid[c] !== tr.id && trails[tid[c]].kind !== 'trail' && tw[c] > 0.3;
+      if (mw > 0 && mw >= tw[c] - 0.02 && !(ownerProtected && tr.kind === 'trail')) { tw[c] = Math.max(tw[c], mw); tid[c] = tr.id; }
     }
     occMark(ctx, tr.pts, p.kind === 'trail' ? 2 : 3);
   };
@@ -709,12 +716,39 @@ export function buildResort(def: ResortDef, progress?: (stage: string, f: number
   const obstacles = new ObstacleIndex();
   const buildings: Building[] = [];
   placeBuildings(terrain, def, base, lifts, trails, buildings, rng);
+  // nothing solid may sit inside a groomed corridor (other than its own sign at the edge)
+  for (let i = buildings.length - 1; i >= 0; i--) {
+    const b = buildings[i];
+    if (b.kind === 'lodge') continue;
+    const pad = b.kind === 'cabin' || b.kind === 'village' || b.kind === 'hut' ? 8 : 1.5;
+    const w = Math.max(terrain.trailAt(b.x, b.z).w, terrain.trailAt(b.x + pad, b.z).w, terrain.trailAt(b.x - pad, b.z).w, terrain.trailAt(b.x, b.z + pad).w, terrain.trailAt(b.x, b.z - pad).w);
+    if (w > 0.15) buildings.splice(i, 1);
+  }
   for (const b of buildings) {
     const r = b.kind === 'lodge' ? 14 : b.kind === 'village' ? 9 : b.kind === 'cabin' || b.kind === 'hut' ? 6 : b.kind === 'snowgun' ? 0.5 : b.kind === 'sign' || b.kind === 'mapboard' ? 0.35 : 0;
     if (r > 0) obstacles.add({ x: b.x, z: b.z, r: r * b.scale, kind: b.kind === 'snowgun' ? 'gun' : 'building' });
   }
   for (const l of lifts) for (const t of l.towers) obstacles.add({ x: t.x, z: t.z, r: 0.6, kind: 'tower' });
 
+  // keep a clear skiable line down every trail (glades included)
+  const lineHash = new Map<number, { x: number; z: number; r: number }[]>();
+  for (const tr of trails) {
+    const r = tr.glade ? 3.5 : Math.min(tr.width / 2, 7);
+    for (const p of tr.pts) {
+      const k = Math.floor(p.x / 8) * 100003 + Math.floor(p.z / 8);
+      let a = lineHash.get(k);
+      if (!a) { a = []; lineHash.set(k, a); }
+      a.push({ x: p.x, z: p.z, r });
+    }
+  }
+  const nearLine = (x: number, z: number) => {
+    const bx = Math.floor(x / 8), bz = Math.floor(z / 8);
+    for (let i = -1; i <= 1; i++) for (let j = -1; j <= 1; j++) {
+      const a = lineHash.get((bx + i) * 100003 + bz + j);
+      if (a) for (const p of a) if ((p.x - x) ** 2 + (p.z - z) ** 2 < (p.r + 1) ** 2) return true;
+    }
+    return false;
+  };
   const treeArr: number[] = [];
   const rockArr: number[] = [];
   const forest = new Noise2D(def.seed + ':forest');
@@ -745,6 +779,7 @@ export function buildResort(def: ResortDef, progress?: (stage: string, f: number
       if (nearLift(px, pz, 11)) continue;
       if (terrain.features.height(px, pz) > 0 || terrain.lakeAt(px, pz) || lakes.some((l) => Math.hypot(px - l.x, pz - l.z) < l.r + 8)) continue;
       if (!rng.chance(dens)) continue;
+      if (nearLine(px, pz)) continue;
       const sc = rng.range(0.75, 1.45);
       treeArr.push(px, y - 0.3, pz, sc, rng.int(0, 2));
       if (Math.abs(px) < ctx.halfW + 40 && pz > -40 && pz < L + 40) obstacles.add({ x: px, z: pz, r: 0.35 + 0.35 * sc, kind: 'tree' });
@@ -775,6 +810,9 @@ export function buildResort(def: ResortDef, progress?: (stage: string, f: number
       if (!tr.chute && Math.abs(edge) < 3.5) continue;
       if (!tr.chute && !rng.chance(0.35)) continue;
       const px = p.x + rx * edge * (tr.chute ? side : 1), pz = p.z + rz * edge * (tr.chute ? side : 1);
+      const own = terrain.trailAt(px, pz);
+      if (own.w > 0.2 && own.id !== tr.id) continue;
+      if (!tr.chute && own.id !== tr.id) continue;
       const sc = tr.chute ? rng.range(1.2, 2.8) : rng.range(0.6, 1.1);
       rockArr.push(px, terrain.gridHeight(px, pz) - 0.35 * sc, pz, sc, rng.range(0, Math.PI * 2));
       obstacles.add({ x: px, z: pz, r: sc * 0.7, kind: 'rock' });
@@ -837,22 +875,43 @@ function buildLift(terrain: Terrain, id: number, name: string, type: Lift['type'
     towers.push({ x, y: terrain.gridHeight(x, z), z, h: cableH });
   }
   towers.push({ x: tx, y: ty, z: tz, h: stationH });
-  // raise towers until the cable clears the snow everywhere
+  // raise towers until the cable clears the snow everywhere (stations stay at load height)
   const minClear = type === 'surface' ? 1.6 : type === 'gondola' ? 8 : 5.5;
-  for (let pass = 0; pass < 4; pass++) {
+  for (let pass = 0; pass < 10; pass++) {
+    let changed = false;
     for (let i = 0; i < towers.length - 1; i++) {
       const a = towers[i], b = towers[i + 1];
-      let worst = 0;
-      for (let f = 0.1; f < 0.95; f += 0.1) {
+      const span = Math.hypot(b.x - a.x, b.z - a.z);
+      let worst = 0, wf = 0.5;
+      for (let f = 0.05; f < 0.97; f += 0.05) {
         const x = lerp(a.x, b.x, f), z = lerp(a.z, b.z, f);
-        const cy = lerp(a.y + a.h, b.y + b.h, f);
-        worst = Math.max(worst, terrain.gridHeight(x, z) + minClear - cy);
+        // near a station the cable may be low (loading), elsewhere it must clear
+        const dStation = Math.min(i === 0 ? f * span : Infinity, i + 1 === towers.length - 1 ? (1 - f) * span : Infinity);
+        const need = dStation < 18 ? Math.min(minClear, 2.4) : minClear;
+        const cy = lerp(a.y + a.h, b.y + b.h, f) - Math.sin(f * Math.PI) * Math.min(1.5, span * 0.006);
+        const short = terrain.gridHeight(x, z) + need - cy;
+        if (short > worst) { worst = short; wf = f; }
       }
-      if (worst > 0) {
-        if (i > 0) a.h = Math.min(40, a.h + worst);
-        if (i + 1 < towers.length - 1) b.h = Math.min(40, b.h + worst);
+      if (worst > 0.01) {
+        changed = true;
+        const aFixed = i === 0, bFixed = i + 1 === towers.length - 1;
+        if (aFixed && bFixed) {
+          // single span between stations: add a tower where it's worst
+          const x = lerp(a.x, b.x, wf), z = lerp(a.z, b.z, wf);
+          towers.splice(i + 1, 0, { x, y: terrain.gridHeight(x, z), z, h: minClear + 2 });
+          break;
+        }
+        if (aFixed) b.h = Math.min(60, b.h + worst / Math.max(0.15, wf));
+        else if (bFixed) a.h = Math.min(60, a.h + worst / Math.max(0.15, 1 - wf));
+        else { a.h = Math.min(60, a.h + worst); b.h = Math.min(60, b.h + worst); }
+        if ((aFixed && b.h >= 60) || (bFixed && a.h >= 60) || (!aFixed && !bFixed && a.h >= 60)) {
+          const x = lerp(a.x, b.x, wf), z = lerp(a.z, b.z, wf);
+          towers.splice(i + 1, 0, { x, y: terrain.gridHeight(x, z), z, h: minClear + 2 });
+          break;
+        }
       }
     }
+    if (!changed) break;
   }
   return {
     id, name, type,
