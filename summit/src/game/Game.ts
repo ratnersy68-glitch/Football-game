@@ -301,7 +301,7 @@ export class Game {
       this.cam.mode = 'race';
     } else if (m.kind === 'tutorial') {
       const tr = R.trails.find((t) => t.kind === 'trail' && t.difficulty === 'bunny') ?? R.trails.find((t) => t.kind === 'trail' && t.difficulty === 'green')!;
-      const p = trailPoint(tr, 6);
+      const p = trailPoint(tr, Math.min(30, tr.length * 0.2));
       this.player.place(this.world, p.x, p.z, Math.atan2(p.dx, p.dz), 0);
       this.tutorialStep = 0;
     } else if (m.kind === 'park' && m.park < 0) {
@@ -738,10 +738,10 @@ export class Game {
     const inp = this.input.read(0);
     let done = false;
     switch (step) {
-      case 0: done = s.speed > 3; break;
-      case 1: if (s.speed > 2 && Math.abs(inp.steer) > 0.5) this.tutT += dt; done = this.tutT > 1.6; break;
-      case 2: if (s.speed > 3 && inp.carve && Math.abs(inp.steer) > 0.5) this.tutT += dt; done = this.tutT > 1.2; break;
-      case 3: this.tutPeak = Math.max(this.tutPeak, s.speed); done = this.tutPeak > 3 && s.speed < 0.6; break;
+      case 0: done = s.speed > 1.8; break;
+      case 1: if (s.speed > 1.2 && Math.abs(inp.steer) > 0.4) this.tutT += dt; done = this.tutT > 1.2; break;
+      case 2: if (s.speed > 1.5 && inp.carve && Math.abs(inp.steer) > 0.4) this.tutT += dt; done = this.tutT > 1; break;
+      case 3: this.tutPeak = Math.max(this.tutPeak, s.speed); done = this.tutPeak > 1.5 && s.speed < 0.6 && inp.brake; break;
       case 4: done = s.state === 'air' && s.airTime > 0.15; break;
       case 5: done = (this.tricks.results.some((r) => r.spin >= 180)); break;
       case 6: done = s.state === 'lift'; break;

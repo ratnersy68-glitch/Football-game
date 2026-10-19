@@ -243,7 +243,7 @@ export class Skier {
     // poling / skating push on flats
     const slopeAlong = -_t.dot(_f) / G;
     if (input.tuck && speed < 6 && slopeAlong > -0.05) {
-      const push = (isBoard ? 1.0 : 2.0) * (1 - speed / 6);
+      const push = (isBoard ? 1.3 : 2.6) * (1 - speed / 6);
       v.addScaledVector(_f, (v.dot(_f) >= -0.1 ? 1 : -1) * push * dt);
     }
     speed = v.length();

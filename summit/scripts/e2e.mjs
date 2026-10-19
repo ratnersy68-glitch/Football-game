@@ -107,6 +107,23 @@ if (scenario === 'park') {
   console.log('park', await state(), await page.evaluate(() => window.__summit.tricks.results.map((r) => r.name + ' ' + r.score)));
   await shot('04-park-late');
 }
+if (scenario === 'tutorial') {
+  await page.evaluate(() => localStorage.clear());
+  await page.reload();
+  await page.click('[data-testid=menu-settings]');
+  await page.click('text=Low');
+  await page.click('text=← Back');
+  await page.click('[data-testid=menu-tutorial]');
+  await waitLoaded();
+  const step = () => page.evaluate(() => window.__summit.tutorialStep);
+  await hold('KeyW', 3000); console.log('step after push', await step(), await state());
+  await page.keyboard.down('KeyD'); await wait(2200); await page.keyboard.up('KeyD'); console.log('after steer', await step());
+  await page.keyboard.down('ShiftLeft'); await page.keyboard.down('KeyA'); await wait(1800); await page.keyboard.up('KeyA'); await page.keyboard.up('ShiftLeft'); console.log('after carve', await step());
+  await hold('KeyS', 4000); console.log('after brake', await step());
+  await page.keyboard.down('Space'); await wait(500); await page.keyboard.up('Space'); await wait(1500); console.log('after jump', await step());
+  console.log('game time', await page.evaluate(() => window.__summit.time.toFixed(1)));
+  await shot('02-tutorial');
+}
 if (scenario === 'screens') {
   for (const m of ['career', 'shop', 'character', 'mountains', 'racing', 'terrain-parks', 'leaderboards', 'settings']) {
     await page.click(`[data-testid=menu-${m}]`);

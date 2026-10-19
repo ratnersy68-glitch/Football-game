@@ -1,3 +1,5 @@
+> **New on this branch: [SUMMIT — 3D ski resort simulator](summit/README.md)** (`cd summit && npm install && npm run dev`).
+
 # SATURDAY 26
 
 Two ways to play college football:
