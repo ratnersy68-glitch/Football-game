@@ -16,7 +16,7 @@ export const STAGES = [
 export type Medal = 'gold' | 'silver' | 'bronze';
 export const MEDAL_COLOR: Record<Medal, string> = { gold: '#e8b923', silver: '#c0c6cf', bronze: '#c07a3c' };
 
-export type FreestyleMode = 'score' | 'best' | 'combo' | 'grind' | 'pipe' | 'slopestyle';
+export type FreestyleMode = 'score' | 'best' | 'combo' | 'combo3' | 'grind' | 'pipe' | 'slopestyle' | 'freeride';
 export type ChallengeType = 'trailTime' | 'topSpeed' | 'trails' | 'lifts' | 'air' | 'trickScore';
 
 export interface CareerEvent {
@@ -43,6 +43,8 @@ export const FREESTYLE_INFO: Record<FreestyleMode, { label: string; desc: string
   grind: { label: 'Rail Jam', desc: 'Score only from rails, boxes and tubes.' },
   pipe: { label: 'Halfpipe', desc: 'Total score from airs in the pipe.' },
   slopestyle: { label: 'Slopestyle', desc: 'One run through the course: best total score.' },
+  combo3: { label: 'Three-Trick Combo', desc: 'Your best banked combo of three or more tricks counts.' },
+  freeride: { label: 'Freeride Trick Comp', desc: 'Score off cliffs, rollers and natural hits anywhere on the mountain.' },
 };
 
 function scale(base: number, k: number): [number, number, number] {
@@ -71,6 +73,13 @@ export function careerEvents(): CareerEvent[] {
         desc: FREESTYLE_INFO[mode].desc, freestyle: { park: i, mode, time: mode === 'slopestyle' ? 150 : 120, targets: scale(base, 0.8 + r.index * 0.15) },
         minStage: r.unlock.stage, reward: { coins: scale(500, k), xp: scale(800, k) },
       });
+      if (style === 'slopestyle' || style === 'rails') {
+        out.push({
+          id: `${r.id}:combo3:${i}`, resortId: r.id, kind: 'freestyle', title: `Three-Trick Combo: ${r.name}`,
+          desc: FREESTYLE_INFO.combo3.desc, freestyle: { park: i, mode: 'combo3', time: 120, targets: scale(7000, 0.8 + r.index * 0.15) },
+          minStage: r.unlock.stage, reward: { coins: scale(500, k), xp: scale(750, k) },
+        });
+      }
       if (mode === 'score' || mode === 'slopestyle') {
         out.push({
           id: `${r.id}:combo:${i}`, resortId: r.id, kind: 'freestyle', title: `Best Combo: ${r.name}`,
@@ -79,6 +88,13 @@ export function careerEvents(): CareerEvent[] {
         });
       }
     });
+    if (r.id === 'powder-paradise' || r.id === 'avalanche' || r.id === 'blackstone') {
+      out.push({
+        id: `${r.id}:freeride`, resortId: r.id, kind: 'freestyle', title: `Freeride Trick Comp: ${r.name}`,
+        desc: FREESTYLE_INFO.freeride.desc, freestyle: { park: -1, mode: 'freeride', time: 180, targets: scale(5000, 0.9 + r.index * 0.15) },
+        minStage: r.unlock.stage, reward: { coins: scale(700, k), xp: scale(1000, k) },
+      });
+    }
     // mountain challenges
     const diffs = (Object.keys(r.trails) as Difficulty[]).filter((d) => (r.trails[d] ?? 0) > 0 && d !== 'bunny');
     const hardest = diffs[diffs.length - 1];

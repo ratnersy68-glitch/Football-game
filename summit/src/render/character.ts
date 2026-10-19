@@ -311,6 +311,22 @@ export class Character {
       for (const k of Object.keys(J)) J[k].applyQuaternion(q);
     }
 
+    // ---- get-up blend from the last ragdoll pose (world space → body space)
+    if (this.blendSrc && this.blendK < 1) {
+      this.blendK = Math.min(1, this.blendK + dt / 0.9);
+      this.root.updateMatrixWorld(true);
+      this.body.rotation.set(0, 0, 0);
+      this.body.updateMatrixWorld(true);
+      const inv = new THREE.Matrix4().copy(this.body.matrixWorld).invert();
+      const k = this.blendK * this.blendK * (3 - 2 * this.blendK);
+      for (const key of Object.keys(this.blendSrc)) if (J[key]) J[key].lerp(this.blendSrc[key].clone().applyMatrix4(inv), 1 - k);
+      if (this.blendK >= 1) this.blendSrc = null;
+    }
+    this.place(p, ski, lean);
+  }
+
+  private place(p: Pose, ski: boolean, lean: number) {
+    const J = this.j;
     // ---- place segments
     for (const s of this.segs) {
       const a = J[s.a], b = J[s.b];
@@ -383,6 +399,60 @@ export class Character {
     }
     // whole-body angulation into the turn (skis go on edge with it)
     this.body.rotation.set(0, 0, p.air || p.crashed || p.lift !== 'none' ? 0 : -p.lean * (ski ? 0.55 : 0.6));
+  }
+
+  private blendSrc: Record<string, THREE.Vector3> | null = null;
+  private blendK = 1;
+
+  /** Current joint positions in world space (seeds the ragdoll). */
+  worldJoints(): Record<string, THREE.Vector3> {
+    this.root.updateMatrixWorld(true);
+    const out: Record<string, THREE.Vector3> = {};
+    for (const k of Object.keys(this.j)) out[k] = this.body.localToWorld(this.j[k].clone());
+    return out;
+  }
+
+  /** Start blending from a ragdoll pose back to the procedural pose. */
+  startBlend(world: Record<string, THREE.Vector3>) {
+    this.blendSrc = {};
+    for (const k of Object.keys(world)) this.blendSrc[k] = world[k].clone();
+    this.blendK = 0;
+  }
+
+  /** Pose the body directly from world-space ragdoll particles. */
+  poseRagdoll(w: Record<string, THREE.Vector3>, board: 'ski' | 'snowboard') {
+    this.root.position.set(0, 0, 0);
+    this.root.quaternion.identity();
+    this.body.rotation.set(0, 0, 0);
+    const J = this.j;
+    for (const k of Object.keys(w)) if (J[k]) J[k].copy(w[k]);
+    J.neck.copy(J.chest).lerp(J.head, 0.45);
+    const ski = board === 'ski';
+    this.skiL.visible = this.skiR.visible = this.poleL.visible = this.poleR.visible = ski;
+    this.board.visible = !ski;
+    J.basketL.copy(J.handL).add(V().subVectors(J.handL, J.elbowL).normalize().multiplyScalar(1.0));
+    J.basketR.copy(J.handR).add(V().subVectors(J.handR, J.elbowR).normalize().multiplyScalar(1.0));
+    this.place({ ...IDLE_POSE, board, crashed: true, air: true }, ski, 0);
+    // orient boots/skis from the shins and the hip line
+    const side = V().subVectors(J.hipL, J.hipR).normalize();
+    const m = new THREE.Matrix4();
+    const orient = (mesh: THREE.Mesh, knee: THREE.Vector3, ankle: THREE.Vector3, off: number) => {
+      const down = V().subVectors(ankle, knee).normalize();
+      const fwd = V().crossVectors(side, down).normalize();
+      const x = V().crossVectors(down.clone().negate(), fwd).normalize();
+      m.makeBasis(x, down.clone().negate(), fwd);
+      mesh.quaternion.setFromRotationMatrix(m);
+      mesh.position.copy(ankle).addScaledVector(down, off).addScaledVector(fwd, off === 0 ? 0 : 0.1);
+    };
+    orient(this.bootL, J.kneeL, J.ankleL, 0);
+    orient(this.bootR, J.kneeR, J.ankleR, 0);
+    if (ski) { orient(this.skiL, J.kneeL, J.ankleL, 0.07); orient(this.skiR, J.kneeR, J.ankleR, 0.07); }
+    else {
+      orient(this.board, J.kneeL, J.ankleL, 0.07);
+      this.board.position.copy(J.ankleL).lerp(J.ankleR, 0.5);
+    }
+    const up = V().subVectors(J.head, J.chest).normalize();
+    this.head.quaternion.setFromUnitVectors(Y, up);
   }
 
   dispose(full = true) {

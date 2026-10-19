@@ -20,7 +20,7 @@ const STYLE_DESC: Record<string, string> = {
 export function Parks({ api }: { api: AppApi }) {
   const p = api.profile;
   const modesFor = (style: string): FreestyleMode[] =>
-    style === 'superpipe' || style === 'halfpipe' ? ['pipe', 'best'] : style === 'rails' ? ['grind', 'combo'] : style === 'bigair' ? ['best'] : ['score', 'combo', 'best'];
+    style === 'superpipe' || style === 'halfpipe' ? ['pipe', 'best'] : style === 'rails' ? ['grind', 'combo3'] : style === 'bigair' ? ['best'] : ['score', 'combo3', 'best'];
   return (
     <div className="screen bg-mountains">
       <div className="topbar"><Back onClick={() => api.go('menu')} /><h1>TERRAIN PARKS</h1><span className="spacer" /><Coins n={p.coins} /></div>
@@ -44,7 +44,7 @@ export function Parks({ api }: { api: AppApi }) {
                   {modesFor(style).map((m) => (
                     <button key={m} className="btn small" disabled={!open}
                       onClick={() => {
-                        const base = m === 'best' ? 3000 : m === 'grind' ? 4500 : m === 'pipe' ? 8000 : m === 'combo' ? 6000 : 7000;
+                        const base = m === 'best' ? 3000 : m === 'grind' ? 4500 : m === 'pipe' ? 8000 : m === 'combo' || m === 'combo3' ? 6000 : 7000;
                         api.launch({ resortIndex: r.index, mode: { kind: 'park', park: i, mode: m, time: 120, targets: [Math.round(base * 0.45), Math.round(base * 0.75), base], title: `${FREESTYLE_INFO[m].label} challenge` }, back: 'parks', weather: 'clear', hour: 13 });
                       }}>{FREESTYLE_INFO[m].label}</button>
                   ))}

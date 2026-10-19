@@ -11,6 +11,7 @@ export function MainMenu({ api }: { api: AppApi }) {
   const lastIdx = Math.max(0, RESORTS.findIndex((r) => r.id === p.lastResort));
   const items: [string, () => void, string][] = [
     ['Play', () => api.launch({ resortIndex: lastIdx, mode: { kind: 'freeride' }, back: 'menu', weather: p.settings.weather === 'random' ? undefined : p.settings.weather, hour: p.settings.hour }), `Continue at ${RESORTS[lastIdx].name}`],
+    ...(p.events.tutorial ? [] : [['Tutorial', () => api.launch({ resortIndex: 0, mode: { kind: 'tutorial' }, back: 'menu', weather: 'clear', hour: 11 }), 'Learn to ski in 2 minutes'] as [string, () => void, string]]),
     ['Free Ride', () => api.go('freeride'), 'Explore any open resort'],
     ['Racing', () => api.go('racing'), 'Quick races & tournaments'],
     ['Career', () => api.go('career'), STAGES[st].name],

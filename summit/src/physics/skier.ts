@@ -117,6 +117,8 @@ export class Skier {
   private surfTimer = 0;
   private rngState = 12345;
   pipeAir = false;
+  /** When true a render-side ragdoll drives the crashed body. */
+  externalCrash = false;
   inverted = false;
   takeoffYaw = 0;
   lastGroundY = 0;
@@ -660,6 +662,19 @@ export class Skier {
   private crashStep(dt: number, world: PhysicsWorld) {
     const T = world.terrain;
     this.crashT += dt;
+    if (this.externalCrash) {
+      // a ragdoll owns the body; we only decide when to get up
+      if ((this.crashT > 1.3 && this.speed < 1.2) || this.crashT > 5) {
+        this.state = 'recover';
+        this.crashT = 0;
+        T.normal(this.pos.x, this.pos.z, _m);
+        this.yaw = Math.atan2(_m.x, _m.z) + Math.PI / 2;
+        this.normal.set(_m.x, _m.y, _m.z);
+        this.groundQuat(this.recoverFrom);
+        this.vel.set(0, 0, 0);
+      }
+      return;
+    }
     const v = this.vel;
     const hg = T.height(this.pos.x, this.pos.z) + 0.25;
     if (this.pos.y > hg + 0.4) {

@@ -16,6 +16,7 @@ import { Snowfall, Spray, Tracks } from '../render/effects';
 import { renderMapCanvas, type MapView } from '../render/mapRender';
 import { Skier, type PhysicsWorld, type SkierInput, NO_INPUT } from '../physics/skier';
 import { RailSystem } from '../physics/rails';
+import { Ragdoll } from '../physics/ragdoll';
 import { TrickSystem, type FeedItem, type TrickResult } from '../physics/tricks';
 import { Input } from './input';
 import { CameraRig, CAM_LABEL } from './camera';
@@ -38,6 +39,7 @@ export type GameMode =
   | { kind: 'freeride' }
   | { kind: 'race'; course: number; level: number; title?: string; eventId?: string; tournament?: { id: string; index: number } }
   | { kind: 'park'; park: number; mode: FreestyleMode; time: number; targets: [number, number, number]; title: string; eventId?: string }
+  | { kind: 'tutorial' }
   | { kind: 'challenge'; type: ChallengeType; targets: [number, number, number]; title: string; eventId: string; trailId?: number; difficulty?: Difficulty; nth?: number };
 
 export interface GameConfig {
@@ -164,12 +166,17 @@ export class Game {
   private sessionCrashes = 0;
   private achievements = new Set<string>();
   private challengeValue = 0;
+  private bestCombo3 = 0;
+  tutorialStep = -1;
+  private tutT = 0;
+  private tutPeak = 0;
   challengeTimes: Record<number, number> = {};
   private lastSplit: string | null = null;
   private splitT = 0;
   // replay
   replay: { rec: Recording; t: number; speed: number; playing: boolean; cam: 'follow' | 'orbit' | 'tripod' | 'side'; tripod: THREE.Vector3 | null } | null = null;
   private replayChar: Character | null = null;
+  private ragdoll: Ragdoll | null = null;
   disposed = false;
 
   constructor(private canvas: HTMLCanvasElement, readonly config: GameConfig, private cb: GameCallbacks) {
@@ -250,6 +257,7 @@ export class Game {
       if (list.length > 1) this.audio.combo();
       this.recorder.event(`Combo ${score.toLocaleString()}`, score);
       if (score >= 10000) this.unlock('combo-10k');
+      if (list.length >= 3) this.bestCombo3 = Math.max(this.bestCombo3, score);
     };
     progress('Setting the start', 0.96);
     await this.setupMode();
@@ -291,6 +299,17 @@ export class Game {
         this.env.scene.add(char.root);
       }
       this.cam.mode = 'race';
+    } else if (m.kind === 'tutorial') {
+      const tr = R.trails.find((t) => t.kind === 'trail' && t.difficulty === 'bunny') ?? R.trails.find((t) => t.kind === 'trail' && t.difficulty === 'green')!;
+      const p = trailPoint(tr, 6);
+      this.player.place(this.world, p.x, p.z, Math.atan2(p.dx, p.dz), 0);
+      this.tutorialStep = 0;
+    } else if (m.kind === 'park' && m.park < 0) {
+      // freeride competition: start at the top of the first ungroomed expert line
+      const tr = R.trails.find((t) => t.kind === 'trail' && (t.difficulty === 'black' || t.difficulty === 'double') && !t.groomed) ?? R.trails.find((t) => t.kind === 'trail' && t.difficulty === 'black')!;
+      const p = trailPoint(tr, 20);
+      this.player.place(this.world, p.x, p.z, Math.atan2(p.dx, p.dz), 3);
+      this.modeTimer = m.time;
     } else if (m.kind === 'park') {
       const park = R.parks[m.park];
       const tr = R.trails[park.trailId];
@@ -492,6 +511,10 @@ export class Game {
           break;
         }
         case 'crash':
+          if (s === this.player) {
+            this.ragdoll = new Ragdoll(this.character.worldJoints(), s.vel, s.crashSpin.clone().multiplyScalar(0.6));
+            s.externalCrash = true;
+          }
           this.audio.crash(); this.cam.bump(1); this.tricks.bust(); this.sessionCrashes++;
           this.recorder.event(`Crash: ${e.reason}`);
           this.spray.emit(s.pos.x, s.pos.y, s.pos.z, s.vel.x * 0.3, 2.5, s.vel.z * 0.3, 60, 5, 0.6);
@@ -510,6 +533,18 @@ export class Game {
       }
     }
     s.events.length = 0;
+    if (this.ragdoll) {
+      if (s.state === 'crashed') {
+        this.ragdoll.step(dt, this.resort.terrain);
+        const pv = this.ragdoll.p.pelvis;
+        s.pos.set(pv.x, this.resort.terrain.height(pv.x, pv.z), pv.z);
+        this.ragdoll.velocity(dt, s.vel);
+      } else {
+        if (s.state === 'recover') this.character.startBlend(this.ragdoll.p);
+        this.ragdoll = null;
+        s.externalCrash = false;
+      }
+    }
     if (!this.race) this.tricks.tick(dt, s.grounded);
     // ---- session stats + objectives
     const kmh = s.speed * 3.6;
@@ -532,7 +567,8 @@ export class Game {
       this.character.root.position.copy(s.pos).y += 0.04;
       this.character.root.quaternion.copy(s.bodyQ);
       this.character.root.visible = !(s.state === 'lift' && this.lifts.liftType === 'gondola') && this.cam.mode !== 'first';
-      if (!frozen) this.character.update(poseOf(s, this.time, this.lifts.liftType), dt);
+      if (this.ragdoll && s.state === 'crashed') this.character.poseRagdoll(this.ragdoll.p, s.board);
+      else if (!frozen) this.character.update(poseOf(s, this.time, this.lifts.liftType), dt);
     }
     if (this.race) {
       for (const r of this.race.racers) {
@@ -686,8 +722,44 @@ export class Game {
     this.showToast('🏅 Achievement unlocked!');
   }
 
+  static readonly TUTORIAL = [
+    'Hold W to push off with your poles and tuck for speed',
+    'Steer with A and D — try a few turns',
+    'Hold Shift while turning to carve clean, fast arcs',
+    'Press and hold S to brake to a stop',
+    'Hold Space and release to jump (bigger pop the longer you hold)',
+    'Jump again and press Q or E in the air to spin — land straight!',
+    'Ski to the lift station at the bottom and press F to ride it',
+  ];
+
+  private updateTutorial(dt: number) {
+    const s = this.player;
+    const step = this.tutorialStep;
+    const inp = this.input.read(0);
+    let done = false;
+    switch (step) {
+      case 0: done = s.speed > 3; break;
+      case 1: if (s.speed > 2 && Math.abs(inp.steer) > 0.5) this.tutT += dt; done = this.tutT > 1.6; break;
+      case 2: if (s.speed > 3 && inp.carve && Math.abs(inp.steer) > 0.5) this.tutT += dt; done = this.tutT > 1.2; break;
+      case 3: this.tutPeak = Math.max(this.tutPeak, s.speed); done = this.tutPeak > 3 && s.speed < 0.6; break;
+      case 4: done = s.state === 'air' && s.airTime > 0.15; break;
+      case 5: done = (this.tricks.results.some((r) => r.spin >= 180)); break;
+      case 6: done = s.state === 'lift'; break;
+    }
+    if (done) {
+      this.tutorialStep++;
+      this.tutT = 0; this.tutPeak = 0;
+      this.audio.coins();
+      if (this.tutorialStep >= Game.TUTORIAL.length) {
+        this.ended = true;
+        this.cb.onEnd({ title: 'Tutorial complete', kind: 'tutorial', medal: 'gold', value: 1, valueLabel: 'Ready to ride!', lines: ['You can push, steer, carve, brake, jump, spin and ride lifts.', 'Head to Free Ride, Career or the Terrain Parks.'], eventId: 'tutorial', coins: 300, xp: 300 });
+      } else this.showToast('✔ Nice! Next step…');
+    }
+  }
+
   private updateMode(dt: number) {
     const m = this.config.mode;
+    if (m.kind === 'tutorial' && !this.ended) this.updateTutorial(dt);
     if (m.kind === 'park' && this.modeTimer !== null && !this.ended) {
       this.modeTimer -= dt;
       // the park session only counts tricks inside the park corridor
@@ -757,6 +829,7 @@ export class Game {
     let value = 0;
     if (m.mode === 'best') value = this.tricks.best?.score ?? 0;
     else if (m.mode === 'combo') value = this.tricks.bestCombo;
+    else if (m.mode === 'combo3') value = this.bestCombo3;
     else if (m.mode === 'grind') value = results.filter((r) => r.kind === 'grind').reduce((a, r) => a + r.score, 0);
     else value = this.tricks.total;
     const medal = this.medalFor(value, m.targets);
@@ -906,8 +979,10 @@ export class Game {
     let objective = 'Free ride — explore the mountain';
     let timer: string | null = null;
     let warn = false;
-    if (m.kind === 'park') {
-      objective = `${m.title}: ${m.mode === 'best' ? 'best single trick' : m.mode === 'combo' ? 'best combo' : m.mode === 'grind' ? 'rail score' : 'total score'} — gold ${m.targets[2].toLocaleString()}`;
+    if (m.kind === 'tutorial') {
+      objective = this.tutorialStep < Game.TUTORIAL.length ? `Tutorial ${this.tutorialStep + 1}/${Game.TUTORIAL.length}: ${Game.TUTORIAL[this.tutorialStep]}` : 'Tutorial complete!';
+    } else if (m.kind === 'park') {
+      objective = `${m.title}: ${m.mode === 'best' ? 'best single trick' : m.mode === 'combo' ? 'best combo' : m.mode === 'combo3' ? `best 3+ trick combo (${this.bestCombo3.toLocaleString()})` : m.mode === 'grind' ? 'rail score' : 'total score'} — gold ${m.targets[2].toLocaleString()}`;
       timer = formatTime(Math.max(0, this.modeTimer ?? 0));
       warn = (this.modeTimer ?? 0) < 15;
     } else if (m.kind === 'challenge') {
