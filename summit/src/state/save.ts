@@ -1,5 +1,6 @@
 /** Player profile + settings persistence (localStorage) and run storage (IndexedDB). */
 import { DEFAULT_APPEARANCE, DEFAULT_EQUIPPED, type Appearance, type Slot } from '../data/equipment';
+import { IS_TOUCH } from '../game/touch';
 import type { Quality } from '../render/sceneSetup';
 import type { Action } from '../game/input';
 import type { WeatherKind } from '../render/sceneSetup';
@@ -47,7 +48,7 @@ export interface Profile {
 }
 
 export const DEFAULT_SETTINGS: Settings = {
-  quality: 'medium', sensitivity: 1, cameraDistance: 1, cameraShake: true, fov: 62, bindings: {},
+  quality: IS_TOUCH ? 'low' : 'medium', sensitivity: 1, cameraDistance: 1, cameraShake: true, fov: 62, bindings: {},
   master: 0.8, sfx: 1, amb: 0.8, units: 'kmh', showFps: false, dynamicWeather: false, weather: 'clear', hour: 11, aiLevel: 2,
 };
 

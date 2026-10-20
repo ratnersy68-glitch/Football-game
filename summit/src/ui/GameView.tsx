@@ -9,8 +9,18 @@ import { RESORTS } from '../data/resorts';
 import { formatTime } from '../core/math';
 import { ACTION_LABEL, DEFAULT_BINDINGS, keyLabel, type Action } from '../game/input';
 import { CAM_LABEL, CAM_MODES } from '../game/camera';
+import { IS_TOUCH } from '../game/touch';
+import { TouchControls } from './hud/TouchControls';
 
-const TIPS = [
+const TIPS = IS_TOUCH ? [
+  'Left stick: steer. Push it up to tuck, pull it down to brake.',
+  'Hold CARVE while steering to carve clean arcs that keep your speed.',
+  'Hold JUMP to load your pop and let go at the lip for bigger air.',
+  'In the air, drag the TRICK pad sideways to spin and up or down to flip. Hold CORK while spinning for corks.',
+  'Tap GRAB in the air — each grab cycles to the next style.',
+  'Tap MAP, pick a trail and “Ski this trail” to go straight there.',
+  'Ride a lift once to unlock fast travel to its top station.',
+] : [
   'Hold Shift while turning to carve clean arcs that keep your speed.',
   'Hold Space to load your pop, release at the lip for bigger air.',
   'Hold a tilt arrow while spinning to throw a cork. Double corks need big air!',
@@ -67,7 +77,17 @@ export function GameView({ api, launch }: { api: AppApi; launch: Launch }) {
     gameRef.current = g;
     const onResize = () => g.resize();
     window.addEventListener('resize', onResize);
-    const unlockAudio = () => g.audio.start();
+    const unlockAudio = () => {
+      g.audio.start();
+      if (IS_TOUCH) {
+        // phones: go full screen and landscape on the first tap (ignored where unsupported, e.g. iPhone)
+        try {
+          const el = document.documentElement as HTMLElement & { webkitRequestFullscreen?: () => void };
+          const req = el.requestFullscreen ? el.requestFullscreen() : el.webkitRequestFullscreen?.();
+          Promise.resolve(req).then(() => (screen.orientation as ScreenOrientation & { lock?: (o: string) => Promise<void> }).lock?.('landscape')).catch(() => {});
+        } catch { /* not supported */ }
+      }
+    };
     window.addEventListener('keydown', unlockAudio, { once: true });
     window.addEventListener('pointerdown', unlockAudio, { once: true });
     g.load((stage, f) => setLoading({ stage, f })).then(() => {
@@ -132,7 +152,7 @@ export function GameView({ api, launch }: { api: AppApi; launch: Launch }) {
 
   const rep = g?.replayInfo();
   return (
-    <div className="game-root">
+    <div className={`game-root ${IS_TOUCH ? 'touch' : ''}`}>
       <canvas ref={canvasRef} className="gl" data-testid="game-canvas" />
       {loading && (
         <div className="loading bg-mountains screen">
@@ -146,6 +166,7 @@ export function GameView({ api, launch }: { api: AppApi; launch: Launch }) {
         </div>
       )}
       {hud && !loading && !replayOpen && !result && <HUD h={hud} units={p.settings.units} showFps={p.settings.showFps} mapCanvas={g?.mapCanvas ?? null} view={g?.mapView ?? null} onPause={() => g?.setPaused(true)} />}
+      {IS_TOUCH && hud && g && !loading && !replayOpen && !result && !paused && !mapOpen && <TouchControls input={g.input} onPause={() => g.setPaused(true)} />}
       {mapOpen && g && <TrailMap game={g} onClose={closeMap} />}
       {scoreOpen && g && hud && <Scoreboard game={g} hud={hud} />}
       {paused && !mapOpen && !result && g && (
@@ -163,14 +184,14 @@ export function GameView({ api, launch }: { api: AppApi; launch: Launch }) {
                 {launch.mode.kind === 'race' && <button className="btn" onClick={() => g.forfeitRace()}>Abandon race (DNF)</button>}
                 <button className="btn warn" onClick={exit} data-testid="quit">Quit to menu</button>
               </div>
-              <div className="col">
+              {!IS_TOUCH && <div className="col">
                 <div className="small muted">Controls</div>
                 <div className="controls-help">
                   {(Object.keys(DEFAULT_BINDINGS) as Action[]).map((a) => (
                     <Fragment key={a}><span><span className="keycap">{(p.settings.bindings[a] ?? DEFAULT_BINDINGS[a]).map(keyLabel).join('/')}</span></span><span className="small">{ACTION_LABEL[a]}</span></Fragment>
                   ))}
                 </div>
-              </div>
+              </div>}
             </div>
           </div>
         </div>

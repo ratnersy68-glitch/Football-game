@@ -1,5 +1,6 @@
 /** Keyboard (remappable) + gamepad input mapped to skier controls and UI actions. */
 import type { SkierInput } from '../physics/skier';
+import { emptyTouch } from './touch';
 
 export type Action =
   | 'tuck' | 'brake' | 'left' | 'right' | 'jump' | 'carve'
@@ -32,6 +33,8 @@ export class Input {
   private steer = 0;
   private padPrev: boolean[] = [];
   enabled = true;
+  /** On-screen touch controls write here. */
+  readonly touch = emptyTouch();
   private onKeyDown = (e: KeyboardEvent) => {
     if ((e.target as HTMLElement)?.tagName === 'INPUT') return;
     if (!this.down.has(e.code)) for (const a of this.actionsFor(e.code)) this.pressed.add(a);
@@ -62,6 +65,9 @@ export class Input {
     for (const k of this.bindings[a]) if (this.down.has(k)) return true;
     return false;
   }
+
+  /** Trigger an edge action from an on-screen button. */
+  tap(a: Action) { this.pressed.add(a); }
 
   /** Edge-triggered actions since the last call. */
   consume(): Set<Action> {
@@ -96,21 +102,23 @@ export class Input {
     const kb = (this.held('right') ? 1 : 0) - (this.held('left') ? 1 : 0);
     // keyboard steering ramps so taps make small corrections
     this.steer += (kb - this.steer) * Math.min(1, dt * (kb === 0 ? 14 : 7 * this.sensitivity));
-    const steer = Math.max(-1, Math.min(1, ax(0) !== 0 ? ax(0) * this.sensitivity : this.steer));
-    const shift = this.held('carve');
+    const t = this.touch;
+    const steer = Math.max(-1, Math.min(1, ax(0) !== 0 ? ax(0) * this.sensitivity : t.steer !== 0 ? t.steer * this.sensitivity : this.steer));
+    const shift = this.held('carve') || t.carve;
     let grab = 0;
     for (let i = 1; i <= 4; i++) if (this.held(`grab${i}` as Action)) grab = shift ? i + 4 : i;
     if (btn(2)) grab = 2;
     if (btn(3) && !grab) grab = 3;
+    if (t.grab && !grab) grab = t.grab;
     return {
       steer,
-      tuck: this.held('tuck') || btnV(7) > 0.4,
-      brake: this.held('brake') || btn(1),
+      tuck: this.held('tuck') || t.tuck || btnV(7) > 0.4,
+      brake: this.held('brake') || t.brake || btn(1),
       carve: shift || btnV(6) > 0.4,
-      jump: this.held('jump') || btn(0),
-      spin: (this.held('spinRight') ? 1 : 0) - (this.held('spinLeft') ? 1 : 0) + (ax(2) > 0.5 ? 1 : ax(2) < -0.5 ? -1 : 0),
-      flip: (this.held('flipFront') ? 1 : 0) - (this.held('flipBack') ? 1 : 0) + (ax(3) < -0.5 ? 1 : ax(3) > 0.5 ? -1 : 0),
-      tilt: (this.held('tiltRight') ? 1 : 0) - (this.held('tiltLeft') ? 1 : 0) + (btn(5) ? 1 : 0) - (btn(4) ? 1 : 0),
+      jump: this.held('jump') || t.jump || btn(0),
+      spin: Math.max(-1, Math.min(1, (this.held('spinRight') ? 1 : 0) - (this.held('spinLeft') ? 1 : 0) + (ax(2) > 0.5 ? 1 : ax(2) < -0.5 ? -1 : 0) + t.spin)),
+      flip: Math.max(-1, Math.min(1, (this.held('flipFront') ? 1 : 0) - (this.held('flipBack') ? 1 : 0) + (ax(3) < -0.5 ? 1 : ax(3) > 0.5 ? -1 : 0) + t.flip)),
+      tilt: Math.max(-1, Math.min(1, (this.held('tiltRight') ? 1 : 0) - (this.held('tiltLeft') ? 1 : 0) + (btn(5) ? 1 : 0) - (btn(4) ? 1 : 0) + t.tilt)),
       grab,
     };
   }

@@ -15,8 +15,8 @@ export function HUD({ h, units, showFps, mapCanvas, view, onPause }: { h: HudSta
             {h.difficulty && <span className="small muted" style={{ fontWeight: 500 }}>{h.difficulty}</span>}
           </div>
         )}
-        <div className="box small" style={{ fontWeight: 500 }}>{h.surface} · {h.conditions}</div>
-        <div className="box small" style={{ fontWeight: 500 }}>{h.weather}</div>
+        <div className="box small cond" style={{ fontWeight: 500 }}>{h.surface} · {h.conditions}</div>
+        <div className="box small cond" style={{ fontWeight: 500 }}>{h.weather}</div>
         {h.runTimer && <div className="box small">⏱ {h.runTimer}</div>}
       </div>
       <div className="tc">

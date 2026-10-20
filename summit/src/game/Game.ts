@@ -3,6 +3,7 @@
  * the fixed-order frame loop and publishes HUD state to the React layer.
  */
 import * as THREE from 'three';
+import { HINT, IS_TOUCH } from './touch';
 import { RESORTS } from '../data/resorts';
 import { buildResortAsync, trailPoint, type Resort } from '../world/resortBuilder';
 import { Environment, QUALITY, timeOfDay, type Quality, type WeatherKind } from '../render/sceneSetup';
@@ -445,7 +446,7 @@ export class Game {
         if (i >= 0 && this.player.state === 'ride' && this.player.speed < 7) {
           this.lifts.board(i, this.player);
           this.cam.snap();
-          this.showToast(`Boarding ${this.resort.lifts[i].name} — F to skip, hold W to speed up`);
+          this.showToast(`Boarding ${this.resort.lifts[i].name} — ${HINT.lift} to skip, hold ${HINT.fast} to speed up`);
         }
       }
     }
@@ -518,7 +519,7 @@ export class Game {
           this.audio.crash(); this.cam.bump(1); this.tricks.bust(); this.sessionCrashes++;
           this.recorder.event(`Crash: ${e.reason}`);
           this.spray.emit(s.pos.x, s.pos.y, s.pos.z, s.vel.x * 0.3, 2.5, s.vel.z * 0.3, 60, 5, 0.6);
-          if (!this.race) this.showToast(`${e.reason} — R to reset`);
+          if (!this.race) this.showToast(`${e.reason} — ${HINT.reset} to reset`);
           break;
         case 'collide': if ((e.v ?? 0) > 1) this.audio.thud(); break;
         case 'grindStart': this.audio.grindStart(); break;
@@ -722,7 +723,15 @@ export class Game {
     this.showToast('🏅 Achievement unlocked!');
   }
 
-  static readonly TUTORIAL = [
+  static readonly TUTORIAL = IS_TOUCH ? [
+    'Push the left stick up to push off with your poles and tuck for speed',
+    'Steer with the left stick — try a few turns',
+    'Hold CARVE while steering to carve clean, fast arcs',
+    'Pull the left stick down to brake to a stop',
+    'Hold JUMP and let go to jump (bigger pop the longer you hold)',
+    'Jump again and drag the TRICK pad left or right in the air to spin — land straight!',
+    'Ski to the lift station at the bottom and tap LIFT to ride it',
+  ] : [
     'Hold W to push off with your poles and tuck for speed',
     'Steer with A and D — try a few turns',
     'Hold Shift while turning to carve clean, fast arcs',
@@ -996,15 +1005,15 @@ export class Game {
     } else {
       const near = this.lifts.nearStation(s.pos.x, s.pos.z);
       if (this.lifts.riding) objective = `Riding ${this.resort.lifts[this.lifts.ride!.lift].name}`;
-      else if (near >= 0) objective = `${this.resort.lifts[near].name} — press F to ride`;
+      else if (near >= 0) objective = `${this.resort.lifts[near].name} — press ${HINT.lift} to ride`;
     }
     let prompt: string | null = null;
     if (!this.race && !this.lifts.riding && s.state === 'ride') {
       const near = this.lifts.nearStation(s.pos.x, s.pos.z);
-      if (near >= 0) prompt = `F — Ride ${this.resort.lifts[near].name}`;
+      if (near >= 0) prompt = `${HINT.lift} — Ride ${this.resort.lifts[near].name}`;
     }
-    if (this.lifts.riding) prompt = 'F — Skip ride · Hold W — Fast forward';
-    if (s.state === 'crashed' || s.state === 'recover') prompt = 'R — Reset to trail';
+    if (this.lifts.riding) prompt = `${HINT.lift} — Skip ride · Hold ${HINT.fast} — Fast forward`;
+    if (s.state === 'crashed' || s.state === 'recover') prompt = `${HINT.reset} — Reset to trail`;
     let raceHud: HudState['race'] = null;
     const racers: HudState['racers'] = [];
     if (this.race) {
