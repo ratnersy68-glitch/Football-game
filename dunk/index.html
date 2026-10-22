@@ -1,0 +1,865 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no, viewport-fit=cover">
+<meta name="theme-color" content="#3a7bd5">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<title>Wing Dunk</title>
+<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 64 64'%3E%3Ccircle cx='32' cy='32' r='26' fill='%23ff8a1f'/%3E%3Cpath d='M6 32h52M32 6v52M13 14q14 18 0 36M51 14q-14 18 0 36' stroke='%23402010' stroke-width='3' fill='none'/%3E%3C/svg%3E">
+<style>
+  :root {
+    --ink: #1d2340;
+    --white: #ffffff;
+    --accent: #ff5a3c;
+    --gold: #ffc93c;
+    --panel: rgba(255, 255, 255, 0.94);
+    --shadow: 0 10px 30px rgba(20, 30, 70, 0.25);
+    --font: ui-rounded, "SF Pro Rounded", "Nunito", "Segoe UI Rounded", system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
+  }
+  * { box-sizing: border-box; }
+  html, body {
+    margin: 0; height: 100%; overflow: hidden;
+    background: #3a7bd5;
+    font-family: var(--font);
+    color: var(--ink);
+    -webkit-user-select: none; user-select: none;
+    -webkit-tap-highlight-color: transparent;
+    touch-action: none;
+    overscroll-behavior: none;
+  }
+  canvas { position: fixed; inset: 0; width: 100%; height: 100%; display: block; }
+
+  #hud { position: fixed; inset: 0; pointer-events: none; }
+  #score {
+    position: absolute; left: 0; right: 0;
+    top: calc(env(safe-area-inset-top, 0px) + 18px);
+    text-align: center;
+    font-size: clamp(56px, 12vmin, 88px); font-weight: 900;
+    color: var(--white);
+    text-shadow: 0 4px 0 rgba(20, 30, 70, 0.25), 0 8px 24px rgba(20, 30, 70, 0.25);
+    letter-spacing: -0.02em;
+    transition: transform 0.12s ease-out;
+  }
+  #score.pop { transform: scale(1.22); }
+  #best {
+    position: absolute;
+    top: calc(env(safe-area-inset-top, 0px) + 16px);
+    left: calc(env(safe-area-inset-left, 0px) + 16px);
+    padding: 6px 12px; border-radius: 999px;
+    background: rgba(255, 255, 255, 0.22);
+    color: var(--white); font-weight: 800; font-size: 14px;
+    letter-spacing: 0.04em;
+  }
+  #mute {
+    position: absolute; pointer-events: auto;
+    top: calc(env(safe-area-inset-top, 0px) + 12px);
+    right: calc(env(safe-area-inset-right, 0px) + 12px);
+    width: 44px; height: 44px; border-radius: 50%;
+    border: none; background: rgba(255, 255, 255, 0.22); color: var(--white);
+    font-size: 20px; cursor: pointer;
+    display: grid; place-items: center;
+  }
+  #mute:focus-visible, .btn:focus-visible { outline: 3px solid var(--gold); outline-offset: 3px; }
+
+  .overlay {
+    position: fixed; inset: 0;
+    display: flex; flex-direction: column; align-items: center; justify-content: center;
+    padding: 16px; pointer-events: none;
+    transition: opacity 0.25s ease;
+  }
+  .overlay.hidden { opacity: 0; }
+  .overlay.hidden * { pointer-events: none !important; }
+
+  #start h1 {
+    margin: 0 0 6px; font-size: clamp(44px, 11vmin, 76px); font-weight: 900; line-height: 0.95;
+    color: var(--white); text-align: center; letter-spacing: -0.02em;
+    text-shadow: 0 5px 0 var(--accent), 0 12px 30px rgba(20, 30, 70, 0.3);
+  }
+  #start p {
+    margin: 26vmin 0 0; padding: 10px 20px; border-radius: 999px;
+    background: rgba(255, 255, 255, 0.92); color: var(--ink);
+    font-weight: 800; font-size: 17px; box-shadow: var(--shadow);
+    animation: pulse 1.2s ease-in-out infinite;
+  }
+  #start small { margin-top: 12px; color: rgba(255,255,255,0.85); font-weight: 700; font-size: 13px; text-align: center; }
+  @keyframes pulse { 50% { transform: scale(1.06); } }
+
+  .card {
+    pointer-events: auto;
+    width: min(340px, 100%);
+    background: var(--panel); border-radius: 28px; box-shadow: var(--shadow);
+    padding: 26px 24px 22px; text-align: center;
+    transform: translateY(0) scale(1);
+    transition: transform 0.35s cubic-bezier(.2, 1.4, .4, 1);
+  }
+  .overlay.hidden .card { transform: translateY(30px) scale(0.92); }
+  .card h2 { margin: 0 0 14px; font-size: 30px; font-weight: 900; color: var(--accent); letter-spacing: -0.01em; }
+  .stats { display: flex; gap: 12px; margin-bottom: 18px; }
+  .stat { flex: 1; background: #eef2fb; border-radius: 18px; padding: 12px 8px; }
+  .stat span { display: block; font-size: 12px; font-weight: 800; letter-spacing: 0.08em; color: #7280a8; }
+  .stat b { display: block; font-size: 38px; font-weight: 900; line-height: 1.1; }
+  #newBest {
+    display: inline-block; margin: -4px 0 14px; padding: 5px 12px; border-radius: 999px;
+    background: var(--gold); color: var(--ink); font-weight: 900; font-size: 13px; letter-spacing: 0.06em;
+  }
+  #newBest[hidden] { display: none; }
+  .detail { margin: -6px 0 16px; font-size: 14px; font-weight: 700; color: #7280a8; }
+  .btn {
+    width: 100%; border: none; border-radius: 18px; cursor: pointer;
+    padding: 16px; font: inherit; font-size: 20px; font-weight: 900; letter-spacing: 0.02em;
+    color: var(--white); background: linear-gradient(180deg, #ff7a4d, #ff4a3c);
+    box-shadow: 0 6px 0 #c2321f, 0 10px 20px rgba(255, 74, 60, 0.35);
+    transition: transform 0.08s, box-shadow 0.08s;
+  }
+  .btn:active { transform: translateY(4px); box-shadow: 0 2px 0 #c2321f, 0 4px 10px rgba(255, 74, 60, 0.3); }
+</style>
+</head>
+<body>
+<canvas id="game" aria-label="Wing Dunk game"></canvas>
+
+<div id="hud">
+  <div id="best">BEST 0</div>
+  <div id="score" aria-live="polite">0</div>
+  <button id="mute" aria-label="Toggle sound">🔊</button>
+</div>
+
+<div id="start" class="overlay">
+  <h1>WING<br>DUNK</h1>
+  <p>Tap to flap</p>
+  <small>Click · Tap · Space — drop through every hoop</small>
+</div>
+
+<div id="over" class="overlay hidden">
+  <div class="card" role="dialog" aria-label="Game over">
+    <h2>Game Over</h2>
+    <div class="stats">
+      <div class="stat"><span>SCORE</span><b id="finalScore">0</b></div>
+      <div class="stat"><span>BEST</span><b id="finalBest">0</b></div>
+    </div>
+    <div id="newBest" hidden>NEW BEST!</div>
+    <div class="detail" id="detail"></div>
+    <button class="btn" id="restart">Restart</button>
+  </div>
+</div>
+
+<script>
+(() => {
+  'use strict';
+
+  // ---------- Setup ----------
+  const canvas = document.getElementById('game');
+  const ctx = canvas.getContext('2d');
+  const $ = (id) => document.getElementById(id);
+  const scoreEl = $('score'), bestEl = $('best'), startEl = $('start'), overEl = $('over');
+
+  const H = 800;            // logical world height; width follows the screen aspect
+  const FLOOR = H - 70;
+  const R = 22;             // ball radius
+  const RIM_R = 5;          // rim tube radius used for collision
+  const NET_DEPTH = 56;
+  const GRAVITY = 2200;
+  const FLAP_V = -580;
+  const STEP = 1 / 120;
+
+  let W = 400, scale = 1, dpr = 1;
+
+  function resize() {
+    dpr = Math.min(window.devicePixelRatio || 1, 2);
+    canvas.width = Math.round(innerWidth * dpr);
+    canvas.height = Math.round(innerHeight * dpr);
+    scale = canvas.height / H;
+    W = canvas.width / scale;
+  }
+  addEventListener('resize', resize);
+  resize();
+
+  // ---------- Storage ----------
+  const store = {
+    get(k, d) { try { const v = localStorage.getItem(k); return v === null ? d : v; } catch (e) { return d; } },
+    set(k, v) { try { localStorage.setItem(k, v); } catch (e) {} }
+  };
+  let best = parseInt(store.get('wingdunk.best', '0'), 10) || 0;
+  let muted = store.get('wingdunk.muted', '0') === '1';
+
+  // ---------- Audio (synthesized, no assets) ----------
+  let actx = null, noiseBuf = null;
+  function audio() {
+    if (!actx) {
+      const AC = window.AudioContext || window.webkitAudioContext;
+      if (!AC) return null;
+      actx = new AC();
+      noiseBuf = actx.createBuffer(1, actx.sampleRate * 0.6, actx.sampleRate);
+      const d = noiseBuf.getChannelData(0);
+      for (let i = 0; i < d.length; i++) d[i] = Math.random() * 2 - 1;
+    }
+    if (actx.state === 'suspended') actx.resume();
+    return actx;
+  }
+  function env(g, t, peak, dur) {
+    g.gain.setValueAtTime(0.0001, t);
+    g.gain.exponentialRampToValueAtTime(peak, t + 0.01);
+    g.gain.exponentialRampToValueAtTime(0.0001, t + dur);
+  }
+  function noise(type, f0, f1, peak, dur) {
+    const a = audio(); if (!a || muted) return;
+    const t = a.currentTime;
+    const src = a.createBufferSource(); src.buffer = noiseBuf;
+    const flt = a.createBiquadFilter(); flt.type = type; flt.Q.value = 1.2;
+    flt.frequency.setValueAtTime(f0, t);
+    flt.frequency.exponentialRampToValueAtTime(f1, t + dur);
+    const g = a.createGain(); env(g, t, peak, dur);
+    src.connect(flt).connect(g).connect(a.destination);
+    src.start(t); src.stop(t + dur + 0.05);
+  }
+  function tone(type, f0, f1, peak, dur, delay = 0) {
+    const a = audio(); if (!a || muted) return;
+    const t = a.currentTime + delay;
+    const o = a.createOscillator(); o.type = type;
+    o.frequency.setValueAtTime(f0, t);
+    o.frequency.exponentialRampToValueAtTime(f1, t + dur);
+    const g = a.createGain(); env(g, t, peak, dur);
+    o.connect(g).connect(a.destination);
+    o.start(t); o.stop(t + dur + 0.05);
+  }
+  const sfx = {
+    flap() { noise('bandpass', 1400, 500, 0.18, 0.12); },
+    clank(v) {
+      const p = Math.min(0.25, 0.04 + v / 3000);
+      tone('triangle', 1250, 1180, p, 0.3);
+      tone('sine', 1870, 1800, p * 0.6, 0.22);
+      tone('square', 320, 280, p * 0.25, 0.08);
+    },
+    score() { tone('sine', 660, 990, 0.16, 0.18); },
+    swish(streak) {
+      noise('highpass', 2500, 7000, 0.22, 0.35);
+      const base = 620 * Math.pow(1.122, Math.min(streak, 8));
+      tone('sine', base, base * 1.5, 0.14, 0.16, 0.04);
+      tone('sine', base * 1.5, base * 2, 0.12, 0.2, 0.12);
+    },
+    over() { tone('sawtooth', 340, 90, 0.12, 0.55); tone('sine', 220, 70, 0.18, 0.6); }
+  };
+
+  // ---------- Game state ----------
+  let state = 'ready'; // ready | play | over
+  let ball, hoops, particles, popups, camX, score, streak, cleared, swishes, shake, flash, time, overTimer, lastSpawnX, lastHoopY;
+
+  function reset() {
+    ball = { x: 0, y: 380, vx: 0, vy: 0, angle: 0, spin: 0, wing: 0, flapT: 0 };
+    hoops = []; particles = []; popups = [];
+    camX = ball.x - W * lead();
+    score = 0; streak = 0; cleared = 0; swishes = 0;
+    shake = 0; flash = 0; time = 0; overTimer = 0;
+    lastSpawnX = ball.x + 260; lastHoopY = 420;
+    spawnHoops();
+    updateScore(false);
+  }
+
+  // how far from the left edge the ball sits; narrow screens need more look-ahead
+  function lead() { return W < 600 ? 0.2 : 0.3; }
+
+  // Difficulty ramps with hoops cleared, eased so it never spikes
+  function difficulty() {
+    const t = Math.min(1, cleared / 70);
+    return 1 - Math.pow(1 - t, 1.6);
+  }
+  function speed() { return 250 + 150 * difficulty(); }
+
+  function spawnHoops() {
+    while (lastSpawnX < camX + W + 300) {
+      const d = difficulty();
+      const gap = 440 - 100 * d + (Math.random() * 60 - 30);
+      const range = 110 + 180 * d;
+      const x = lastSpawnX + gap;
+      let y = lastHoopY + (Math.random() * 2 - 1) * range;
+      y = Math.max(210, Math.min(FLOOR - NET_DEPTH - 90, y));
+      const w = 138 - 38 * d;
+      const moving = hoops.length > 0 && cleared >= 10 && Math.random() < 0.12 + 0.38 * d;
+      hoops.push({
+        x, baseY: y, y, w,
+        amp: moving ? 30 + 55 * d : 0,
+        freq: 0.9 + Math.random() * 0.8,
+        phase: Math.random() * Math.PI * 2,
+        vy: 0,
+        scored: false, touched: false, missed: false,
+        net: 0, glow: 0
+      });
+      lastSpawnX = x; lastHoopY = y;
+    }
+  }
+
+  function updateScore(pop) {
+    scoreEl.textContent = score;
+    bestEl.textContent = 'BEST ' + Math.max(best, score);
+    if (pop) {
+      scoreEl.classList.remove('pop'); void scoreEl.offsetWidth; scoreEl.classList.add('pop');
+      setTimeout(() => scoreEl.classList.remove('pop'), 120);
+    }
+  }
+
+  // ---------- Input ----------
+  function flap() {
+    audio();
+    if (state === 'over') return;
+    if (state === 'ready') {
+      state = 'play';
+      startEl.classList.add('hidden');
+      ball.vx = speed();
+    }
+    ball.vy = FLAP_V;
+    ball.flapT = 1;
+    sfx.flap();
+    for (let i = 0; i < 4; i++) {
+      particles.push({
+        x: ball.x - 14, y: ball.y + 6, vx: -60 - Math.random() * 80, vy: 60 + Math.random() * 80,
+        life: 0.4, max: 0.4, size: 3 + Math.random() * 3, color: 'rgba(255,255,255,0.9)', g: 0
+      });
+    }
+  }
+
+  function restart() {
+    overEl.classList.add('hidden');
+    startEl.classList.remove('hidden');
+    state = 'ready';
+    reset();
+  }
+
+  canvas.addEventListener('pointerdown', (e) => { e.preventDefault(); flap(); });
+  startEl.addEventListener('pointerdown', (e) => { e.preventDefault(); flap(); });
+  addEventListener('keydown', (e) => {
+    if (e.code === 'Space' || e.code === 'ArrowUp' || e.code === 'KeyW' || e.code === 'Enter') {
+      e.preventDefault();
+      if (e.repeat) return;
+      if (state === 'over') { if (overTimer > 0.6) restart(); }
+      else flap();
+    }
+  });
+  $('restart').addEventListener('click', restart);
+  $('mute').addEventListener('click', (e) => {
+    muted = !muted; store.set('wingdunk.muted', muted ? '1' : '0');
+    $('mute').textContent = muted ? '🔇' : '🔊';
+    e.currentTarget.blur();
+  });
+  $('mute').textContent = muted ? '🔇' : '🔊';
+  document.addEventListener('gesturestart', (e) => e.preventDefault());
+
+  // ---------- Effects ----------
+  function burst(x, y, n, colors, power) {
+    for (let i = 0; i < n; i++) {
+      const a = Math.random() * Math.PI * 2, s = power * (0.4 + Math.random() * 0.8);
+      particles.push({
+        x, y, vx: Math.cos(a) * s, vy: Math.sin(a) * s - power * 0.3,
+        life: 0.6 + Math.random() * 0.5, max: 1.1, size: 3 + Math.random() * 4,
+        color: colors[(Math.random() * colors.length) | 0], g: 900, rot: Math.random() * 6, rect: Math.random() < 0.5
+      });
+    }
+  }
+  function popup(text, x, y, color, size) {
+    popups.push({ text, x, y, color, size, life: 1 });
+  }
+
+  function onScore(h) {
+    h.scored = true;
+    h.net = 1;
+    h.glow = 1;
+    cleared++;
+    if (!h.touched) {
+      streak++;
+      swishes++;
+      const pts = 1 + Math.min(streak, 9);
+      score += pts;
+      flash = 0.35;
+      sfx.swish(streak);
+      burst(h.x, h.y + 10, 26 + streak * 4, ['#ffc93c', '#ff5a3c', '#ffffff', '#4dd4ff', '#7cff6b'], 420);
+      const label = streak >= 3 ? 'SWISH x' + streak : 'SWISH!';
+      popup(label, h.x, h.y - 50, '#ffffff', 34);
+      popup('+' + pts, h.x, h.y - 16, '#ffc93c', 26);
+    } else {
+      streak = 0;
+      score += 1;
+      sfx.score();
+      burst(h.x, h.y + 10, 12, ['#ffffff', '#ffc93c'], 260);
+      popup('+1', h.x, h.y - 30, '#ffffff', 26);
+    }
+    updateScore(true);
+  }
+
+  function gameOver(reason) {
+    if (state !== 'play') return;
+    state = 'over';
+    overTimer = 0;
+    streak = 0;
+    shake = 14;
+    sfx.over();
+    const isBest = score > best;
+    if (isBest) { best = score; store.set('wingdunk.best', String(best)); }
+    $('finalScore').textContent = score;
+    $('finalBest').textContent = best;
+    $('newBest').hidden = !isBest || score === 0;
+    $('detail').textContent = reason + ' · ' + cleared + (cleared === 1 ? ' hoop' : ' hoops') + ', ' + swishes + (swishes === 1 ? ' swish' : ' swishes');
+    updateScore(false);
+    setTimeout(() => { if (state === 'over') overEl.classList.remove('hidden'); }, 650);
+  }
+
+  // ---------- Physics ----------
+  function collideRimPoint(h, px, py) {
+    const dx = ball.x - px, dy = ball.y - py;
+    const minD = R + RIM_R;
+    const d2 = dx * dx + dy * dy;
+    if (d2 >= minD * minD) return;
+    const d = Math.sqrt(d2) || 0.0001;
+    const nx = dx / d, ny = dy / d;
+    ball.x = px + nx * minD;
+    ball.y = py + ny * minD;
+    // relative velocity, accounting for a moving hoop
+    const rvx = ball.vx, rvy = ball.vy - h.vy;
+    const vn = rvx * nx + rvy * ny;
+    if (vn < 0) {
+      const e = 0.52;
+      ball.vx -= (1 + e) * vn * nx;
+      ball.vy -= (1 + e) * vn * ny;
+      // tangential friction converts to spin
+      const tx = -ny, ty = nx;
+      const vt = ball.vx * tx + (ball.vy - h.vy) * ty;
+      ball.vx -= vt * 0.12 * tx;
+      ball.vy -= vt * 0.12 * ty;
+      ball.spin += vt / R * 0.5;
+      // allow a knock-back off the rim, but never a full rewind
+      ball.vx = Math.max(ball.vx, -140);
+      if (-vn > 60) {
+        if (!h.scored) h.touched = true;
+        sfx.clank(-vn);
+        shake = Math.max(shake, Math.min(6, -vn / 120));
+        h.glow = Math.max(h.glow, 0.5);
+        for (let i = 0; i < 5; i++) {
+          particles.push({ x: px, y: py, vx: (Math.random() - 0.5) * 200, vy: -Math.random() * 200,
+            life: 0.3, max: 0.3, size: 2 + Math.random() * 2, color: '#fff3c4', g: 600 });
+        }
+      } else if (!h.scored) {
+        h.touched = true;
+      }
+    }
+  }
+
+  function step(dt) {
+    time += dt;
+    if (state === 'ready') {
+      ball.y = 380 + Math.sin(time * 3) * 12;
+      ball.vy = Math.cos(time * 3) * 36;
+      ball.wing += dt * 9;
+      camX = ball.x - W * lead();
+      return;
+    }
+
+    for (const h of hoops) {
+      const prevY = h.y;
+      h.y = h.baseY + (h.amp ? Math.sin(time * h.freq + h.phase) * h.amp : 0);
+      h.vy = (h.y - prevY) / dt;
+      h.net = Math.max(0, h.net - dt * 2.2);
+      h.glow = Math.max(0, h.glow - dt * 1.5);
+    }
+
+    const prevX = ball.x, prevY = ball.y;
+    ball.vy += GRAVITY * dt;
+    if (state === 'play') ball.vx += (speed() - ball.vx) * Math.min(1, dt * 2.2);
+    else ball.vx *= 1 - dt * 1.2;
+    ball.x += ball.vx * dt;
+    ball.y += ball.vy * dt;
+
+    // ceiling
+    if (ball.y - R < 0) { ball.y = R; if (ball.vy < 0) ball.vy = 0; }
+
+    for (const h of hoops) {
+      if (Math.abs(h.x - ball.x) > h.w / 2 + R + 20) continue;
+      const left = h.x - h.w / 2, right = h.x + h.w / 2;
+
+      // the net blocks the ball from entering the hoop from below
+      if (ball.vy < 0 && ball.x > left + 4 && ball.x < right - 4 &&
+          prevY - R >= h.y - 1 && ball.y - R < h.y && ball.y < h.y + NET_DEPTH + R) {
+        ball.y = h.y + R;
+        ball.vy = Math.abs(ball.vy) * 0.25 + h.vy;
+        h.net = Math.max(h.net, 0.4);
+      }
+
+      collideRimPoint(h, left, h.y);
+      collideRimPoint(h, right, h.y);
+
+      // scoring: ball center drops through the rim plane between the rim tips
+      if (state === 'play' && !h.scored && !h.missed && prevY < h.y && ball.y >= h.y &&
+          ball.x > left && ball.x < right) {
+        onScore(h);
+      }
+    }
+
+    // missed hoop: ball has fully passed it without scoring
+    if (state === 'play') {
+      for (const h of hoops) {
+        if (!h.scored && !h.missed && ball.x - R > h.x + h.w / 2 + 6) {
+          h.missed = true;
+          popup('MISS', h.x, h.y - 40, '#ff5a3c', 30);
+          gameOver('Missed a hoop');
+          break;
+        }
+      }
+    }
+
+    // floor
+    if (ball.y + R > FLOOR) {
+      ball.y = FLOOR - R;
+      if (state === 'play') gameOver('Hit the floor');
+      ball.vy = -Math.abs(ball.vy) * 0.45;
+      if (Math.abs(ball.vy) < 40) ball.vy = 0;
+      ball.vx *= 0.9;
+    }
+
+    // rolling spin + collision spin
+    ball.spin *= 1 - dt * 1.5;
+    ball.angle += ((ball.x - prevX) / R) * 0.6 + ball.spin * dt;
+    ball.flapT = Math.max(0, ball.flapT - dt * 3.5);
+    ball.wing += dt * (state === 'play' ? 10 + ball.flapT * 26 : 4);
+
+    // flame trail when on a swish streak
+    if (state === 'play' && streak >= 3 && Math.random() < 0.9) {
+      particles.push({
+        x: ball.x - 8 + (Math.random() - 0.5) * 10, y: ball.y + (Math.random() - 0.5) * 22,
+        vx: -40 - Math.random() * 40, vy: -40 - Math.random() * 60,
+        life: 0.45, max: 0.45, size: 8 + Math.random() * 8, color: Math.random() < 0.5 ? '#ffb02e' : '#ff5a1f', g: -100, fire: true
+      });
+    }
+
+    // camera follows ball
+    const targetCam = ball.x - W * lead();
+    camX += (targetCam - camX) * Math.min(1, dt * 10);
+
+    if (state === 'play') spawnHoops();
+    hoops = hoops.filter((h) => h.x + 200 > camX);
+  }
+
+  function updateFx(dt) {
+    for (const p of particles) {
+      p.vy += (p.g || 0) * dt;
+      p.x += p.vx * dt; p.y += p.vy * dt;
+      p.life -= dt;
+      if (p.rot !== undefined) p.rot += dt * 8;
+    }
+    particles = particles.filter((p) => p.life > 0);
+    for (const t of popups) { t.life -= dt * 0.9; t.y -= dt * 50; }
+    popups = popups.filter((t) => t.life > 0);
+    shake = Math.max(0, shake - dt * 40);
+    flash = Math.max(0, flash - dt * 1.5);
+    if (state === 'over') overTimer += dt;
+  }
+
+  // ---------- Rendering ----------
+  function hash(n) { const s = Math.sin(n * 127.1) * 43758.5453; return s - Math.floor(s); }
+
+  function drawBackground() {
+    const g = ctx.createLinearGradient(0, 0, 0, H);
+    g.addColorStop(0, '#3a7bd5');
+    g.addColorStop(0.55, '#6fb1fc');
+    g.addColorStop(1, '#ffd7a8');
+    ctx.fillStyle = g;
+    ctx.fillRect(0, 0, W, H);
+
+    // sun
+    ctx.fillStyle = 'rgba(255, 244, 200, 0.55)';
+    ctx.beginPath(); ctx.arc(W * 0.78, 190, 90, 0, Math.PI * 2); ctx.fill();
+    ctx.fillStyle = 'rgba(255, 250, 225, 0.9)';
+    ctx.beginPath(); ctx.arc(W * 0.78, 190, 58, 0, Math.PI * 2); ctx.fill();
+
+    // clouds (slow parallax)
+    const cp = camX * 0.15;
+    const cw = 520;
+    const c0 = Math.floor(cp / cw) - 1;
+    ctx.fillStyle = 'rgba(255, 255, 255, 0.85)';
+    for (let i = c0; i < c0 + Math.ceil(W / cw) + 3; i++) {
+      const x = i * cw - cp + hash(i) * 200;
+      const y = 90 + hash(i + 9) * 220;
+      const s = 0.6 + hash(i + 3) * 0.7;
+      ctx.beginPath();
+      ctx.arc(x, y, 34 * s, 0, Math.PI * 2);
+      ctx.arc(x + 38 * s, y - 16 * s, 42 * s, 0, Math.PI * 2);
+      ctx.arc(x + 80 * s, y, 32 * s, 0, Math.PI * 2);
+      ctx.rect(x, y, 80 * s, 32 * s);
+      ctx.fill();
+    }
+
+    // city skyline (mid parallax)
+    const bp = camX * 0.35;
+    const bw = 70;
+    const b0 = Math.floor(bp / bw) - 1;
+    ctx.fillStyle = 'rgba(80, 110, 200, 0.35)';
+    for (let i = b0; i < b0 + Math.ceil(W / bw) + 3; i++) {
+      const x = i * bw - bp;
+      const h = 90 + hash(i * 3.7) * 190;
+      ctx.fillRect(x, FLOOR - h, bw - 8, h);
+    }
+    // near hills
+    const hp = camX * 0.6;
+    ctx.fillStyle = 'rgba(90, 170, 140, 0.55)';
+    ctx.beginPath();
+    ctx.moveTo(0, FLOOR);
+    for (let x = 0; x <= W + 20; x += 20) {
+      const wx = x + hp;
+      ctx.lineTo(x, FLOOR - 50 - Math.sin(wx * 0.006) * 25 - Math.sin(wx * 0.017) * 12);
+    }
+    ctx.lineTo(W, FLOOR);
+    ctx.fill();
+
+    // court floor
+    const fg = ctx.createLinearGradient(0, FLOOR, 0, H);
+    fg.addColorStop(0, '#f2a65a');
+    fg.addColorStop(1, '#d9803a');
+    ctx.fillStyle = fg;
+    ctx.fillRect(0, FLOOR, W, H - FLOOR);
+    ctx.fillStyle = '#ffffff';
+    ctx.fillRect(0, FLOOR, W, 4);
+    ctx.strokeStyle = 'rgba(150, 70, 20, 0.25)';
+    ctx.lineWidth = 2;
+    const pw = 90, p0 = Math.floor(camX / pw);
+    for (let i = p0; i < p0 + Math.ceil(W / pw) + 2; i++) {
+      const x = i * pw - camX;
+      ctx.beginPath(); ctx.moveTo(x, FLOOR + 4); ctx.lineTo(x - 30, H); ctx.stroke();
+    }
+  }
+
+  function drawHoopBack(h) {
+    const ry = 11;
+    ctx.save();
+    // glow
+    if (h.glow > 0) {
+      ctx.fillStyle = `rgba(255, 220, 90, ${h.glow * 0.35})`;
+      ctx.beginPath(); ctx.ellipse(h.x, h.y, h.w / 2 + 26, ry + 26, 0, 0, Math.PI * 2); ctx.fill();
+    }
+    // moving-hoop guide
+    if (h.amp) {
+      ctx.strokeStyle = 'rgba(255,255,255,0.25)';
+      ctx.setLineDash([6, 8]); ctx.lineWidth = 3;
+      ctx.beginPath(); ctx.moveTo(h.x + h.w / 2 + 14, h.baseY - h.amp); ctx.lineTo(h.x + h.w / 2 + 14, h.baseY + h.amp); ctx.stroke();
+      ctx.setLineDash([]);
+    }
+    // back half of the rim
+    ctx.strokeStyle = h.scored ? '#c98a00' : '#b8301c';
+    ctx.lineWidth = 7; ctx.lineCap = 'round';
+    ctx.beginPath(); ctx.ellipse(h.x, h.y, h.w / 2, ry, 0, Math.PI, Math.PI * 2); ctx.stroke();
+    ctx.restore();
+  }
+
+  function drawHoopFront(h) {
+    const ry = 11, half = h.w / 2;
+    const stretch = Math.sin(h.net * Math.PI) * 18;
+    const sway = Math.sin(time * 18) * h.net * 6;
+    const depth = NET_DEPTH + stretch;
+    const bottomHalf = half * 0.55 - stretch * 0.25;
+    ctx.save();
+    ctx.lineCap = 'round';
+    // net strings
+    ctx.strokeStyle = 'rgba(255, 255, 255, 0.92)';
+    ctx.lineWidth = 2.2;
+    const n = 8;
+    const top = (i) => [h.x - half + (h.w * i) / n, h.y + Math.sin((i / n) * Math.PI) * ry * 0.9];
+    const bot = (i) => [h.x - bottomHalf + (bottomHalf * 2 * i) / n + sway, h.y + depth];
+    const mid = (i, f) => {
+      const a = top(i), b = bot(i);
+      return [a[0] + (b[0] - a[0]) * f, a[1] + (b[1] - a[1]) * f];
+    };
+    // diagonal mesh
+    ctx.beginPath();
+    for (let i = 0; i < n; i++) {
+      for (const [f0, f1] of [[0, 0.5], [0.5, 1]]) {
+        const a = mid(i, f0), b = mid(i + 1, f1), c = mid(i + 1, f0), d = mid(i, f1);
+        ctx.moveTo(a[0], a[1]); ctx.lineTo(b[0], b[1]);
+        ctx.moveTo(c[0], c[1]); ctx.lineTo(d[0], d[1]);
+      }
+    }
+    ctx.stroke();
+    // bottom ring
+    ctx.beginPath();
+    ctx.ellipse(h.x + sway, h.y + depth, bottomHalf, 4, 0, 0, Math.PI);
+    ctx.stroke();
+    // front half of the rim
+    ctx.strokeStyle = h.scored ? `hsl(42, 100%, ${50 + h.glow * 25}%)` : '#ff4a2e';
+    ctx.lineWidth = 8;
+    ctx.beginPath(); ctx.ellipse(h.x, h.y, half, ry, 0, 0, Math.PI); ctx.stroke();
+    // rim highlight
+    ctx.strokeStyle = 'rgba(255,255,255,0.55)';
+    ctx.lineWidth = 2.5;
+    ctx.beginPath(); ctx.ellipse(h.x, h.y - 1.5, half - 2, ry - 2, 0, 0.35, Math.PI - 0.35); ctx.stroke();
+    // rim tips
+    ctx.fillStyle = h.scored ? '#ffb400' : '#ff4a2e';
+    ctx.beginPath(); ctx.arc(h.x - half, h.y, 4.5, 0, Math.PI * 2); ctx.arc(h.x + half, h.y, 4.5, 0, Math.PI * 2); ctx.fill();
+    ctx.restore();
+  }
+
+  function wingPath() {
+    ctx.beginPath();
+    ctx.moveTo(0, 0);
+    ctx.bezierCurveTo(-8, -26, -42, -34, -62, -20);
+    ctx.quadraticCurveTo(-64, -8, -52, -6);
+    ctx.quadraticCurveTo(-54, 4, -40, 2);
+    ctx.quadraticCurveTo(-40, 12, -26, 7);
+    ctx.quadraticCurveTo(-18, 14, 0, 8);
+    ctx.closePath();
+  }
+
+  function drawWing(angle, s, back) {
+    ctx.save();
+    ctx.translate(-4, -8);
+    ctx.scale(s, s);
+    ctx.rotate(angle);
+    wingPath();
+    ctx.fillStyle = back ? '#d7def0' : '#ffffff';
+    ctx.fill();
+    ctx.strokeStyle = back ? '#aab4cf' : '#c9d2ea';
+    ctx.lineWidth = 2;
+    ctx.stroke();
+    if (!back) {
+      ctx.strokeStyle = 'rgba(160, 175, 210, 0.7)';
+      ctx.lineWidth = 1.5;
+      ctx.beginPath();
+      ctx.moveTo(-10, 2); ctx.quadraticCurveTo(-28, -8, -48, -12);
+      ctx.moveTo(-8, 5); ctx.quadraticCurveTo(-22, 2, -34, -2);
+      ctx.stroke();
+    }
+    ctx.restore();
+  }
+
+  function drawBall() {
+    const tilt = Math.max(-0.45, Math.min(0.5, ball.vy / 1300));
+    const wingA = 0.2 + Math.sin(ball.wing) * (0.45 + ball.flapT * 0.35) - ball.flapT * 0.5;
+
+    // shadow on the floor
+    const hgt = FLOOR - ball.y;
+    const sh = Math.max(0.15, 1 - hgt / 600);
+    ctx.fillStyle = `rgba(80, 30, 0, ${0.22 * sh})`;
+    ctx.beginPath(); ctx.ellipse(ball.x, FLOOR + 6, R * 1.3 * sh, 6 * sh, 0, 0, Math.PI * 2); ctx.fill();
+
+    ctx.save();
+    ctx.translate(ball.x, ball.y);
+    ctx.rotate(tilt);
+    drawWing(wingA + 0.18, 0.88, true);
+
+    // ball body
+    ctx.save();
+    ctx.rotate(ball.angle);
+    const g = ctx.createRadialGradient(-7, -8, 3, 0, 0, R);
+    g.addColorStop(0, '#ffb15e');
+    g.addColorStop(0.7, '#ff7a1a');
+    g.addColorStop(1, '#d9560a');
+    ctx.fillStyle = g;
+    ctx.beginPath(); ctx.arc(0, 0, R, 0, Math.PI * 2); ctx.fill();
+    ctx.strokeStyle = '#3d1f0c';
+    ctx.lineWidth = 2;
+    ctx.beginPath();
+    ctx.moveTo(-R, 0); ctx.lineTo(R, 0);
+    ctx.moveTo(0, -R); ctx.lineTo(0, R);
+    ctx.moveTo(-R * 0.62, -R * 0.78); ctx.quadraticCurveTo(-R * 0.15, 0, -R * 0.62, R * 0.78);
+    ctx.moveTo(R * 0.62, -R * 0.78); ctx.quadraticCurveTo(R * 0.15, 0, R * 0.62, R * 0.78);
+    ctx.stroke();
+    ctx.beginPath(); ctx.arc(0, 0, R - 1, 0, Math.PI * 2); ctx.stroke();
+    ctx.restore();
+
+    // fixed shine
+    ctx.fillStyle = 'rgba(255,255,255,0.35)';
+    ctx.beginPath(); ctx.ellipse(-8, -10, 7, 4, -0.6, 0, Math.PI * 2); ctx.fill();
+
+    drawWing(wingA, 1, false);
+    ctx.restore();
+  }
+
+  function drawParticles(fireOnly) {
+    for (const p of particles) {
+      if (!!p.fire !== fireOnly) continue;
+      const a = Math.max(0, p.life / p.max);
+      ctx.globalAlpha = a;
+      ctx.fillStyle = p.color;
+      if (p.fire) {
+        ctx.beginPath(); ctx.arc(p.x, p.y, p.size * a, 0, Math.PI * 2); ctx.fill();
+      } else if (p.rect) {
+        ctx.save(); ctx.translate(p.x, p.y); ctx.rotate(p.rot);
+        ctx.fillRect(-p.size / 2, -p.size / 4, p.size, p.size / 2); ctx.restore();
+      } else {
+        ctx.beginPath(); ctx.arc(p.x, p.y, p.size * (0.5 + a * 0.5), 0, Math.PI * 2); ctx.fill();
+      }
+    }
+    ctx.globalAlpha = 1;
+  }
+
+  const FONT = getComputedStyle(document.body).fontFamily;
+  function drawPopups() {
+    ctx.textAlign = 'center';
+    ctx.textBaseline = 'middle';
+    for (const t of popups) {
+      const a = Math.min(1, t.life * 2);
+      const s = 1 + Math.max(0, t.life - 0.8) * 2;
+      ctx.globalAlpha = a;
+      ctx.font = `900 ${t.size * s}px ${FONT}`;
+      ctx.lineWidth = 6; ctx.strokeStyle = 'rgba(30, 40, 90, 0.45)';
+      ctx.strokeText(t.text, t.x, t.y);
+      ctx.fillStyle = t.color;
+      ctx.fillText(t.text, t.x, t.y);
+    }
+    ctx.globalAlpha = 1;
+  }
+
+  function nextHoop() {
+    for (const h of hoops) if (!h.scored && !h.missed) return h;
+    return null;
+  }
+
+  function render() {
+    ctx.setTransform(scale, 0, 0, scale, 0, 0);
+    drawBackground();
+
+    const sx = (Math.random() - 0.5) * shake, sy = (Math.random() - 0.5) * shake;
+    ctx.save();
+    ctx.translate(-camX + sx, sy);
+
+    // target indicator above the next hoop
+    const nh = nextHoop();
+    if (nh && state !== 'over') {
+      const bob = Math.sin(time * 6) * 4;
+      ctx.fillStyle = 'rgba(255,255,255,0.75)';
+      ctx.beginPath();
+      ctx.moveTo(nh.x - 9, nh.y - 46 + bob); ctx.lineTo(nh.x + 9, nh.y - 46 + bob); ctx.lineTo(nh.x, nh.y - 34 + bob);
+      ctx.closePath(); ctx.fill();
+    }
+
+    for (const h of hoops) drawHoopBack(h);
+    drawParticles(true);
+    drawBall();
+    for (const h of hoops) drawHoopFront(h);
+    drawParticles(false);
+    drawPopups();
+    ctx.restore();
+
+    if (flash > 0) {
+      ctx.fillStyle = `rgba(255, 255, 255, ${flash * 0.5})`;
+      ctx.fillRect(0, 0, W, H);
+    }
+    if (streak >= 3 && state === 'play') {
+      const g = ctx.createRadialGradient(W / 2, H / 2, H * 0.4, W / 2, H / 2, H * 0.9);
+      g.addColorStop(0, 'rgba(255,120,30,0)');
+      g.addColorStop(1, `rgba(255,120,30,${0.18 + Math.sin(time * 8) * 0.05})`);
+      ctx.fillStyle = g; ctx.fillRect(0, 0, W, H);
+    }
+  }
+
+  // ---------- Loop ----------
+  let last = performance.now(), acc = 0;
+  function frame(now) {
+    const dt = Math.min(0.05, (now - last) / 1000);
+    last = now;
+    acc += dt;
+    while (acc >= STEP) { step(STEP); acc -= STEP; }
+    updateFx(dt);
+    render();
+    requestAnimationFrame(frame);
+  }
+
+  reset();
+  requestAnimationFrame(frame);
+})();
+</script>
+</body>
+</html>
