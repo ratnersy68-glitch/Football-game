@@ -1,6 +1,6 @@
 // Offline support: precache the app shell, then serve stale-while-revalidate.
 // Demonstration images (media/) are not precached; each is cached the first time it's viewed.
-const VERSION = 'ascend-v2';
+const VERSION = 'ascend-v3';
 const SHELL = [
   './',
   './index.html',
@@ -35,6 +35,14 @@ const SHELL = [
   "./js/ui/marble.js",
   "./js/ui/reveal.js",
   "./js/util.js",
+  "./js/coachApi.js",
+  "./js/coachNudges.js",
+  "./js/data/coaches.js",
+  "./js/engine/coachContext.js",
+  "./js/ui/avatars.js",
+  "./js/ui/chat.js",
+  "./js/ui/voice.js",
+  "./js/views/coach.js",
   "./js/views/goals.js",
   "./js/views/home.js",
   "./js/views/onboarding.js",
@@ -54,7 +62,9 @@ self.addEventListener('activate', (e) => {
 
 self.addEventListener('fetch', (e) => {
   const req = e.request;
-  if (req.method !== 'GET' || new URL(req.url).origin !== self.location.origin) return;
+  const url = new URL(req.url);
+  // never cache the coach API — status and replies must always be live
+  if (req.method !== 'GET' || url.origin !== self.location.origin || url.pathname.includes('/api/')) return;
   e.respondWith(caches.open(VERSION).then(async (cache) => {
     const hit = await cache.match(req, { ignoreSearch: true });
     const net = fetch(req).then((res) => { if (res.ok) cache.put(req, res.clone()); return res; }).catch(() => hit || (req.mode === 'navigate' ? cache.match('./index.html') : undefined));

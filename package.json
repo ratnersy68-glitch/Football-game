@@ -20,8 +20,9 @@
     "build:cdn": "node scripts/buildCdn.mjs",
     "e2e:career": "node scripts/e2e/career.mjs",
     "e2e:season": "node scripts/e2e/careerSeason.mjs",
-    "test:ascend": "node --test ascend/tests/engine.test.js",
-    "e2e:ascend": "node ascend/tests/e2e.mjs"
+    "test:ascend": "node --test ascend/tests/engine.test.js ascend/tests/server.test.js",
+    "e2e:ascend": "node ascend/tests/e2e.mjs",
+    "ascend": "node ascend/server/server.mjs"
   },
   "dependencies": {
     "react": "^19.1.0",

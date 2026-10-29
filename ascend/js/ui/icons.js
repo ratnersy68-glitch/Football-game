@@ -5,6 +5,7 @@ const P = {
   rank: '<path d="M12 2.8 19.5 7v10L12 21.2 4.5 17V7z"/><path d="m8.5 13.5 3.5-5 3.5 5"/><path d="m9.8 16 2.2-3 2.2 3"/>',
   goal: '<circle cx="12" cy="12" r="8.5"/><circle cx="12" cy="12" r="4.5"/><circle cx="12" cy="12" r=".9" fill="currentColor"/>',
   profile: '<circle cx="12" cy="8" r="4"/><path d="M4 20.5c1.6-3.6 4.5-5.5 8-5.5s6.4 1.9 8 5.5"/>',
+  coach: '<path d="M4 5.5h16v10H10l-4.5 4v-4H4z"/><path d="M8.5 10.5h.01M12 10.5h.01M15.5 10.5h.01" stroke-width="2.4"/>',
   plus: '<path d="M12 5v14M5 12h14"/>',
   minus: '<path d="M5 12h14"/>',
   check: '<path d="m5 12.5 4.5 4.5L19 7.5"/>',

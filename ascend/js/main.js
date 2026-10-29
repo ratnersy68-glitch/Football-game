@@ -12,8 +12,10 @@ import './views/workout.js';
 import './views/rank.js';
 import './views/goals.js';
 import './views/profile.js';
+import './views/coach.js';
+import { runNudges } from './coachNudges.js';
 
-const TABS = ['home', 'train', 'rank', 'goals', 'profile'];
+const TABS = ['home', 'train', 'coach', 'rank', 'goals', 'profile'];
 
 function routeFromHash() {
   const h = (location.hash || '').slice(1);
@@ -47,11 +49,12 @@ async function boot() {
   subscribe(() => applyTheme());
   const r = routeFromHash();
   app.route = { ...r, params: {} };
+  runNudges();
   renderNow();
   document.getElementById('boot')?.remove();
   matchMedia('(prefers-color-scheme: dark)').addEventListener?.('change', () => applyTheme());
   window.addEventListener('pagehide', () => { saveNow(); });
-  document.addEventListener('visibilitychange', () => { if (document.hidden) saveNow(); else { renderNow(); checkReminder(); } });
+  document.addEventListener('visibilitychange', () => { if (document.hidden) saveNow(); else { runNudges(); renderNow(); checkReminder(); } });
   setInterval(checkReminder, 60000);
   checkReminder();
   requestPersistence();

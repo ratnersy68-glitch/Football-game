@@ -10,6 +10,7 @@ import { displayRank } from '../engine/rank.js';
 import { levelInfo, ACHIEVEMENTS } from '../engine/xp.js';
 import { emblem } from '../ui/emblems.js';
 import { demoThumb, hasDemo } from '../ui/demo.js';
+import { openCoachOverlay } from '../ui/chat.js';
 import { finishWorkout, discardWorkout, elapsedSec, startRest, startWorkout } from '../flows.js';
 import { haptic, sound } from '../ui/feedback.js';
 import { esc, fmtWeight, fromKg, toKg, roundDisplay, parseNum, fmtDuration, fmtVolume, uid } from '../util.js';
@@ -77,6 +78,7 @@ function exCard(e) {
       ${!e.sets.some((s) => s.type === 'warmup') && e.target?.weightKg ? `<button class="btn xs ghost" data-action="wk-warmups" data-ex="${e.uid}">Warm-ups</button>` : ''}
       <button class="btn xs ghost" data-action="wk-rest" data-ex="${e.uid}">${icon('timer', 'sm')} ${fmtDuration(e.slot?.rest || st.prefs.defaultRest)}</button>
       <button class="btn xs ghost" data-action="wk-swap" data-ex="${e.uid}">${icon('swap', 'sm')} Swap</button>
+      <button class="btn xs ghost" data-action="wk-ask" data-exid="${esc(e.exId)}">${icon('coach', 'sm')} Ask coach</button>
     </div>
   </div>`;
 }
@@ -92,7 +94,8 @@ function render() {
     <div class="wk-head"><div class="row between" style="max-width:1120px;margin:0 auto">
       <button class="icon-btn sm" data-action="wk-minimize" aria-label="Minimize">${icon('chevDown', 'sm')}</button>
       <div class="center grow"><div class="h3">${esc(w.name)}</div><div class="wk-timer faint"><span data-wk-elapsed>${fmtDuration(elapsedSec(w))}</span>${w.pausedAt ? ' · PAUSED' : ''}</div></div>
-      <button class="icon-btn sm" data-action="wk-pause" aria-label="${w.pausedAt ? 'Resume' : 'Pause'}">${icon(w.pausedAt ? 'play' : 'pause', 'sm')}</button>
+      <div class="row" style="gap:6px"><button class="btn xs accent" data-action="wk-ask" aria-label="Ask coach">${icon('coach', 'sm')} Ask coach</button>
+      <button class="icon-btn sm" data-action="wk-pause" aria-label="${w.pausedAt ? 'Resume' : 'Pause'}">${icon(w.pausedAt ? 'play' : 'pause', 'sm')}</button></div>
     </div><div class="mt-8" style="max-width:1120px;margin:8px auto 0">${bar(planned ? done / planned : 0)}</div></div>
     ${rs != null && rs <= 2 ? `<div class="banner info">${icon('heart')}<span>Low readiness today — targets are set to match last time. Quality over quantity.</span></div>` : ''}
     <div class="col mt-16" style="max-width:720px;margin-left:auto;margin-right:auto;gap:14px">
@@ -212,6 +215,12 @@ register('workout', {
   },
   actions: {
     'wk-minimize': () => go('home'),
+    'wk-ask': (el) => {
+      if (!app.state.aiCoach?.setupDone) { toast('Set up your coach in the Coach tab first'); return; }
+      const w = wk();
+      const exId = el.dataset.exid || w.exercises.find((e) => e.sets.some((s) => !s.done))?.exId || w.exercises[0]?.exId || null;
+      openCoachOverlay({ focusExId: exId });
+    },
     'wk-pause': () => mutW((w) => {
       if (w.pausedAt) { w.pausedMs += Date.now() - new Date(w.pausedAt).getTime(); w.pausedAt = null; } else { w.pausedAt = new Date().toISOString(); w.rest = null; }
     }),

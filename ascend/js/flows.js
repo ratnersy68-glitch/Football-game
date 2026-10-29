@@ -11,6 +11,10 @@ import { sessionXp, addXp, checkAchievements, XP, levelInfo } from './engine/xp.
 import { reveal } from './ui/reveal.js';
 import { haptic, sound } from './ui/feedback.js';
 import { uid, weekdayIdx, fmtWeight, dayKey } from './util.js';
+import { rankLine, DEFAULT_COACH } from './data/coaches.js';
+import { avatarSVG } from './ui/avatars.js';
+import { speak } from './ui/voice.js';
+import { prNudge } from './coachNudges.js';
 
 export function activeSplit(state = store.state) {
   return state.splits.find((s) => s.id === state.activeSplitId) || state.splits[0] || null;
@@ -137,6 +141,7 @@ export async function finishWorkout() {
   await saveNow();
   snapshot().catch(() => {});
   app.ui.summary = { sessionId: session.id, achievements: achievements.map((a) => a.id), xpItems, goalEvents: goalEvents.map((e) => ({ id: e.goal.id, completed: !!e.completed, label: e.milestone?.label })), levelUp: levelInfo(store.state.xp.total).level > lvlBefore };
+  if (!promo) prNudge(session, now);
   go('train', 'summary', { id: session.id });
   sound('reveal');
   haptic('success');
@@ -151,7 +156,7 @@ export async function celebrate({ promo, goalEvents = [], prs = [] }) {
     const dr = displayRank(st);
     const next = RANKS[promo.to + 1];
     await reveal({
-      type: 'rank', rankIdx: promo.to, title: RANKS[promo.to].name.toUpperCase(),
+      type: 'rank', rankIdx: promo.to, title: RANKS[promo.to].name.toUpperCase(), coach: coachTakeover(promo.to),
       subtitle: promo.from === 0 ? (dr.youth ? 'DEVELOPMENT RANK EARNED' : 'FIRST STRENGTH RANK EARNED') : (dr.youth ? 'DEVELOPMENT RANK ACHIEVED' : 'STRENGTH RANK ACHIEVED'),
       progress: next ? { pct: dr.progress, from: RANKS[promo.to].name.toUpperCase(), label: `${Math.round(dr.progress * 100)}% TO ${next.name.toUpperCase()}` } : null,
     });
@@ -165,6 +170,19 @@ export async function celebrate({ promo, goalEvents = [], prs = [] }) {
     sound('pr');
     await reveal({ type: 'milestone', art: prArt(), title: 'NEW RECORD', subtitle: `${ex?.name || ''} · ${p.weightKg ? fmtWeight(p.weightKg, unit) + ' × ' : ''}${p.reps}`.toUpperCase() });
   }
+}
+
+/** The user's AI coach congratulates them during a rank reveal (templated per personality). */
+function coachTakeover(rankIdx) {
+  const a = store.state.aiCoach;
+  if (!a?.setupDone) return null;
+  const c = a.profile || DEFAULT_COACH;
+  const line = rankLine(c, RANKS[rankIdx].name, RANKS[rankIdx + 1]?.name);
+  update((s) => {
+    s.aiCoach.messages.push({ id: uid('m'), role: 'model', kind: 'nudge', text: line, ts: new Date().toISOString(), demos: [] });
+    s.aiCoach.unread = (s.aiCoach.unread || 0) + 1;
+  }, { silent: true, immediate: true });
+  return { name: c.name, line, art: avatarSVG(c.avatar, { size: 44, glow: false }), onShow: () => { if (a.prefs.speak) speak(line, c, { voiceURI: a.prefs.systemVoice }); } };
 }
 
 function prArt() {

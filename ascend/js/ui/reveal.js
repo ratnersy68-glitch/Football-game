@@ -52,8 +52,9 @@ function play(o) {
       <button class="skip" data-r="skip">SKIP</button>
       <div class="stage">
         <div class="emblem-holder" style="${isRank ? '' : 'width:min(44vw,190px);height:min(44vw,190px)'}">${art}<div class="pulse"></div></div>
-        <div class="title"><h1>${esc(o.title || r.name.toUpperCase())}</h1><p>${esc(o.subtitle || 'STRENGTH RANK ACHIEVED')}</p></div>
+        <div class="title"><h1>${esc(o.title || r.name.toUpperCase())}</h1><p>${esc(o.subtitle || 'STRENGTH RANK ACHIEVED')}</p>${(o.lines || []).map((l) => `<p class="rv-line">${esc(l)}</p>`).join('')}</div>
         ${o.progress ? `<div class="next"><div class="bar"><i style="width:0%"></i></div><small><span>${esc(o.progress.from || '')}</span><span>${esc(o.progress.label || '')}</span></small></div>` : ''}
+        ${o.coach ? `<div class="rv-coach"><div class="rv-coach-av">${o.coach.art}</div><div><b>COACH ${esc(o.coach.name.toUpperCase())}</b><p>“${esc(o.coach.line)}”</p></div></div>` : ''}
         <div class="continue"><button class="btn" data-r="close">${esc(o.cta || 'Continue')}</button></div>
       </div>`;
     document.body.appendChild(el);
@@ -140,6 +141,14 @@ function play(o) {
       const nx = $('.next'); if (nx) { nx.classList.add('on'); nx.querySelector('i').style.width = `${Math.round((o.progress.pct || 0) * 100)}%`; }
       $('.continue').classList.add('on');
       $('.skip').style.display = 'none';
+      showCoach();
+    }
+    let coachShown = false;
+    function showCoach() {
+      if (!o.coach || coachShown) return;
+      coachShown = true;
+      $('.rv-coach').classList.add('on');
+      o.coach.onShow?.();
     }
 
     if (reduce) {
@@ -153,6 +162,7 @@ function play(o) {
       at(3200 * scaleT, () => { const h = $('.emblem-holder'); h.classList.add('lock'); $('.pulse').classList.add('go'); sound('lock'); haptic(isRank ? 'rank' : 'success'); });
       at(4000 * scaleT, () => { $('.title').classList.add('on'); sound('reveal'); });
       at(4500 * scaleT, () => { const nx = $('.next'); if (nx) { nx.classList.add('on'); requestAnimationFrame(() => { nx.querySelector('i').style.width = `${Math.round((o.progress.pct || 0) * 100)}%`; }); } });
+      at(dur - 400, showCoach);
       at(dur, () => { $('.continue').classList.add('on'); $('.skip').style.display = 'none'; });
     }
 

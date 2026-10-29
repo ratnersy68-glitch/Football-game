@@ -26,6 +26,10 @@ export function emptyState() {
     achievements: {},
     coach: { accepted: {} },
     videos: {},
+    aiCoach: {
+      setupDone: false, profile: null, messages: [], summary: '', summarizedCount: 0, memories: [], unread: 0, nudged: {},
+      prefs: { speak: false, systemVoice: '', nudges: true, notify: false, accessCode: '', consent: false },
+    },
     meta: { createdAt: new Date().toISOString(), lastBackupAt: null, seenReveal: {} },
   };
 }
@@ -41,6 +45,9 @@ export function migrate(doc) {
   out.coach = { ...base.coach, ...(doc.coach || {}) };
   out.meta = { ...base.meta, ...(doc.meta || {}) };
   out.videos = { ...(doc.videos || {}) };
+  out.aiCoach = { ...base.aiCoach, ...(doc.aiCoach || {}) };
+  out.aiCoach.prefs = { ...base.aiCoach.prefs, ...(doc.aiCoach?.prefs || {}) };
+  for (const k of ['messages', 'memories']) if (!Array.isArray(out.aiCoach[k])) out.aiCoach[k] = [];
   for (const k of ['splits', 'customExercises', 'sessions', 'goals', 'bodyweights', 'prs']) if (!Array.isArray(out[k])) out[k] = [];
   out.schema = SCHEMA_VERSION;
   return out;

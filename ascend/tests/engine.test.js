@@ -252,3 +252,63 @@ test('bundled demonstration media exists on disk for every mapped exercise', () 
   assert.ok(mapped >= 80, `mapped ${mapped}`);
   assert.equal(demoFor('incline_db').source, 'Incline_Dumbbell_Press', 'exact variation, not flat barbell bench');
 });
+
+// ---------- AI coach context & check-ins ----------
+import { buildCoachContext, mentionedExercises } from '../js/engine/coachContext.js';
+import { dueNudges } from '../js/coachNudges.js';
+import { rankLine, nudgeLine, flavorOf, DEFAULT_COACH } from '../js/data/coaches.js';
+
+function coachState() {
+  const s = mk();
+  s.prefs = { defaultRest: 120 };
+  s.sessions.push(session(daysAgo(3), [['bench', [[135 * LB, 8, 8], [135 * LB, 8, 8], [135 * LB, 8, 8]]]]));
+  s.goals.push({ id: 'g', type: 'strength', exId: 'bench', targetKg: 225 * LB, primary: true, createdAt: daysAgo(10) });
+  s.aiCoach = { setupDone: true, profile: { ...DEFAULT_COACH }, prefs: { nudges: true }, nudged: {}, messages: [] };
+  return s;
+}
+
+test('coach context quotes saved records exactly and only what is relevant', () => {
+  const s = coachState();
+  const ctx = buildCoachContext(s, { question: 'What should I bench today?', now: NOW }).text;
+  assert.match(ctx, /## Barbell Bench Press/);
+  assert.match(ctx, /135×8@8, 135×8@8, 135×8@8/);
+  assert.match(ctx, /MAIN Bench 225 lbs \[strength\]/);
+  assert.match(ctx, /Weight unit: lbs/);
+  assert.doesNotMatch(ctx, /Barbell Back Squat/, 'unrelated exercises are left out');
+  assert.ok(ctx.length < 14000);
+  assert.deepEqual(mentionedExercises(s, 'how are my pull-ups and overhead press?').sort(), ['ohp', 'pullup']);
+});
+
+test('coach context includes the active workout and the exercise in focus', () => {
+  const s = coachState();
+  s.activeWorkout = { name: 'Push', startedAt: new Date(NOW.getTime() - 20 * 60000).toISOString(), pausedMs: 0,
+    exercises: [{ exId: 'bench', slot: { rest: 150 }, target: { weightKg: 135 * LB, reps: 9 }, sets: [{ type: 'work', weightKg: 135 * LB, reps: 9, done: true }, { type: 'work', done: false }] }] };
+  const ctx = buildCoachContext(s, { question: 'How long should I rest?', focusExId: 'bench', now: NOW }).text;
+  assert.match(ctx, /ACTIVE WORKOUT in progress: Push, 20 min in\. The user is currently on Barbell Bench Press/);
+  assert.match(ctx, /1\/2 sets done \(135×9\); today's target 135 lbs × 9; planned rest 2:30/);
+});
+
+test('proactive check-ins come only from real events and fire once', () => {
+  const s = coachState();
+  s.aiCoach.prefs.nudges = false;
+  assert.equal(dueNudges(s, NOW).length, 0, 'off means off');
+  s.aiCoach.prefs.nudges = true; s.aiCoach.setupDone = false;
+  assert.equal(dueNudges(s, NOW).length, 0, 'no coach, no check-ins');
+  s.aiCoach.setupDone = true;
+  const hard = coachState();
+  hard.sessions.push(session(new Date(NOW.getTime() - DAY_MS).toISOString(), [['squat', Array(4).fill([100, 5, 9.5])]]));
+  const due = dueNudges(hard, NOW);
+  assert.ok(due.some((n) => n.kind === 'recovery'), 'recovery check-in after an RPE 9+ session');
+  hard.aiCoach.nudged[due.find((n) => n.kind === 'recovery').key] = NOW.toISOString();
+  assert.ok(!dueNudges(hard, NOW).some((n) => n.kind === 'recovery'), 'fires once');
+});
+
+test('rank-up lines and check-ins follow the coach personality', () => {
+  const line = (preset) => rankLine({ ...DEFAULT_COACH, preset }, 'Platinum', 'Diamond');
+  assert.equal(line('drill'), "PLATINUM. Earned, not given. Now let's get to work on Diamond.");
+  assert.match(line('hype'), /^YOOOO! PLATINUM! THAT'S WHAT I'M TALKING ABOUT!/);
+  assert.match(line('pro'), /^Congratulations\. Your recorded performance has earned you Platinum rank\./);
+  assert.equal(new Set(['drill', 'hype', 'pro', 'bro', 'mentor'].map(line)).size, 5);
+  assert.equal(flavorOf({ preset: 'custom', sliders: { strictness: 10, energy: 8, humor: 1, motivation: 9, technical: 5 } }), 'drill');
+  assert.match(nudgeLine({ preset: 'pro' }, 'pre', 'Push'), /Push is scheduled today/);
+});

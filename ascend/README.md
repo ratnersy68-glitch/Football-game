@@ -5,15 +5,52 @@ A private, mobile-first gym tracker with a strength-ranking system, a rules-base
 ## Run it
 
 ```bash
-python3 -m http.server 4321 --directory ascend   # or any static server
-# open http://127.0.0.1:4321/  (on a phone: Share → Add to Home Screen)
+npm run ascend          # = node ascend/server/server.mjs → http://localhost:8787/
 ```
 
-When the repo is published with GitHub Pages it is served at `/ascend/`.
+The server has no dependencies. It serves the app and the AI coach API. Any static server also works (`python3 -m http.server --directory ascend`), and so does GitHub Pages at `/ascend/`. Everything except the AI coach runs that way; the Coach tab then explains that it needs the server.
+
+## AI Coach (Google Gemini)
+
+### Set up the key
+
+1. Create an API key in [Google AI Studio](https://aistudio.google.com/apikey).
+2. Local: `cp ascend/.env.example ascend/.env.local` and set `GEMINI_API_KEY=…`. `.env.local` is gitignored.
+3. Run `npm run ascend` and open the **Coach** tab. The start-up log says whether the key was found. It never prints the key.
+
+Optional variables: `GEMINI_MODEL` (default `gemini-flash-latest`), `PORT`, and `ASCEND_ACCESS_CODE`. If `ASCEND_ACCESS_CODE` is set, the app must send that code (Coach settings → Access code). Use it on any public deployment so strangers can't use your Gemini quota.
+
+### Deploy with a hosted secret (Vercel)
+
+Import the repo in Vercel and set **Root Directory** to `ascend`. Under **Settings → Environment Variables**, add `GEMINI_API_KEY` (and ideally `ASCEND_ACCESS_CODE`). Vercel serves the static app and runs `api/coach/chat.mjs` and `api/coach/status.mjs`, which reuse the same code as the local server (`server/coach-core.mjs`). On any other Node host, run `node ascend/server/server.mjs` with the variables set.
+
+### How it works
+
+- **Key stays on the server.** The browser only calls `/api/coach/status` and `/api/coach/chat` on its own origin. The server adds the key as an `x-goog-api-key` header when it calls `…/v1beta/models/gemini-flash-latest:generateContent`. Responses and logs never contain it (tested), and the service worker never caches `/api/` requests.
+- **Data selection happens on the device.** ASCEND has no server database; your history lives only in the browser. For each message, `js/engine/coachContext.js` picks only what's relevant:
+  - profile basics, units, rank and score breakdown, goals with progress, the split, today's plan, frequency and the latest recovery check-in
+  - detailed sets, e1RM, PRs and the rules-based target only for the exercises your question mentions (plus the active workout and the exercise you're on)
+
+  The server validates and caps that input, then builds the system instruction itself: personality, safety rules, under-18 rules and "only cite numbers from this data". The app can't override those instructions.
+- **Personalities** (`js/data/coaches.js`): Drill Sergeant, Hype Coach, Professional, Gym Bro, Mentor, or a Custom coach with a description and five 1–10 sliders. All of them feed the system instruction. Safety rules always override the persona.
+- **Conversation and memory.** The conversation is stored on-device and the last 16 messages are sent each time. Past 40 messages, older ones are condensed into a summary by a Gemini call. Long-term memory holds only notes you approve (tap **Remember** on a message, or add one in Coach settings), and the coach is told it remembers nothing else. You can view, edit and delete memories, delete the summary, or clear everything.
+- **Ask Coach during a workout.** It opens over the tracker with the current exercise and the sets logged so far. Your logging is never interrupted. Replies that mention an exercise link to its demonstration.
+- **Voice** uses the device: speech-to-text through the browser's SpeechRecognition (Safari: `webkitSpeechRecognition`) and spoken replies through `speechSynthesis` with the device's installed voices, shaped by the chosen voice style. Gemini only returns text. Without these APIs, text chat works as normal.
+- **Coach intro and rank-up takeover** reuse the existing cinematic reveal, so no ranking logic changed. During a promotion your coach's personality-specific line appears, and is spoken if voice is on.
+- **Check-ins** are short lines in your coach's style. They come only from real events: a planned workout day, a PR, a missed planned session, or the day after a hard session (RPE 9+, much higher volume than usual, or 95+ minutes). Each event fires once, with at most two a day. You can turn them off, or have them also show as device notifications. They're templates, not Gemini replies: they send no data and work offline.
+- **Errors are explained, never faked.** If there's no server, no key, a rejected key, a rate limit, a timeout, offline, or a blocked reply, you get a specific message. Failed messages get a **Retry** button.
+
+### Tests
+
+| Command | Covers |
+| --- | --- |
+| `npm run test:ascend` | Engine + server: request shape, key handling and redaction, every error mapping, a distinct prompt per personality, safety/youth rules, input caps, access code, rate limit, no secret files served, no keys in client code, context accuracy, check-in triggers, rank lines |
+| `GEMINI_LIVE=1 node --test ascend/tests/server.test.js` | Calls Google's real endpoint. Without a key it confirms a bad key is rejected and reported as `invalid_key`; with `GEMINI_API_KEY` set it expects a real reply |
+| `node ascend/tests/e2e-coach.mjs` | Browser test through the real server, with Google replaced by `tests/mock-gemini.mjs`: setup → intro → greeting → chat with your real numbers → 429 and retry → persistence → memory → personality switch keeps data → Ask Coach mid-workout keeps sets → rank-up takeover line → missing-key screen → key never sent to the browser → no horizontal overflow on mobile |
 
 | Command | What it does |
 | --- | --- |
-| `npm run test:ascend` | Engine unit tests (`node --test`, no install needed) |
+| `npm run test:ascend` | Engine + server unit tests (`node --test`, no install needed) |
 | `node ascend/tests/e2e.mjs` | Browser test of the critical flows: onboarding → split editing → 3 logged workouts → PR + rank reveal → goal change → persistence across reload → dark mode/desktop. Needs the static server above and Playwright. Screenshots go to `e2e-output/ascend` |
 
 ## Features
@@ -48,6 +85,9 @@ ascend/
   index.html, manifest.webmanifest, sw.js, icon*.{svg,png}
   css/app.css              design system (tokens, light/dark, components)
   js/main.js               boot, routing from hash, reminders, service worker
+  server/                  zero-dependency Node server + Gemini coach core (key from env)
+  api/coach/*.mjs          the same coach API as Vercel functions
+  js/coachApi.js, js/ui/chat.js, js/views/coach.js, js/engine/coachContext.js, js/coachNudges.js   AI coach client
   js/app.js                render loop, event delegation, sheets, toasts
   js/store.js, db.js       state document per account, IndexedDB → localStorage → memory, snapshots, export/import
   js/flows.js              start/finish workout, PRs, XP, rank, goals, celebrations

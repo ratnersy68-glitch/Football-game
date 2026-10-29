@@ -18,6 +18,7 @@ export const app = {
 const TABS = [
   { id: 'home', label: 'HOME', icon: 'home' },
   { id: 'train', label: 'TRAIN', icon: 'train' },
+  { id: 'coach', label: 'COACH', icon: 'coach' },
   { id: 'rank', label: 'RANK', icon: 'rank' },
   { id: 'goals', label: 'GOALS', icon: 'goal' },
   { id: 'profile', label: 'PROFILE', icon: 'profile' },
@@ -65,7 +66,8 @@ function applyTitle(v) { document.title = v === 'home' || v === 'onboarding' ? '
 
 function nav() {
   const active = app.route.view ? (app.views[app.route.view]?.tab || app.route.tab) : app.route.tab;
-  return `<nav class="nav" aria-label="Main">${TABS.map((t) => `<button class="${active === t.id ? 'on' : ''}" data-action="tab" data-tab="${t.id}" aria-current="${active === t.id ? 'page' : 'false'}">${icon(t.icon)}<span>${t.label}</span></button>`).join('')}</nav>`;
+  const unread = store.state.aiCoach?.unread || 0;
+  return `<nav class="nav" aria-label="Main">${TABS.map((t) => `<button class="${active === t.id ? 'on' : ''}" data-action="tab" data-tab="${t.id}" aria-current="${active === t.id ? 'page' : 'false'}" ${t.id === 'coach' && unread ? 'aria-label="Coach, new message"' : ''}>${icon(t.icon)}<span>${t.label}</span>${t.id === 'coach' && unread && active !== 'coach' ? '<i class="badge"></i>' : ''}</button>`).join('')}</nav>`;
 }
 
 export function go(tab, view = null, params = {}, { scroll = true } = {}) {

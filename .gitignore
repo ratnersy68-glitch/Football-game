@@ -5,3 +5,9 @@ dist
 e2e-output
 dist-embed
 saturday26-embed.html
+
+# secrets
+.env
+.env.local
+.env.*.local
+ascend/.env.local
