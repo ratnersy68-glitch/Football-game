@@ -1,5 +1,6 @@
 import { app, register, go, update, openSheet, closeSheet, renderSheet, renderNow, toast, confirmSheet } from '../app.js';
 import { icon } from '../ui/icons.js';
+import { demoThumb, openDemo } from '../ui/demo.js';
 import { sheetFrame, empty, stepper, toggle } from '../ui/components.js';
 import { EQUIPMENT, MUSCLES, PATTERNS, getExercise, allExercises, isAvailable, alternativesFor } from '../data/exercises.js';
 import { TEMPLATES, buildSplitFromTemplate, makeSlot } from '../data/templates.js';
@@ -102,6 +103,7 @@ function renderDay({ id }) {
         const ex = getExercise(s.exId, st.customExercises);
         return `<div class="slot">
           <div class="order"><button data-action="slot-move" data-day="${d.id}" data-i="${i}" data-d="-1" aria-label="Move up" ${i === 0 ? 'disabled style="opacity:.25"' : ''}>${icon('up', 'sm')}</button><button data-action="slot-move" data-day="${d.id}" data-i="${i}" data-d="1" aria-label="Move down" ${i === d.slots.length - 1 ? 'disabled style="opacity:.25"' : ''}>${icon('down', 'sm')}</button></div>
+          ${demoThumb(s.exId)}
           <div class="grow" data-action="slot-edit" data-day="${d.id}" data-i="${i}" style="cursor:pointer"><div class="h3">${esc(ex?.name || 'Unknown exercise')}</div>
             <div class="small muted">${s.sets} × ${s.repMin}${s.repMax !== s.repMin ? `–${s.repMax}` : ''} · rest ${fmtDuration(s.rest)}${s.rpe ? ` · RPE ${s.rpe}` : ''}${s.warmup ? ' · warm-up' : ''}</div>
             ${s.notes ? `<div class="tiny faint mt-8">${esc(s.notes)}</div>` : ''}</div>
@@ -141,6 +143,16 @@ function dayMenuSheet() {
 }
 
 // =============== library ===============
+const CATEGORIES = ['chest', 'back', 'shoulders', 'biceps', 'triceps', 'legs', 'glutes', 'core', 'cardio', 'mobility'];
+function inCategory(e, c) {
+  if (c === 'custom') return !!e.custom;
+  if (c === 'cardio' || c === 'mobility') return e.pattern === c;
+  if (e.pattern === 'cardio' || e.pattern === 'mobility') return false;
+  if (c === 'legs') return e.muscles.some((m) => ['quads', 'hamstrings', 'calves'].includes(m));
+  if (c === 'back') return e.muscles.some((m) => m === 'back' || m === 'traps');
+  if (c === 'biceps') return e.muscles.some((m) => m === 'biceps' || m === 'forearms');
+  return e.muscles.includes(c);
+}
 function libraryList() {
   const st = app.state;
   const q = (app.ui.libQ || '').toLowerCase().trim();
@@ -149,12 +161,14 @@ function libraryList() {
   const eq = st.profile.equipment;
   let list = allExercises(st.customExercises);
   if (q) list = list.filter((e) => e.name.toLowerCase().includes(q) || e.muscles.some((x) => x.includes(q)) || (PATTERNS[e.pattern] || '').toLowerCase().includes(q));
-  if (m !== 'all') list = list.filter((e) => e.muscles.includes(m) || (m === 'custom' && e.custom));
+  if (m !== 'all') list = list.filter((e) => inCategory(e, m));
+  const eqF = app.ui.libEquip || 'any';
+  if (eqF !== 'any') list = list.filter((e) => (eqF === 'bodyweight' ? e.load === 'bw' || e.load === 'assist' : e.needs.includes(eqF)));
   if (availOnly) list = list.filter((e) => isAvailable(e, eq));
   list = [...list].sort((a, b) => a.name.localeCompare(b.name));
   const picker = app.ui.picker;
   return list.length ? list.map((e) => `<div class="ex-row ${isAvailable(e, eq) ? '' : 'unavail'}" data-action="${picker ? 'pick-ex' : 'ex-detail'}" data-id="${e.id}">
-      <div class="ico">${esc(e.name.split(' ').map((w) => w[0]).join('').slice(0, 2).toUpperCase())}</div>
+      ${demoThumb(e.id)}
       <div class="grow"><div class="h3">${esc(e.name)}</div><div class="small muted">${cap(e.muscles.join(', '))} · ${(e.needs.length ? e.needs.map((n) => EQUIPMENT.find((x) => x.id === n)?.label.split(' ')[0]).join(', ') : 'No equipment')}</div></div>
       ${e.rank ? '<span class="tag accent" title="Counts toward Strength Rank">Rank</span>' : ''}${e.custom ? '<span class="tag">Custom</span>' : ''}
       ${picker ? icon('plus') : icon('chev', 'sm')}</div>`).join('') : empty('search', 'No matches', availOnly ? 'Try showing all equipment, or create a custom exercise.' : 'Create a custom exercise for anything missing.');
@@ -166,7 +180,8 @@ function renderLibrary() {
   return `
     <div class="topbar"><button class="back" data-action="lib-back">${icon('back')} ${picker ? 'Cancel' : 'Train'}</button><span class="title">${title.toUpperCase()}</span><button class="icon-btn" data-action="custom-new" aria-label="New custom exercise">${icon('plus')}</button></div>
     <div class="search"><span>${icon('search')}</span><input id="lib-q" class="input" type="search" placeholder="Search exercises or muscles" value="${esc(app.ui.libQ || '')}" data-input="lib-q" autocomplete="off"></div>
-    <div class="chips scroll mt-16">${['all', ...MUSCLES, 'custom'].map((m) => `<button class="chip sm ${(app.ui.libMuscle || 'all') === m ? 'on' : ''}" data-action="lib-muscle" data-m="${m}">${cap(m === 'all' ? 'All' : m)}</button>`).join('')}</div>
+    <div class="chips scroll mt-16">${['all', ...CATEGORIES, 'custom'].map((m) => `<button class="chip sm ${(app.ui.libMuscle || 'all') === m ? 'on' : ''}" data-action="lib-muscle" data-m="${m}">${cap(m === 'all' ? 'All' : m)}</button>`).join('')}</div>
+    <div class="chips scroll mt-8">${['any', 'barbell', 'dumbbell', 'cable', 'machine', 'bodyweight'].map((q) => `<button class="chip sm ${(app.ui.libEquip || 'any') === q ? 'on' : ''}" data-action="lib-equip" data-q="${q}">${q === 'any' ? 'Any equipment' : cap(q)}</button>`).join('')}</div>
     <div class="row between mt-16"><span class="small muted">Only my equipment</span>${toggle(app.ui.libAvail ?? true, 'lib-avail')}</div>
     <div class="card mt-16" style="padding:2px 14px" id="lib-list">${libraryList()}</div>`;
 }
@@ -183,6 +198,7 @@ function exDetailSheet() {
   const prs = (st.prs || []).filter((p) => p.exId === id).slice(-3).reverse();
   const alts = alternativesFor(id, st.profile.equipment, st.customExercises).slice(0, 5);
   return sheetFrame(ex.name, `
+    <div style="margin-bottom:16px">${demoThumb(id, { size: 'lg', label: 'WATCH DEMONSTRATION' })}</div>
     <div class="chips">${ex.muscles.map((m) => `<span class="tag dark">${m}</span>`).join('')}${(ex.secondary || []).map((m) => `<span class="tag">${m}</span>`).join('')}</div>
     <div class="grid grid-3 mt-16">
       <div class="kv"><span>Pattern</span><b style="font-size:15px">${esc(PATTERNS[ex.pattern] || '')}</b></div>
@@ -360,6 +376,8 @@ register('library', { tab: 'train', render: renderLibrary, actions: {
     else go('train');
   },
   'lib-muscle': (el) => { app.ui.libMuscle = el.dataset.m; renderNow(); },
+  'lib-equip': (el) => { app.ui.libEquip = el.dataset.q; renderNow(); },
+  'demo-open': (el) => openDemo(el.dataset.ex),
   'lib-avail': () => { app.ui.libAvail = !(app.ui.libAvail ?? true); renderNow(); },
   'ex-detail': (el) => { app.ui.exDetail = el.dataset.id; openSheet(exDetailSheet); },
   'pick-ex': (el) => {

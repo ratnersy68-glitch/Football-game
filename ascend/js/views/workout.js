@@ -9,6 +9,7 @@ import { goalStatus, goalTitle } from '../engine/goals.js';
 import { displayRank } from '../engine/rank.js';
 import { levelInfo, ACHIEVEMENTS } from '../engine/xp.js';
 import { emblem } from '../ui/emblems.js';
+import { demoThumb, hasDemo } from '../ui/demo.js';
 import { finishWorkout, discardWorkout, elapsedSec, startRest, startWorkout } from '../flows.js';
 import { haptic, sound } from '../ui/feedback.js';
 import { esc, fmtWeight, fromKg, toKg, roundDisplay, parseNum, fmtDuration, fmtVolume, uid } from '../util.js';
@@ -65,6 +66,7 @@ function exCard(e) {
   const wu = ex?.load === 'perHand' ? ' (each)' : ex?.load === 'bw' ? ' (+added)' : ex?.load === 'assist' ? ' (assist)' : '';
   return `<div class="card ex-card" id="ex-${e.uid}">
     <div class="ex-top"><div class="row between"><div class="ex-name grow">${esc(ex?.name || 'Exercise')}</div><button class="icon-btn sm" data-action="wk-ex-menu" data-ex="${e.uid}" aria-label="Exercise options">${icon('dots', 'sm')}</button></div>
+      <button class="demo-row" data-action="demo-open" data-ex="${esc(e.exId)}">${demoThumb(e.exId, { tag: 'span' })}<span class="grow"><span class="watch"><i>▶</i>Watch demonstration</span><span class="tiny faint" style="display:block">${hasDemo(e.exId) ? 'Your sets stay logged' : 'Steps, mistakes & form tips'}</span></span>${icon('chev', 'sm')}</button>
       <div class="ex-meta"><div class="m"><span>Last session</span><b>${esc(lastLine(st, e, ex))}</b></div><div class="m target"><span>Today's target</span><b>${esc(targetLine(e.target, ex))}</b></div></div></div>
     ${coachNote(e)}
     ${e.notes ? `<p class="small muted" style="padding:10px 16px 0">${icon('note', 'sm')} ${esc(e.notes)}</p>` : ''}

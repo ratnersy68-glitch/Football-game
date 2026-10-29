@@ -32,7 +32,7 @@ export const MUSCLES = ['chest', 'back', 'shoulders', 'biceps', 'triceps', 'fore
 export const PATTERNS = {
   squat: 'Squat', hinge: 'Hinge', hpush: 'Horizontal push', vpush: 'Vertical push',
   hpull: 'Horizontal pull', vpull: 'Vertical pull', lunge: 'Single-leg', iso: 'Isolation',
-  core: 'Core', carry: 'Carry', cardio: 'Conditioning',
+  core: 'Core', carry: 'Carry', cardio: 'Conditioning', mobility: 'Mobility',
 };
 
 const E = (id, name, needs, pattern, muscles, secondary, opts = {}) => ({
@@ -213,8 +213,8 @@ export const EXERCISES = [
     load: 'bw', reps: [12, 25], rest: 60, lower: true, cues: ['Arms forward for balance.', 'Sit down and stand up with control.'], alt: ['goblet_squat', 'split_squat'] }),
   E('split_squat', 'Bulgarian Split Squat', ['dumbbell', 'bench'], 'lunge', ['quads', 'glutes'], ['hamstrings'], {
     load: 'perHand', reps: [8, 12], rest: 90, lower: true, cues: ['Weight entered is per dumbbell.', 'Rear foot on the bench, front shin fairly vertical.', 'Lower straight down. Log reps per leg.'], alt: ['lunge', 'step_up'] }),
-  E('lunge', 'Walking Lunge', ['dumbbell'], 'lunge', ['quads', 'glutes'], ['hamstrings'], {
-    load: 'perHand', reps: [8, 12], rest: 90, lower: true, cues: ['Weight entered is per dumbbell.', 'Long steps, back knee toward the floor. Log reps per leg.'], alt: ['split_squat', 'step_up'] }),
+  E('lunge', 'Dumbbell Lunge', ['dumbbell'], 'lunge', ['quads', 'glutes'], ['hamstrings'], {
+    load: 'perHand', reps: [8, 12], rest: 90, lower: true, cues: ['Weight entered is per dumbbell. Log reps per leg.', 'Stand tall with dumbbells at your sides.', 'Take a long step forward and lower the back knee toward the floor.', 'Push through the front heel to step back to standing.'], alt: ['split_squat', 'step_up'] }),
   E('step_up', 'Step-Up', ['dumbbell', 'bench'], 'lunge', ['quads', 'glutes'], [], {
     load: 'perHand', reps: [8, 12], rest: 90, lower: true, cues: ['Weight entered is per dumbbell.', 'Drive through the top foot, no push from the bottom leg.'], alt: ['lunge', 'split_squat'] }),
   E('leg_ext', 'Leg Extension', ['machine'], 'iso', ['quads'], [], {
@@ -271,6 +271,33 @@ export const EXERCISES = [
     load: 'bw', reps: [5, 20], rest: 60, cues: ['Log minutes as reps.', 'Legs, then hips, then arms.'], alt: ['bike', 'treadmill'] }),
   E('bike', 'Stationary Bike', ['cardio'], 'cardio', ['quads'], ['calves'], {
     load: 'bw', reps: [10, 30], rest: 60, cues: ['Log minutes as reps.'], alt: ['rower', 'treadmill'] }),
+  E('jump_rope', 'Jump Rope', [], 'cardio', ['calves'], ['shoulders'], {
+    load: 'bw', reps: [1, 10], rest: 60, cues: ['Log minutes as reps.', 'Small hops on the balls of the feet.', 'Turn the rope with the wrists, elbows close to the body.'], alt: ['treadmill', 'bike'] }),
+  E('elliptical', 'Elliptical Trainer', ['cardio'], 'cardio', ['quads', 'glutes'], [], {
+    load: 'bw', reps: [10, 30], rest: 60, cues: ['Log minutes as reps.', 'Stand tall and push and pull the handles.', 'Set a resistance that feels like work.'], alt: ['bike', 'treadmill'] }),
+  E('stairmaster', 'Stair Climber', ['cardio'], 'cardio', ['quads', 'glutes'], ['calves'], {
+    load: 'bw', reps: [5, 20], rest: 60, cues: ['Log minutes as reps.', 'Stand upright with hands light on the rails.', 'Step through the whole foot.'], alt: ['treadmill', 'elliptical'] }),
+  // ---- mobility (log seconds or reps per side)
+  E('worlds_greatest', "World's Greatest Stretch", [], 'mobility', ['hamstrings', 'glutes'], ['back', 'quads'], {
+    load: 'bw', reps: [3, 6], rest: 30, cues: ['Log reps per side.', 'Step into a long lunge and place both hands inside the front foot.', 'Drop the inside elbow toward the instep.', 'Rotate that arm up toward the ceiling, then return and switch sides.'], alt: ['hip_flexor_stretch', 'hamstring_stretch'] }),
+  E('cat_cow', 'Cat-Cow', [], 'mobility', ['back'], ['core'], {
+    load: 'bw', reps: [8, 12], rest: 30, cues: ['Start on hands and knees, hands under shoulders.', 'Inhale and let the belly drop as you look up.', 'Exhale and round the back toward the ceiling.'], alt: ['childs_pose'] }),
+  E('hip_flexor_stretch', 'Kneeling Hip Flexor Stretch', [], 'mobility', ['quads'], ['glutes'], {
+    load: 'bw', reps: [30, 45], rest: 30, cues: ['Log seconds per side.', 'Kneel on one knee with the other foot forward.', 'Tuck the pelvis and squeeze the back glute.', 'Shift forward gently until you feel the front of the hip stretch.'], alt: ['worlds_greatest', 'quad_foam_roll'] }),
+  E('childs_pose', "Child's Pose", [], 'mobility', ['back'], ['shoulders'], {
+    load: 'bw', reps: [30, 60], rest: 15, cues: ['Log seconds.', 'Kneel and sit the hips back toward the heels.', 'Reach the arms forward and rest the forehead down.', 'Breathe slowly into the back.'], alt: ['cat_cow', 'lat_stretch'] }),
+  E('hamstring_stretch', 'Seated Hamstring Stretch', [], 'mobility', ['hamstrings'], ['calves'], {
+    load: 'bw', reps: [30, 45], rest: 15, cues: ['Log seconds.', 'Sit with legs straight in front of you.', 'Hinge forward from the hips with a long spine.', 'Hold where you feel a gentle stretch.'], alt: ['worlds_greatest'] }),
+  E('chest_stretch', 'Chest & Shoulder Stretch', [], 'mobility', ['chest'], ['shoulders'], {
+    load: 'bw', reps: [20, 40], rest: 15, cues: ['Log seconds per side.', 'Place a hand on a wall or post at shoulder height.', 'Turn your body away until you feel a stretch across the chest.'], alt: ['lat_stretch'] }),
+  E('calf_stretch', 'Wall Calf Stretch', [], 'mobility', ['calves'], [], {
+    load: 'bw', reps: [30, 45], rest: 15, cues: ['Log seconds per side.', 'Hands on a wall, one foot back.', 'Keep the back heel down and lean in.'], alt: ['hamstring_stretch'] }),
+  E('lat_stretch', 'Overhead Lat Stretch', [], 'mobility', ['back'], ['shoulders'], {
+    load: 'bw', reps: [20, 40], rest: 15, cues: ['Log seconds per side.', 'Reach one arm overhead and grab the wrist with the other hand.', 'Lean to the side and breathe into the side body.'], alt: ['childs_pose'] }),
+  E('quad_foam_roll', 'Quad Foam Roll', [], 'mobility', ['quads'], [], {
+    load: 'bw', reps: [30, 60], rest: 15, cues: ['Log seconds per leg.', 'Lie face down with a foam roller under the thighs.', 'Roll slowly from the hip to just above the knee, pausing on tight spots.'], alt: ['hip_flexor_stretch'] }),
+  E('hip_circles', 'Standing Hip Circles', [], 'mobility', ['glutes'], ['core'], {
+    load: 'bw', reps: [8, 12], rest: 15, cues: ['Log reps per direction.', 'Stand with hands on hips.', 'Make big, slow circles with the hips, then reverse.'], alt: ['worlds_greatest'] }),
   E('treadmill', 'Treadmill', ['cardio'], 'cardio', ['quads', 'calves'], [], {
     load: 'bw', reps: [10, 30], rest: 60, cues: ['Log minutes as reps.'], alt: ['bike', 'rower'] }),
 ];

@@ -1,6 +1,6 @@
 // Minimal persistence layer: IndexedDB first, localStorage second, memory as a last resort.
 const DB_NAME = 'ascend';
-const DB_VERSION = 1;
+const DB_VERSION = 2;
 
 let dbp = null;
 export let mode = 'idb';
@@ -17,6 +17,7 @@ function openDb() {
         const ps = db.createObjectStore('photos', { keyPath: 'id' });
         ps.createIndex('user', 'userId');
       }
+      if (!db.objectStoreNames.contains('videos')) db.createObjectStore('videos', { keyPath: 'id' });
     };
     req.onsuccess = () => resolve(req.result);
     req.onerror = () => reject(req.error);
@@ -98,6 +99,21 @@ export async function deletePhoto(id) {
 export async function clearPhotos(userId) {
   const list = await listPhotos(userId);
   for (const p of list) await deletePhoto(p.id);
+}
+
+// ---------- user-added demonstration videos (blobs) ----------
+const memVideos = new Map();
+export async function putVideo(v) {
+  if (mode === 'idb') { try { await tx('videos', 'readwrite', (s) => { s.put(v); }); return; } catch { /* fall through */ } }
+  memVideos.set(v.id, v);
+}
+export async function getVideo(id) {
+  if (mode === 'idb') { try { return await tx('videos', 'readonly', (s) => reqP(s.get(id))); } catch { /* fall through */ } }
+  return memVideos.get(id);
+}
+export async function deleteVideo(id) {
+  if (mode === 'idb') { try { await tx('videos', 'readwrite', (s) => { s.delete(id); }); return; } catch { /* fall through */ } }
+  memVideos.delete(id);
 }
 
 export async function requestPersistence() {

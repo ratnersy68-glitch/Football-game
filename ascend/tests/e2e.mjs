@@ -59,6 +59,11 @@ await page.waitForSelector('#day-name');
 const before = await page.locator('.slot').count();
 await click('[data-action="day-add-ex"]');
 await page.waitForSelector('#lib-q');
+await click('[data-action="lib-muscle"][data-m="mobility"]');
+await page.waitForTimeout(150);
+assert(await page.locator('.ex-row:has-text("Cat-Cow")').count(), 'mobility category');
+await shot('library-mobility');
+await click('[data-action="lib-muscle"][data-m="all"]');
 await page.fill('#lib-q', 'hammer');
 await page.waitForTimeout(150);
 await shot('library-search');
@@ -66,6 +71,7 @@ await click('[data-action="pick-ex"]');
 await page.waitForSelector('#day-name');
 assert(await page.locator('.slot').count() === before + 1, 'exercise added to day');
 await click('[data-action="slot-move"][data-d="-1"]:not([disabled]) >> nth=-1');
+await page.waitForTimeout(200); // reorder re-renders on the next frame
 await page.fill('#day-name', 'Upper Power'); await page.locator('#day-name').blur();
 await page.waitForTimeout(100);
 await click('[data-action="slot-edit"]');
@@ -98,6 +104,19 @@ async function doWorkout(i, weight) {
   }
   await page.waitForTimeout(200);
   if (i === 0) {
+    // watch the demonstration mid-workout, then come back to logged sets
+    await click('[data-action="demo-open"]');
+    await page.waitForSelector('.demo .demo-seq img.b');
+    await page.waitForTimeout(1600);
+    await shot('demo-player');
+    await page.locator('.demo-panel').evaluate((el) => el.scrollTo(0, 99999));
+    await page.waitForTimeout(200);
+    await shot('demo-info');
+    assert(await page.locator('.demo-chip:has-text("PHOTO SEQUENCE")').count(), 'demo labelled as photo sequence');
+    assert(await page.locator('.demo-info:has-text("Common mistakes")').count(), 'common mistakes shown');
+    await click('.demo-top [data-d="close"]');
+    await page.waitForSelector('.demo', { state: 'detached' });
+    assert(await page.locator('.set-row.done').count() === count, 'sets still logged after watching');
     assert(await page.locator('.rest-pill').count(), 'rest timer shown');
     await shot('workout-logged', true);
     await click('[data-action="rest-skip"]');

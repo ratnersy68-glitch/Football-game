@@ -224,3 +224,31 @@ test('warm-up ramp and load rounding', () => {
   assert.ok(r.length >= 2 && r.every((x) => x.weightKg < 100));
   assert.equal(roundLoad(61.3, 'kg', getExercise('bench')), 62.5);
 });
+
+// ---------- demonstrations ----------
+import { existsSync } from 'node:fs';
+import { fileURLToPath } from 'node:url';
+import { EXERCISES } from '../js/data/exercises.js';
+import { demoFor } from '../js/data/media.js';
+import { formFor } from '../js/data/form.js';
+
+test('every built-in exercise has form coaching content', () => {
+  for (const ex of EXERCISES) {
+    const f = formFor(ex.id);
+    assert.ok(f && f.mistakes.length >= 2 && f.tips.length >= 2, ex.id);
+    assert.ok(ex.cues.length >= 1, `${ex.id} has steps`);
+  }
+});
+
+test('bundled demonstration media exists on disk for every mapped exercise', () => {
+  const root = fileURLToPath(new URL('..', import.meta.url));
+  let mapped = 0;
+  for (const ex of EXERCISES) {
+    const d = demoFor(ex.id);
+    if (!d) continue;
+    mapped++;
+    for (const f of [...d.frames, d.thumb]) assert.ok(existsSync(root + f), `${ex.id}: ${f}`);
+  }
+  assert.ok(mapped >= 80, `mapped ${mapped}`);
+  assert.equal(demoFor('incline_db').source, 'Incline_Dumbbell_Press', 'exact variation, not flat barbell bench');
+});

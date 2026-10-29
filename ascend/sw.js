@@ -1,5 +1,6 @@
 // Offline support: precache the app shell, then serve stale-while-revalidate.
-const VERSION = 'ascend-v1';
+// Demonstration images (media/) are not precached; each is cached the first time it's viewed.
+const VERSION = 'ascend-v2';
 const SHELL = [
   './',
   './index.html',
@@ -11,6 +12,8 @@ const SHELL = [
   "./css/app.css",
   "./js/app.js",
   "./js/data/exercises.js",
+  "./js/data/form.js",
+  "./js/data/media.js",
   "./js/data/templates.js",
   "./js/db.js",
   "./js/engine/analytics.js",
@@ -25,6 +28,7 @@ const SHELL = [
   "./js/store.js",
   "./js/ui/charts.js",
   "./js/ui/components.js",
+  "./js/ui/demo.js",
   "./js/ui/emblems.js",
   "./js/ui/feedback.js",
   "./js/ui/icons.js",

@@ -25,6 +25,7 @@ export function emptyState() {
     xp: { total: 0, log: [] },
     achievements: {},
     coach: { accepted: {} },
+    videos: {},
     meta: { createdAt: new Date().toISOString(), lastBackupAt: null, seenReveal: {} },
   };
 }
@@ -39,6 +40,7 @@ export function migrate(doc) {
   out.xp = { ...base.xp, ...(doc.xp || {}) };
   out.coach = { ...base.coach, ...(doc.coach || {}) };
   out.meta = { ...base.meta, ...(doc.meta || {}) };
+  out.videos = { ...(doc.videos || {}) };
   for (const k of ['splits', 'customExercises', 'sessions', 'goals', 'bodyweights', 'prs']) if (!Array.isArray(out[k])) out[k] = [];
   out.schema = SCHEMA_VERSION;
   return out;
