@@ -19,7 +19,7 @@ function routeFromHash() {
   const h = (location.hash || '').slice(1);
   if (TABS.includes(h)) return { tab: h, view: null };
   if (h === 'workout' && store.state.activeWorkout) return { tab: 'train', view: 'workout' };
-  if (['analytics', 'achievements', 'records', 'body', 'photos', 'settings', 'data'].includes(h)) return { tab: 'profile', view: h };
+  if (['analytics', 'achievements', 'records', 'body', 'photos', 'data'].includes(h)) return { tab: 'profile', view: h };
   if (['library', 'history', 'calendar'].includes(h)) return { tab: 'train', view: h };
   return { tab: 'home', view: null };
 }

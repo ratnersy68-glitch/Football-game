@@ -70,7 +70,9 @@ function nav() {
 
 export function go(tab, view = null, params = {}, { scroll = true } = {}) {
   app.route = { tab: tab || app.route.tab, view, params };
-  try { history.replaceState(null, '', `#${view || tab}`); } catch { /* sandboxed */ }
+  // 'settings' is reserved when hosted on claude.ai, so it isn't written to the address bar
+  const h = view || tab;
+  try { history.replaceState(null, '', h === 'settings' ? location.pathname : `#${h}`); } catch { /* sandboxed */ }
   renderNow();
   if (scroll) window.scrollTo({ top: 0, behavior: 'instant' in window ? 'instant' : 'auto' });
 }
