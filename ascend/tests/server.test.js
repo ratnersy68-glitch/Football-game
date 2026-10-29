@@ -67,14 +67,33 @@ test('upstream failures map to useful codes and never leak the key', async () =>
     [jsonRes(200, { candidates: [{ content: { parts: [] }, finishReason: 'SAFETY' }] }), 'blocked', 422],
   ];
   for (const [res, code, status] of cases) {
-    const r = await handleChat(chatBody(), { env, fetchImpl: async () => res });
+    const r = await handleChat(chatBody(), { env: { ...env, GEMINI_FALLBACK_MODELS: '' }, fetchImpl: async () => res, retryDelays: [1, 1] });
     assert.equal(r.body.error.code, code);
     assert.equal(r.status, status);
     assert.ok(!JSON.stringify(r.body).includes(FAKE_KEY), `${code} leaks key`);
   }
   const net = await handleChat(chatBody(), { env, fetchImpl: async () => { throw new TypeError('fetch failed'); } });
+  const aq = 'AQ.Ab8TESTxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx';
+  assert.equal(redact(`token ${aq}`), 'token [redacted]', 'new AQ. key format redacted');
   assert.equal(net.body.error.code, 'network');
   assert.equal(redact(`x ${FAKE_KEY} y`, FAKE_KEY), 'x [redacted] y');
+});
+
+test('temporary Gemini overload is retried, then succeeds', async () => {
+  let n = 0;
+  const f = async () => (++n < 3 ? jsonRes(503, { error: { message: 'high demand' } }) : jsonRes(200, { candidates: [{ content: { parts: [{ text: 'back' }] } }] }));
+  const r = await handleChat(chatBody(), { env, fetchImpl: f, retryDelays: [1, 1] });
+  assert.equal(r.status, 200); assert.equal(r.body.text, 'back'); assert.equal(n, 3);
+  let m = 0;
+  const bad = await handleChat(chatBody(), { env, fetchImpl: async () => { m++; return jsonRes(400, { error: { message: 'API key not valid', details: [{ reason: 'API_KEY_INVALID' }] } }); }, retryDelays: [1, 1] });
+  assert.equal(bad.body.error.code, 'invalid_key'); assert.equal(m, 1, 'permanent errors are not retried');
+});
+
+test('falls back to the next model when the primary stays overloaded', async () => {
+  const f = mockFetch((url) => (url.includes('gemini-flash-latest') ? jsonRes(503, { error: { message: 'high demand' } }) : jsonRes(200, { candidates: [{ content: { parts: [{ text: 'from fallback' }] } }] })));
+  const r = await handleChat(chatBody(), { env: { ...env, GEMINI_FALLBACK_MODELS: 'gemini-flash-lite-latest' }, fetchImpl: f, retryDelays: [1, 1] });
+  assert.equal(r.status, 200); assert.equal(r.body.text, 'from fallback'); assert.equal(r.body.model, 'gemini-flash-lite-latest');
+  assert.equal(f.calls.filter((c) => c.url.includes('gemini-flash-latest')).length, 3, 'primary retried before falling back');
 });
 
 test('validation rejects malformed requests and caps sizes', () => {
@@ -138,7 +157,7 @@ test('no API keys or key-shaped strings in any client-side file', () => {
   const files = [...walk(join(root, 'js')), join(root, 'index.html'), join(root, 'sw.js')];
   for (const f of files) {
     const t = readFileSync(f, 'utf8');
-    assert.ok(!/AIza[0-9A-Za-z_-]{20,}/.test(t), `key-like string in ${f}`);
+    assert.ok(!/AIza[0-9A-Za-z_-]{20,}|\bAQ\.[0-9A-Za-z_-]{20,}/.test(t), `key-like string in ${f}`);
     // the variable name may appear in setup instructions, but never process.env access
     assert.ok(!/process\.env/.test(t), `env access in client file ${f}`);
   }

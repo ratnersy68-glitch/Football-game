@@ -3,7 +3,7 @@
 import { store } from './store.js';
 
 const API = 'api/coach/';
-const TIMEOUT = 45000;
+const TIMEOUT = 65000; // > server worst case (primary timeout + fallback)
 
 export const ERROR_TEXT = {
   missing_key: 'The AI coach isn’t configured on this server yet (no GEMINI_API_KEY).',

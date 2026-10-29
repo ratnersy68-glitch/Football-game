@@ -8,9 +8,10 @@
 import { presetById, sliderStyle, PRESETS, AVATARS, VOICES, PRESENTATIONS } from '../js/data/coaches.js';
 
 export const DEFAULT_MODEL = 'gemini-flash-latest';
+export const DEFAULT_FALLBACKS = 'gemini-flash-lite-latest';
 export const DEFAULT_BASE = 'https://generativelanguage.googleapis.com/v1beta/models';
 const LIMITS = { messages: 24, messageChars: 2000, context: 14000, memories: 30, memoryChars: 300, summary: 2500, description: 400, name: 24 };
-const TIMEOUT_MS = 30000;
+const TIMEOUT_MS = 20000; // per attempt; a timed-out model goes straight to the fallback
 
 const str = (v, max) => (typeof v === 'string' ? v.slice(0, max) : '');
 const num = (v, lo, hi, d) => (Number.isFinite(Number(v)) ? Math.min(hi, Math.max(lo, Math.round(Number(v)))) : d);
@@ -19,6 +20,8 @@ export function readConfig(env = process.env) {
   return {
     apiKey: (env.GEMINI_API_KEY || '').trim(),
     model: (env.GEMINI_MODEL || DEFAULT_MODEL).trim(),
+    // tried in order when the primary model stays overloaded/unavailable after retries
+    fallbacks: (env.GEMINI_FALLBACK_MODELS ?? DEFAULT_FALLBACKS).split(',').map((m) => m.trim()).filter(Boolean),
     base: (env.GEMINI_API_BASE || DEFAULT_BASE).replace(/\/$/, ''),
     accessCode: (env.ASCEND_ACCESS_CODE || '').trim(),
   };
@@ -118,11 +121,26 @@ export class CoachError extends Error {
 export function redact(text, apiKey) {
   let t = String(text || '');
   if (apiKey) t = t.split(apiKey).join('[redacted]');
-  return t.replace(/AIza[0-9A-Za-z_-]{20,}/g, '[redacted]');
+  return t.replace(/AIza[0-9A-Za-z_-]{20,}/g, '[redacted]').replace(/\bAQ\.[0-9A-Za-z_-]{20,}/g, '[redacted]');
 }
 
-/** Call Gemini generateContent. Returns the reply text or throws CoachError. */
-export async function callGemini(cfg, { system, contents, temperature = 0.8, maxOutputTokens = 800 }, fetchImpl = fetch) {
+const RETRY_DELAYS = [800, 2000]; // Gemini 503 "high demand" spikes are usually brief
+
+/** Call Gemini, retrying temporary overload (503/500) and timeouts a couple of times. */
+export async function callGemini(cfg, req, fetchImpl = fetch, { delays = RETRY_DELAYS } = {}) {
+  for (let i = 0; ; i++) {
+    try {
+      return await callGeminiOnce(cfg, req, fetchImpl);
+    } catch (e) {
+      const temporary = e instanceof CoachError && e.code === 'upstream_unavailable'; // fast 503s only
+      if (!temporary || i >= delays.length) throw e;
+      await new Promise((r) => setTimeout(r, delays[i]));
+    }
+  }
+}
+
+/** One generateContent request. Returns the reply text or throws CoachError. */
+async function callGeminiOnce(cfg, { system, contents, temperature = 0.8, maxOutputTokens = 800 }, fetchImpl = fetch) {
   if (!cfg.apiKey) throw new CoachError('missing_key', 503, 'GEMINI_API_KEY is not set on the server.');
   const url = `${cfg.base}/${encodeURIComponent(cfg.model)}:generateContent`;
   const ac = new AbortController();
@@ -185,10 +203,10 @@ export class RateLimiter {
 /** Route handlers shared by the Node server and serverless functions. Return { status, body }. */
 export function handleStatus(env = process.env) {
   const cfg = readConfig(env);
-  return { status: 200, body: { configured: !!cfg.apiKey, model: cfg.model, accessCodeRequired: !!cfg.accessCode } };
+  return { status: 200, body: { configured: !!cfg.apiKey, model: cfg.model, fallbacks: cfg.fallbacks, accessCodeRequired: !!cfg.accessCode } };
 }
 
-export async function handleChat(body, { env = process.env, fetchImpl = fetch, accessCode = '' } = {}) {
+export async function handleChat(body, { env = process.env, fetchImpl = fetch, accessCode = '', retryDelays } = {}) {
   const cfg = readConfig(env);
   if (cfg.accessCode && accessCode !== cfg.accessCode) {
     return { status: 401, body: { error: { code: 'access_denied', message: 'This ASCEND server requires an access code. Add it in Coach settings.' } } };
@@ -200,12 +218,23 @@ export async function handleChat(body, { env = process.env, fetchImpl = fetch, a
     let contents = val.messages;
     if (val.task === 'greeting') contents = [{ role: 'user', text: 'Introduce yourself and greet me.' }];
     if (val.task === 'summarize') contents = [{ role: 'user', text: `Conversation to summarise:\n${val.messages.map((m) => `${m.role === 'user' ? 'User' : 'Coach'}: ${m.text}`).join('\n')}` }];
-    const r = await callGemini(cfg, {
+    const req = {
       system: buildSystemPrompt(val), contents,
       temperature: val.task === 'summarize' ? 0.2 : 0.8,
       maxOutputTokens: val.task === 'summarize' ? 400 : 800,
-    }, fetchImpl);
-    return { status: 200, body: { text: r.text, model: cfg.model } };
+    };
+    const models = [cfg.model, ...cfg.fallbacks.filter((m) => m !== cfg.model)];
+    let lastErr;
+    for (const model of models) {
+      try {
+        const r = await callGemini({ ...cfg, model }, req, fetchImpl, retryDelays ? { delays: retryDelays } : undefined);
+        return { status: 200, body: { text: r.text, model } };
+      } catch (e) {
+        lastErr = e;
+        if (!(e instanceof CoachError) || !['upstream_unavailable', 'timeout', 'model_not_found', 'rate_limited'].includes(e.code)) throw e;
+      }
+    }
+    throw lastErr;
   } catch (e) {
     if (e instanceof CoachError) return { status: e.status, body: { error: { code: e.code, message: e.message, retryAfter: e.retryAfter ?? undefined } } };
     return { status: 500, body: { error: { code: 'server_error', message: 'Unexpected server error.' } } };
